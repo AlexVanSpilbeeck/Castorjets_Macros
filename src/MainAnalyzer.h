@@ -9,6 +9,7 @@
 #include "FileReader.h"
 #include "HistoRetriever.h"
 #include "JetAnalyzer.h"
+#include "RadiusAnalyzer.h"
 #include "TreeOutputCombiner.h"
 #include "HadronAnalyzer.h"
 
@@ -22,7 +23,9 @@ public:
 	
 	void makeJetHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);
     void makeJetAfterLoopHistos(TString inputfile, bool isData, const char* outputname);
-	
+
+	void makeRadiusHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);	
+
 	void plotSingleHistos(TString outputfile, TString selectname);
 	
 	void plotHistos(TString inputdir, TString regexpstr, TString selectname);

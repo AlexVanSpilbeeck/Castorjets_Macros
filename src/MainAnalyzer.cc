@@ -56,6 +56,19 @@ void MainAnalyzer::makeJetHistos(TString inputdir, TString regexpstr, bool isDat
 	
 }
 
+// AVS.
+void MainAnalyzer::makeRadiusHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname) {
+
+        TObjArray *files = reader_.getFileList(inputdir,regexpstr);
+    RadiusAnalyzer radiusanalyzer(inputdir,files, isData, outputname);
+        radiusanalyzer.Loop();
+    TString input = radiusanalyzer.getOutputFile();
+//    if (input != "") radiusanalyzer.AfterLoopCalculations(input);
+//    if (input == "") std::cout << "empty input file for AfterLoopCalculations given" << std::endl;
+
+}
+// End AVS.
+
 void MainAnalyzer::makeJetAfterLoopHistos(TString inputfile, bool isData, const char* outputname) {
 	
     JetAnalyzer jetanalyzer("",NULL, isData, outputname);

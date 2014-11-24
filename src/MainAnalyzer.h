@@ -10,6 +10,8 @@
 #include "HistoRetriever.h"
 #include "JetAnalyzer.h"
 #include "RadiusAnalyzer.h"
+#include "SystematicsMin.h"
+#include "SystematicsMax.h"
 #include "TreeOutputCombiner.h"
 #include "HadronAnalyzer.h"
 
@@ -25,6 +27,8 @@ public:
     void makeJetAfterLoopHistos(TString inputfile, bool isData, const char* outputname);
 
 	void makeRadiusHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);	
+        void makeSysMinHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);
+        void makeSysMaxHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);
 
 	void plotSingleHistos(TString outputfile, TString selectname);
 	

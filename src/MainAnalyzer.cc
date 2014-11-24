@@ -67,6 +67,25 @@ void MainAnalyzer::makeRadiusHistos(TString inputdir, TString regexpstr, bool is
 //    if (input == "") std::cout << "empty input file for AfterLoopCalculations given" << std::endl;
 
 }
+
+void MainAnalyzer::makeSysMinHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname) {
+
+        TObjArray *files = reader_.getFileList(inputdir,regexpstr);
+        SystematicsMin sysminanalyzer(inputdir,files, isData, outputname);
+        sysminanalyzer.Loop();
+        TString input = sysminanalyzer.getOutputFile();
+
+}
+void MainAnalyzer::makeSysMaxHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname) {
+
+        TObjArray *files = reader_.getFileList(inputdir,regexpstr);
+        SystematicsMax sysmaxanalyzer(inputdir,files, isData, outputname);
+        sysmaxanalyzer.Loop();
+        TString input = sysmaxanalyzer.getOutputFile();
+
+}
+
+
 // End AVS.
 
 void MainAnalyzer::makeJetAfterLoopHistos(TString inputfile, bool isData, const char* outputname) {

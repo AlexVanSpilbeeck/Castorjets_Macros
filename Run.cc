@@ -92,6 +92,21 @@ int main(int argc, char *argv[])
                                                           "CastorTree_MC_MinBias_TuneZ2star_7TeV_pythia6_LowPU2010_53XRECOwithCorrector_v3/45ff2e600e4cec01b439799f3c950bc6/",
                                                           "CastorTree_MC_7TeV_42X_53XRECOwithCorrector_",false,"Pythia6_Z2star_Default_varyR_");
                         }
+                        else if(strcmp(argv[3],"SystematicsMin") == 0) {
+                                std::cout << "We'll process the Pythia6 Z2star 7TeV MC tree now with the minimum systematics" << std::endl;
+                                m->makeSysMinHistos("dcap://maite.iihe.ac.be/pnfs/iihe/cms/store/user/avanspil/"
+                                                          "/MinBias_TuneZ2star_HFshowerLibrary_7TeV_pythia6/"
+                                                          "CastorTree_MC_MinBias_TuneZ2star_7TeV_pythia6_LowPU2010_53XRECOwithCorrector_v3/45ff2e600e4cec01b439799f3c950bc6/",
+                                                          "CastorTree_MC_7TeV_42X_53XRECOwithCorrector_",false,"Pythia6_Z2star_Default_varyR_");
+                        }
+                        else if(strcmp(argv[3],"SystematicsMax") == 0) {
+                                std::cout << "We'll process the Pythia6 Z2star 7TeV MC tree now with the maximum systematics" << std::endl;
+                                m->makeSysMaxHistos("dcap://maite.iihe.ac.be/pnfs/iihe/cms/store/user/avanspil/"
+                                                          "/MinBias_TuneZ2star_HFshowerLibrary_7TeV_pythia6/"
+                                                          "CastorTree_MC_MinBias_TuneZ2star_7TeV_pythia6_LowPU2010_53XRECOwithCorrector_v3/45ff2e600e4cec01b439799f3c950bc6/",
+                                                          "CastorTree_MC_7TeV_42X_53XRECOwithCorrector_",false,"Pythia6_Z2star_Default_varyR_");
+                        }
+
                 }
         }
 

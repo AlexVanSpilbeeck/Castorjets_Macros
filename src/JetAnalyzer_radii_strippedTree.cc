@@ -14,7 +14,10 @@
 #include "JetAnalyzer_radii_strippedTree.h"
 #include "HistoRetriever.h"
 
+
+
 #include "IsolationCut.h"
+#include "CalibCorrection.h"
 
 //STANDARD ROOT INCLUDES
 
@@ -81,6 +84,12 @@
 #define PI 3.14159265359
 #define GenJetContained 0.5
 #define comments_ false
+#define do_calibration_discrete false
+#define do_calibration_function true
+
+#define par0 0.53221  
+#define par1 0.85787
+#define par2 -0.018093
 
 #include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
 //#include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
@@ -405,6 +414,11 @@ cout << "Variable bins done" << endl;
 	hMatched->Sumw2();
 	hUnmatched->Sumw2();
 	
+	// -- First vector contains our energy values, second vector our calibration values.
+	vector<double> lowedge;
+	vector<double> muval;
+
+	FillCorrectionVectors( lowedge, muval);
 
 	TObjString* fn = 0;
 	
@@ -457,10 +471,13 @@ cout << "Variable bins done" << endl;
 		int Nevents = tree->GetEntriesFast();
 		std::cout << "file opened, events in this file = " << Nevents << std::endl;
 		totalevents += Nevents;
-		
+	
+		cout << "counter_events\t" << counter_events << "\ttotalEvents_\t" << totalEvents_ << "\tNevents\t" << Nevents << "\ttreesize\t" << treesize << endl;
+	
 		// start event loop
-		for( counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {		
-		
+//		for( counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {		
+		for( counter_events = 0; counter_events < treesize; counter_events++ ) {
+	           
 			if( counter_events%1000== 0){ cout << "\t" << counter_events << "\tpassed" << endl; }
 
 			
@@ -627,19 +644,24 @@ cout << "Variable bins done" << endl;
 					  
 					  // -- Need to remove energy?
 					  double E_gen_cut = 0.;
-					  for(int genjet = 0; genjet < CastorGenJets->size(); genjet++){
-					    if( genjet == match_gen ){ continue; }
-					    MyGenJet genjet_ = (*CastorGenJets)[ genjet ];
-					    
-					    for(int genpart = 0; genpart <  (genjet_.JetPart).size(); genpart++){
-					      double phipart = ( (genjet_.JetPart)[genpart]).Phi();
+					  int genjet = 0;
+					  while (E_gen_cut == 0. && genjet < CastorGenJets->size()){
+					      if( genjet == match_gen ){ genjet++; continue; }
+					      MyGenJet genjet_ = (*CastorGenJets)[ genjet ];
+					 
+					      int genpart = 0;
+					      while( genpart <  (genjet_.JetPart).size() && E_gen_cut == 0.){
+					        double phipart = ( (genjet_.JetPart)[genpart]).Phi();
 				       					 
-					      if( IsolationCut( phi_det, castor_sectors, phipart) ){ 
-						E_gen_cut += ( (genjet_.JetPart)[genpart]).Energy();
-//						if( phi_det < (2.*PI/16. * -7.5) || phi_det > (2.*PI/16. * 7.5)  ) { cout << "$ Event\t" << counter_events << "\tsectors\t" << castor_sectors << "\t" << phipart << "\t" <<  phi_det << endl; }
-					      }
-					    }					    					  
-					  }
+					        if( IsolationCut( phi_det, castor_sectors, phipart) ){ 
+						  E_gen_cut += ( (genjet_.JetPart)[genpart]).Energy();
+					        } // Check if energy is present in Castor sectors.
+						genpart++;
+					      } // Loop over Gen. parts.					    					  
+					   
+					    genjet++;
+					  } // Loop over Gen. jets.
+
 					  hIsolationEnergy->Fill( castor_sectors, E_gen_cut );
 					  hIsolationEnergy_1D->Fill( E_gen_cut );
 					  hIsolationEnergy_Egen->Fill( E_gen_cut / gen_energy );
@@ -652,11 +674,17 @@ cout << "Variable bins done" << endl;
 					  // Leading jets, no pair matched yet.
 					  
 					  if( comments_){ cout << "Events\t" << counter_events << "\tActual match\t" << endl; }
+
+					  if( do_calibration_discrete ){ det_energy = CalibratedDet(lowedge, muval, det_energy); }
+					  else if( do_calibration_function ){ det_energy = CalibratedDet( det_energy, par0, par1, par2); }
 					  
 					  if( matched_pairs == 0){
 					    response.Fill( det_energy, gen_energy); 
 					    
 					    hCastorJet_energy_response->Fill( det_energy, gen_energy);
+
+					    hCastorJet_energy->Fill( det_energy );
+					    hGenJet_energy->Fill( gen_energy );
 					 
                                             hDistance->Fill( lowest_distance );
                                             hPhiDiff -> Fill( phidiff );

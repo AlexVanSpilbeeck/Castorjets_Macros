@@ -45,32 +45,15 @@
 #include "Function_FirstPlot.h"
 using namespace std;
 
+#define determine_fit false
+#define vary_eta true
+#define vary_eI true
+
 int main(){
    gROOT->SetStyle ("Plain");
    gStyle->SetPalette(1);
 
-//   TString date = "20141215_03"; 		// Gen-Det jets matched hardest to hardest.
-//   TString date = "20141212_05"; 		// Gen jet matched to closest det jet.
-//   TString date = "Match_phi_02"; 
-//   TString date = "20150107_had_em_jets"; 	// Hardest gen jet matched to closest (phi) det jet. 
-//   TString date = "20150199_had_em_jets"; 
-//   TString date = "20150112_had_em_jets"; 
-//   TString date = "20150119_had_em_jets"; 
-
-    TString date = "20150302";
-    TString numb = "10000000"; TString suffix = "_173_1_iQO.root";
-//    TString numb = "1000000"; TString suffix = "_13_1_irJ.root";
-//    TString numb = "100000"; TString suffix = "_129_1_D3d.root";
-    
-   /// Draw all plots on one canvas. ///
-
-   TCanvas *can_comparison = new TCanvas("Canvas_comparison", "Canvas_comparison", 1.);   
-     can_comparison->SetLeftMargin(0.18);
-     can_comparison->SetRightMargin(0.01);
-     can_comparison->SetBottomMargin(0.20);
-
-   TLegend *legend = new TLegend(0.65, 0.75, 0.99, 0.99);
-     legend->SetFillColor( kWhite );
+   TString label = "20150311_test";
 
    std::vector<TString> filenames;
    std::vector<TString> legendEntries;
@@ -81,147 +64,259 @@ int main(){
      std::vector<TString> plotTitle;
      std::vector<bool> project_2D;
    std::vector<int>     colours;
+   std::vector<int>	linestyle;
+   std::vector<TString> Plot_list;
+   
+   int color_index = 1;
    
    std::map<TString, TString> axis_of_interest;
 
    cout << "Files" << endl;
+   
+   if( determine_fit ){
+   
+     filenames.push_back("LoopRootFiles/20150305_had_Output_JetAnalyzer_radii_strippedTree_GEN_ak5_DET_ak5_margin_0.500000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.4");
+       colours.push_back(getColor(color_index++));      
+   }
 
- 
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.400000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 0.4");
-     colours.push_back(getColor(1));
-     
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.500000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 0.5");
-     colours.push_back(getColor(2));
-     
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.600000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 0.6");
-     colours.push_back(getColor(3));
-     
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.700000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 0.7");
-     colours.push_back(getColor(4));
-     
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.800000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 0.8");
-     colours.push_back(getColor(5));
-     
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.900000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 0.9");
-     colours.push_back(getColor(6));                    
+   else if( vary_eta ){
+     int style_of_line = 1; 
 
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.000000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 1.0");
-     colours.push_back(getColor(7));   
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.400000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.4");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line ); 
+       
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.500000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.5");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
      
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.100000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 1.1");
-     colours.push_back(getColor(8));  
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.600000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.6");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+     
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.700000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.7");
+       linestyle.push_back( style_of_line );
+       colours.push_back(getColor(color_index++));
+     
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.800000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.8");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+     
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.900000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.9");
+       colours.push_back(getColor(color_index++));                    
+       linestyle.push_back( style_of_line );
+  
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.000000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.0");
+       colours.push_back(getColor(color_index++));   
+       linestyle.push_back( style_of_line );
+     
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.100000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.1");
+       colours.push_back(getColor(color_index++));  
+       linestyle.push_back( style_of_line );
 
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.200000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 1.2");
-     colours.push_back(getColor(9));   
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.200000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.2");
+       colours.push_back(getColor(color_index++));   
+       linestyle.push_back( style_of_line );
      
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.300000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 1.3");
-     colours.push_back(getColor(10));   
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.300000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.3");
+       colours.push_back(getColor(color_index++));   
+       linestyle.push_back( style_of_line );
      
-   filenames.push_back("LoopRootFiles/20150306_test_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.400000_10000000_0_sectors.root");
-     legendEntries.push_back("#eta band: 1.4");
-     colours.push_back(getColor(11));                     
+     filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.400000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.4");
+       linestyle.push_back( style_of_line );
+       colours.push_back(getColor(color_index++));                     
+   } // Vary eta.
+
+   else if( vary_eI ){
+     cout << "Vary EI" << endl;
+
+     filenames.push_back("LoopRootFiles/20150225_iso-cut_000_had_Output_JetAnalyzer_radii_strippedTree_GEN_ak5_DET_ak5_margin_0.500000_9082063_0_sectors.root");
+       legendEntries.push_back("E_{I} = 0 GeV");
+      colours.push_back(getColor(color_index++));   
+      
+     filenames.push_back("LoopRootFiles/20150225_iso-cut_001_had_Output_JetAnalyzer_radii_strippedTree_GEN_ak5_DET_ak5_margin_0.500000_9082063_0_sectors.root");
+       legendEntries.push_back("E_{I} < 0.01 E_{I}");
+      colours.push_back(getColor(color_index++));   
+      
+     filenames.push_back("LoopRootFiles/20150225_iso-cut_01_had_Output_JetAnalyzer_radii_strippedTree_GEN_ak5_DET_ak5_margin_0.500000_9082063_0_sectors.root");
+       legendEntries.push_back("E_{I} < 0.1 E_{I}");
+      colours.push_back(getColor(color_index++));   
+      
+     filenames.push_back("LoopRootFiles/20150225_iso-cut_05_had_Output_JetAnalyzer_radii_strippedTree_GEN_ak5_DET_ak5_margin_0.500000_9082063_0_sectors.root");
+       legendEntries.push_back("E_{I} < 0.5 E_{I}");
+      colours.push_back(getColor(color_index++));   
+      
+     filenames.push_back("LoopRootFiles/20150225_iso-cut_1_had_Output_JetAnalyzer_radii_strippedTree_GEN_ak5_DET_ak5_margin_0.500000_9082063_0_sectors.root");
+       legendEntries.push_back("E_{I} < 1 E_{I}");
+      colours.push_back(getColor(color_index++));          
+   }
+
+   if( vary_eta && vary_eI){
+     int style_of_line = 2;
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.400000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.4, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.500000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.5, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.600000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.6, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.700000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.7, no E_{I} cut");
+       linestyle.push_back( style_of_line );
+       colours.push_back(getColor(color_index++));
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.800000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.8, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.900000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 0.9, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.000000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.0, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.100000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.1, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.200000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.2, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.300000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.3, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+
+     filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_1.400000_12137851_0_sectors.root");
+       legendEntries.push_back("#eta band: 1.4, no E_{I} cut");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line );
+   }   
+
+   std::map<TString, TString> xTitle;
+   std::map<TString, TString> yTitle; 
+   std::map<TString, TString> save; 
+
+   Plot_list.push_back("Plot_GenLevel");
+     xTitle["Plot_GenLevel"] = "E_{gen} (GeV)";
+     yTitle["Plot_GenLevel"] = "#frac{dN}{dE_{gen}}";
+     save["Plot_GenLevel"] = "Gen_energy";
+
+   Plot_list.push_back("Plot_DetLevel");
+     xTitle["Plot_DetLevel"] = "E_{det} (GeV)";
+     yTitle["Plot_DetLevel"] = "#frac{dN}{dE_{det}}";
+     save["Plot_DetLevel"] = "Det_energy";
+
+   Plot_list.push_back("Plot_GenLevelEta");
+     xTitle["Plot_GenLevelEta"] = "#Delta#eta";
+     yTitle["Plot_GenLevelEta"] = "#frac{dN}{#Delta#Eta";
+     save["Plot_GenLevelEta"] = "Gen_eta";
+
+   Plot_list.push_back("PlotCorrectionFactors_BinByBin");
+     xTitle["PlotCorrectionFactors_BinByBin"] = "E";
+     yTitle["PlotCorrectionFactors_BinByBin"] = "#frac{dN}{dE}";
+     save["PlotCorrectionFactors_BinByBin"] = "BinByBin";
+
+   Plot_list.push_back("PlotCorrectionFactors_Bayesian");
+     xTitle["PlotCorrectionFactors_Bayesian"] = "E (GeV)";
+     yTitle["PlotCorrectionFactors_Bayesian"] = "#frac{dN}{dE}";
+     save["PlotCorrectionFactors_Bayesian"] = "Bayes";
+
+   Plot_list.push_back("Plot_JES_vs_E");
+     xTitle["Plot_JES_vs_E"] = "E_{det} (GeV)";
+     yTitle["Plot_JES_vs_E"] = "JES";
+     save["Plot_JES_vs_E"] = "JES_vs_E";
 
 
    TCanvas *can = new TCanvas("Test", "Test", 1.);
+   
+       
+   TLegend *legend = new TLegend(0.65, 0.65, 0.99, 0.99);
+     legend->SetFillColor( kWhite );
+
    TH1D* histo;
    TH1D* original;  
    double max_val, min_val;   
-   TString drawoptions="";
+   TString drawoptions="";  
    
-   // -- Gen over Det ratio.
- 
-   for( int file = 0; file < filenames.size(); file++){ 
-     PlotCorrectionFactors_BinByBin( histo, filenames[file] , legendEntries[file], "");  
-     First_Plot( original, histo, file, max_val, min_val);     
+   void (*current_function)(TH1D*&, TString, TString, TString) = NULL;   
+      
+   for( int plot = 0; plot < Plot_list.size(); plot++){   
+   
+     if	( Plot_list[plot] == "Plot_GenLevel"){ 	
+     	current_function = &Plot_GenLevel; }
+	
+     else if( Plot_list[plot] == "Plot_DetLevel"){ 	
+     	current_function = &Plot_DetLevel; }
+
+     else if( Plot_list[plot] == "Plot_GenLevelEta"){	
+     	current_function = &Plot_GenLevelEta; }
+
+     else if( Plot_list[plot] == "PlotCorrectionFactors_BinByBin"){ 	
+     	current_function = &PlotCorrectionFactors_BinByBin; }
+
+     else if( Plot_list[plot] == "PlotCorrectionFactors_Bayesian"){	
+     	current_function = &PlotCorrectionFactors_Bayesian; }  
+	
+     else if( Plot_list[plot] == "Plot_JES_vs_E"){	
+     	current_function = &Plot_JES_vs_E; }  
+     
+      
+     drawoptions = "";
+     max_val = 0, min_val = 0;
+     if( current_function != NULL ){
+     for( int file = 0; file < filenames.size(); file++){ 
+       (*current_function)( histo, filenames[file] , legendEntries[file], "");  
+       First_Plot( original, histo, file, max_val, min_val);     
          
-     histo->SetLineColor( colours[file] );	 
-     legend->AddEntry( histo, legendEntries[file], "l");
-     can->cd();
-     histo->Draw( "hist" + drawoptions );
-     drawoptions = "same";
+       histo->SetLineColor( colours[file] );	 
+       histo->GetXaxis()->SetTitle( Plot_list[plot] );
+       histo->GetYaxis()->SetTitle( Plot_list[plot] );
+       histo->SetLineStyle( linestyle[file] );
+
+       can->cd();
+       histo->Draw( "hist" + drawoptions );
+       drawoptions = "same";
+       
+       if( plot == 0 ){ legend->AddEntry( histo, legendEntries[file], "l"); }
+     }      
+     legend->Draw();
+     can->SaveAs( save[Plot_list[plot]] + ".pdf" );
+     can->SaveAs( save[Plot_list[plot]] + ".C" );
+
+     current_function == NULL;
+     }
+     
    }
-   legend->Draw();     
-   can->SaveAs("Gen-over-det_factors.pdf");
-   
-   // -- Bayesian unfolding.
-   
-   drawoptions = "";
-   max_val = 0, min_val = 0;
-   for( int file = 0; file < filenames.size(); file++){ 
-     PlotCorrectionFactors_Bayesian( histo, filenames[file] , legendEntries[file], "");  
-     First_Plot( original, histo, file, max_val, min_val);     
-         
-     histo->SetLineColor( colours[file] );	 
-     can->cd();
-     histo->Draw( "hist" + drawoptions );
-     drawoptions = "same";
-   }   
-   legend->Draw();
-   can->SaveAs("Bayesian_factors.pdf");
-   
-   // -- Gen level distribution.
-   
-   drawoptions = "";
-   max_val = 0, min_val = 0;
-   for( int file = 0; file < filenames.size(); file++){ 
-     Plot_GenLevel( histo, filenames[file] , legendEntries[file], "");  
-     First_Plot( original, histo, file, max_val, min_val);     
-         
-     histo->SetLineColor( colours[file] );	 
-     can->cd();
-     histo->Draw( "hist" + drawoptions );
-     drawoptions = "same";
-   }   
-   legend->Draw();
-   can->SaveAs("Gen_level_energy.pdf");   
-   
-   // -- Det level distribution.
-   
-   drawoptions = "";
-   max_val = 0, min_val = 0;
-   for( int file = 0; file < filenames.size(); file++){ 
-     Plot_DetLevel( histo, filenames[file] , legendEntries[file], "");  
-     First_Plot( original, histo, file, max_val, min_val);     
-         
-     histo->SetLineColor( colours[file] );	 
-     can->cd();
-     histo->Draw( "hist" + drawoptions );
-     drawoptions = "same";
-   }   
-   legend->Draw();
-   can->SaveAs("Det_level_energy.pdf");    
-   
-     
-   
-   // -- Bin-by-bin unfolded (RooUnfold).
-   
-   drawoptions = "";
-   max_val = 0, min_val = 0;
-   for( int file = 0; file < filenames.size(); file++){ 
-     PlotCorrectionFactors_BinByBin_Unfolded( histo, filenames[file] , legendEntries[file], "");  
-     First_Plot( original, histo, file, max_val, min_val);     
-         
-     histo->SetLineColor( colours[file] );	 
-     can->cd();
-     histo->Draw( "hist" + drawoptions );
-     drawoptions = "same";
-   }   
-   legend->Draw();
-   can->SaveAs("RooUnfold_binbybin.pdf");   
-   
- 
-   
-     
- 
+    
   return(0); 
 }

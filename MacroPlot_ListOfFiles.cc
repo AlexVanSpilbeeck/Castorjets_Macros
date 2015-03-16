@@ -24,6 +24,7 @@
 #include <TPaletteAxis.h>
 
 //STANDARD C++ INCLUDES
+#include <sys/stat.h>
 #include <sstream>
 #include <iostream>
 #include <vector>
@@ -42,20 +43,25 @@
 #include "color.h"
 #include "NonZeroMinimum.h"
 #include "MacroPlot_Unfold_energy_MC.h"
-#include "Function_FirstPlot.h"
+
+//#ifndef FUNCTION_FIRSTPLOT_H
+//#include "Function_FirstPlot.h"
+//#endif
+//#include "Function_make_Tex.h"
+
 using namespace std;
 
 #define determine_fit false
-#define vary_eta true
-#define vary_eI true
 
 int main(){
    gROOT->SetStyle ("Plain");
    gStyle->SetPalette(1);
 
-   TString label = "20150311_test";
+   TString label = "20150312_test";
 
    std::vector<TString> filenames;
+   std::vector<TString> data_files;
+
    std::vector<TString> legendEntries;
    std::vector<TString> plotVariables;
    std::vector<TString> jetSelection;
@@ -67,12 +73,22 @@ int main(){
    std::vector<int>	linestyle;
    std::vector<TString> Plot_list;
    
-   int color_index = 1;
+   int color_index = 2;
    
    std::map<TString, TString> axis_of_interest;
 
+   bool vary_eta = true;
+   bool vary_eI = false;
+
    cout << "Files" << endl;
-   
+
+   /********
+   * DATA. * 
+   ********/ 
+/*
+   data_files.push_back("LoopRootFiles/20150312_stripped_tree_DATA.root");
+     legendEntries.push_back("Data");
+*/   
    if( determine_fit ){
    
      filenames.push_back("LoopRootFiles/20150305_had_Output_JetAnalyzer_radii_strippedTree_GEN_ak5_DET_ak5_margin_0.500000_12137851_0_sectors.root");
@@ -80,7 +96,7 @@ int main(){
        colours.push_back(getColor(color_index++));      
    }
 
-   else if( vary_eta ){
+   else if( vary_eI && vary_eta){
      int style_of_line = 1; 
 
      filenames.push_back("LoopRootFiles/20150311_Calib_Iso0_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.400000_12137851_0_sectors.root");
@@ -139,7 +155,11 @@ int main(){
        colours.push_back(getColor(color_index++));                     
    } // Vary eta.
 
-   else if( vary_eI ){
+   /**************************
+   * MC with varied E_I cut. *
+   **************************/ 
+
+   else if(  !vary_eta && vary_eI){
      cout << "Vary EI" << endl;
 
      filenames.push_back("LoopRootFiles/20150225_iso-cut_000_had_Output_JetAnalyzer_radii_strippedTree_GEN_ak5_DET_ak5_margin_0.500000_9082063_0_sectors.root");
@@ -163,7 +183,11 @@ int main(){
       colours.push_back(getColor(color_index++));          
    }
 
-   if( vary_eta && vary_eI){
+   /********************************************
+   * MC without E_I cut and variable eta band. *
+   ********************************************/
+
+   else if( vary_eta && !vary_eI){
      int style_of_line = 2;
 
      filenames.push_back("LoopRootFiles/20150311_Calib_noIso_had_Output_JetAnalyzer_radii_strippedTree_etaband_0.400000_12137851_0_sectors.root");
@@ -222,43 +246,89 @@ int main(){
        linestyle.push_back( style_of_line );
    }   
 
+   /**************************************
+   * Prepare the plots and their labels. * 
+   **************************************/	 
+
    std::map<TString, TString> xTitle;
    std::map<TString, TString> yTitle; 
    std::map<TString, TString> save; 
-
+   std::map<TString, TString> labels;
+/*
    Plot_list.push_back("Plot_GenLevel");
      xTitle["Plot_GenLevel"] = "E_{gen} (GeV)";
      yTitle["Plot_GenLevel"] = "#frac{dN}{dE_{gen}}";
-     save["Plot_GenLevel"] = "Gen_energy";
+     labels["Plot_GenLevel"] = label;
+     save["Plot_GenLevel"] = "Gen_energy";    
 
    Plot_list.push_back("Plot_DetLevel");
      xTitle["Plot_DetLevel"] = "E_{det} (GeV)";
      yTitle["Plot_DetLevel"] = "#frac{dN}{dE_{det}}";
+     labels["Plot_GenLevel"] = label;
      save["Plot_DetLevel"] = "Det_energy";
 
    Plot_list.push_back("Plot_GenLevelEta");
      xTitle["Plot_GenLevelEta"] = "#Delta#eta";
-     yTitle["Plot_GenLevelEta"] = "#frac{dN}{#Delta#Eta";
+     yTitle["Plot_GenLevelEta"] = "#frac{dN}{#Delta#Eta}";
+     labels["Plot_GenLevelEta"] = label;
      save["Plot_GenLevelEta"] = "Gen_eta";
 
    Plot_list.push_back("PlotCorrectionFactors_BinByBin");
      xTitle["PlotCorrectionFactors_BinByBin"] = "E";
      yTitle["PlotCorrectionFactors_BinByBin"] = "#frac{dN}{dE}";
+     labels["PlotCorrectionFactors_BinByBin"] = label;
      save["PlotCorrectionFactors_BinByBin"] = "BinByBin";
+*/
+   Plot_list.push_back("PlotCorrectionFactors_Bayes");
+     xTitle["PlotCorrectionFactors_Bayes"] = "E (GeV)";
+     yTitle["PlotCorrectionFactors_Bayes"] = "#frac{dN}{dE}";
+     labels["PlotCorrectionFactors_Bayes"] = label;
+     save["PlotCorrectionFactors_Bayes"] = "Bayes";
 
-   Plot_list.push_back("PlotCorrectionFactors_Bayesian");
-     xTitle["PlotCorrectionFactors_Bayesian"] = "E (GeV)";
-     yTitle["PlotCorrectionFactors_Bayesian"] = "#frac{dN}{dE}";
-     save["PlotCorrectionFactors_Bayesian"] = "Bayes";
+   Plot_list.push_back("Plot_Bayes_vs_Gen");
+     xTitle["Plot_Bayes_vs_Gen"] = "E";
+     yTitle["Plot_Bayes_vs_Gen"] = "#frac{Bayes}{Gen}";
+     labels["Plot_Bayes_vs_Gen"] = label;
+     save["Plot_Bayes_vs_Gen"] = "Bayes_vs_Gen";
+     
+/*
+   Plot_list.push_back("Plot_BinByBin_vs_Gen");
+     xTitle["Plot_BinByBin_vs_Gen"] = "E";
+     yTitle["Plot_BinByBin_vs_Gen"] = "#frac{Bin-by-bin}{Gen}";
+     labels["Plot_BinByBin_vs_Gen"] = label;
+     save["Plot_BinByBin_vs_Gen"] = "BinByBin_vs_Gen";
 
-   Plot_list.push_back("Plot_JES_vs_E");
+//   Plot_list.push_back("Plot_JES_vs_E");
      xTitle["Plot_JES_vs_E"] = "E_{det} (GeV)";
      yTitle["Plot_JES_vs_E"] = "JES";
+     labels["Plot_JES_vs_E"] = label;
      save["Plot_JES_vs_E"] = "JES_vs_E";
 
+   Plot_list.push_back("Plot_2D_Energy_Response");
+     xTitle["Plot_2D_Energy_response"] = "";
+     yTitle["Plot_2D_Energy_response"] = "";
+     labels["Plot_2D_Energy_response"] = label;
+     save["Plot_2D_Energy_response"] = "";
+*/
+   Plot_list.push_back("Bayes_iterations");
+     xTitle["Bayes_iterations"] = "";
+     yTitle["Bayes_iterations"] = "#chi^{2}";
+     labels["Bayes_iterations"] = "15";
+     save["Bayes_iterations"] = "";
 
-   TCanvas *can = new TCanvas("Test", "Test", 1.);
-   
+
+
+   /*******************************************
+   * Create a new subdirectory for the plots. *
+   *******************************************/
+
+   int 	new_dir = mkdir( ("Plots/" + label).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
+
+   /************************************************
+   * Prepare canvas, legend, and reused variables. *
+   ************************************************/
+
+   TCanvas *can = new TCanvas("Test", "Test", 1.);   
        
    TLegend *legend = new TLegend(0.65, 0.65, 0.99, 0.99);
      legend->SetFillColor( kWhite );
@@ -270,8 +340,14 @@ int main(){
    
    void (*current_function)(TH1D*&, TString, TString, TString) = NULL;   
       
+   /***********************
+   * Loop over the plots. *
+   ***********************/  
+
    for( int plot = 0; plot < Plot_list.size(); plot++){   
    
+     //-- 1. Assign function to function pointer.
+
      if	( Plot_list[plot] == "Plot_GenLevel"){ 	
      	current_function = &Plot_GenLevel; }
 	
@@ -284,39 +360,88 @@ int main(){
      else if( Plot_list[plot] == "PlotCorrectionFactors_BinByBin"){ 	
      	current_function = &PlotCorrectionFactors_BinByBin; }
 
-     else if( Plot_list[plot] == "PlotCorrectionFactors_Bayesian"){	
-     	current_function = &PlotCorrectionFactors_Bayesian; }  
+     else if( Plot_list[plot] == "PlotCorrectionFactors_Bayes"){	
+     	current_function = &PlotCorrectionFactors_Bayes; }  
 	
      else if( Plot_list[plot] == "Plot_JES_vs_E"){	
      	current_function = &Plot_JES_vs_E; }  
-     
+
+     else if( Plot_list[plot] == "Plot_BinByBin_vs_Gen"){
+        current_function = &Plot_BinByBin_vs_Gen; }
+
+     else if( Plot_list[plot] == "Plot_Bayes_vs_Gen"){
+        current_function = &Plot_Bayes_vs_Gen; }
+
+     else{
+        current_function = NULL; }
+ 
+     //-- Reset variables.
       
      drawoptions = "";
      max_val = 0, min_val = 0;
      if( current_function != NULL ){
-     for( int file = 0; file < filenames.size(); file++){ 
-       (*current_function)( histo, filenames[file] , legendEntries[file], "");  
-       First_Plot( original, histo, file, max_val, min_val);     
-         
-       histo->SetLineColor( colours[file] );	 
-       histo->GetXaxis()->SetTitle( Plot_list[plot] );
-       histo->GetYaxis()->SetTitle( Plot_list[plot] );
-       histo->SetLineStyle( linestyle[file] );
+       for( int file = 0; file < filenames.size(); file++){ 
 
-       can->cd();
-       histo->Draw( "hist" + drawoptions );
-       drawoptions = "same";
+	 //-- Obtain histogram from file.
+	 cout << "\t\t\tLabel before\t" << labels[Plot_list[plot]] << endl; 
+         (*current_function)( histo, filenames[file] , legendEntries[file], labels[Plot_list[plot]]);  
+
+	 //-- Adjust min. and max values of the canvas.
+
+         First_Plot( original, histo, file, max_val, min_val);  
+
+	 //-- Color histogram, draw.
+
+         histo->SetLineColor( colours[file] );	 
+         histo->GetXaxis()->SetTitle( xTitle[Plot_list[plot]] );
+         histo->GetYaxis()->SetTitle( yTitle[Plot_list[plot]] );
+         histo->SetLineStyle( linestyle[file] );
+
+         can->cd();
+         histo->Draw( "hist" + drawoptions );
+         drawoptions = "same";      
+         if( plot == 0 ){ legend->AddEntry( histo, legendEntries[file], "l"); }
+	 
+       }       
+
+       if( original->Integral() != 0. ){
+         //-- Finish canvas, save.
+         legend->Draw();
+
+         can->SaveAs( "Plots/" + label + "/" + save[Plot_list[plot]] + ".pdf" );
+         can->SaveAs( "Plots/" + label + "/" + save[Plot_list[plot]] + ".C" );
+
+         current_function == NULL;
+        }
+       } // Loop over files.
        
-       if( plot == 0 ){ legend->AddEntry( histo, legendEntries[file], "l"); }
-     }      
-     legend->Draw();
-     can->SaveAs( save[Plot_list[plot]] + ".pdf" );
-     can->SaveAs( save[Plot_list[plot]] + ".C" );
+      
+      /*****************************************************************************
+      * The functions that do not produce a series of 1D plots on the same canvas. *
+      *****************************************************************************/ 
+       
+     if( Plot_list[plot] == "Plot_2D_Energy_Response"){
+        current_function = &Plot_2D_Energy_Response; }
 
-     current_function == NULL;
-     }
-     
-   }
-    
+     else if( Plot_list[plot] == "Bayes_iterations"){
+        current_function = &Bayes_iterations; }    
+	
+     //-- Reset variables.
+      
+     drawoptions = "";
+     max_val = 0, min_val = 0;
+     if( current_function != NULL ){
+       for( int file = 0; file < filenames.size(); file++){ 
+
+	 //-- Obtain histogram from file.
+	 cout << "\t\t\tLabel before\t" << labels[Plot_list[plot]] << endl; 
+         (*current_function)( histo, filenames[file] , legendEntries[file], labels[Plot_list[plot]]);  
+	 	 
+       }       
+
+     } // Loop over files.
+     current_function == NULL;       
+   } // Loop over plots.
+       
   return(0); 
 }

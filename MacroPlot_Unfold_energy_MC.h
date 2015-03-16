@@ -45,6 +45,9 @@
 #include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
 #include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
 #include "color.h"
+#include "Function_make_Tex.h"
+#include "Function_FirstPlot.h"
+
 using namespace std;
 
 /*****************************************
@@ -91,7 +94,7 @@ void PlotCorrectionFactors_BinByBin(TH1D* &histo, TString filename , TString leg
 * Plot the bayesian correction factors *
 ***************************************/
 
-void PlotCorrectionFactors_Bayesian(TH1D* &histo, TString filename , TString legend, TString drawoption){
+void PlotCorrectionFactors_Bayes(TH1D* &histo, TString filename , TString legend, TString iterations_){
    gROOT->SetStyle ("Plain");
    gStyle->SetPalette(1);
    gSystem->Load("~/RooUnfold-1.1.1/libRooUnfold.so");
@@ -107,14 +110,13 @@ void PlotCorrectionFactors_Bayesian(TH1D* &histo, TString filename , TString leg
    RooUnfoldResponse* response = (RooUnfoldResponse*)_file0->Get("response");
 
    TH1D *hDet = (TH1D*)_file0->Get("hCastorJet_energy");	hDet->Sumw2();
-   TH1D *hGen = (TH1D*)_file0->Get("hGenJet_energy");	hGen->Sumw2();
-
-   int nbins_x = hGen->GetXaxis()->GetNbins();
-   double x_axisMax = hGen->GetXaxis()->GetBinUpEdge( nbins_x );
   
    /****************/
    /** Unfold MC. **/
    /****************/
+
+   int iterations;
+   (iterations_ == "") ? iterations = 4 :  iterations = atoi(iterations_);
 
    RooUnfoldBayes unfold_mc_bayes (response, hDet, 4);
      TH1D* hReco_mc_bayes= (TH1D*) unfold_mc_bayes.Hreco();
@@ -126,8 +128,174 @@ void PlotCorrectionFactors_Bayesian(TH1D* &histo, TString filename , TString leg
      
    histo = (TH1D*)hReco_mc_bayes->Clone(legend);
    
+   
    }
 }
+
+//-- Overloaded functon
+
+void PlotCorrectionFactors_Bayes_chi2(TH1D* &histo, TString filename , double &chi2, int iterations){
+   gROOT->SetStyle ("Plain");
+   gStyle->SetPalette(1);
+   gSystem->Load("~/RooUnfold-1.1.1/libRooUnfold.so");
+
+   /* Open DATA and MC */
+
+   TFile *_file0 = TFile::Open( filename, "Read");
+
+   if( _file0->GetListOfKeys()->Contains( "response" ) ){
+
+   /* Extract GEN and DET (MC) and DATA distribution */
+
+   RooUnfoldResponse* response = (RooUnfoldResponse*)_file0->Get("response");
+
+   TH1D *hDet = (TH1D*)_file0->Get("hCastorJet_energy");        hDet->Sumw2();	//hDet->Scale( 1./hDet->Integral() );
+   TH1D *hGen = (TH1D*)_file0->Get("hGenJet_energy");		hGen->Sumw2();	hGen->Scale( 1./hGen->Integral() );
+   
+
+
+   /****************/
+   /** Unfold MC. **/
+   /****************/
+
+   RooUnfoldBayes unfold_mc_bayes (response, hDet, iterations);
+     TH1D* hReco_mc_bayes= (TH1D*) unfold_mc_bayes.Hreco();
+
+    hReco_mc_bayes->SetLineStyle(3);
+     hReco_mc_bayes->SetLineColor(kGreen);
+     hReco_mc_bayes->SetLineWidth(2);
+     hReco_mc_bayes->SetName("hReco_bayes_1");
+
+   histo = (TH1D*)hReco_mc_bayes->Clone(TString::Format("Bayes_%i", iterations));
+
+   chi2 = unfold_mc_bayes.Chi2(hGen);
+
+   }
+}
+
+
+
+// --------------------------------------------------------------------------------------
+
+/*************************************
+* Plot Bayes with several iterations *
+*************************************/
+
+void Bayes_iterations( TH1D* &histo, TString filename , TString legend, TString iterations_){
+
+  cout << "Bayes iterations " << iterations_ << endl;
+
+  TFile *_file0 = TFile::Open( filename, "Read");
+  if( _file0->GetListOfKeys()->Contains( "response" ) ){
+  
+    RooUnfoldResponse* response = (RooUnfoldResponse*)_file0->Get("response");
+    TH1D *hGen = (TH1D*)_file0->Get("hGenJet_energy"); 		// hGen->Rebin(4);   
+    TH1D *hDet = (TH1D*)_file0->Get("hCastorJet_energy");	// hDet->Rebin(4);    
+
+  cout << "Integral gen " << hGen->Integral() << endl;
+
+   int iterations;
+   (iterations_ == "") ? iterations = 4 :  iterations = atoi(iterations_);
+   cout << "Iterations " << iterations << endl;
+
+   TH1D* current_bayes;
+   TH1D* current_ratio;
+   TH1D* original;    
+   TH1D* original_com;
+   vector<double> iteration_vector;
+   vector<double> chi2_vector;
+   double max_val=0., min_val=0.;
+   double max_val_com = 0., min_val_com = 0.;
+
+   TCanvas *can = new TCanvas("can", "can", 1.);
+   TCanvas *com = new TCanvas("comparison", "comparison", 1.);
+   
+   TLegend *legend = new TLegend(0.65, 0.65, 0.99, 0.99);
+     legend->SetFillColor( kWhite );   
+   
+   TString drawoptions = "";
+   double chi2 = -1.;
+   int colours = 1; 
+   
+   double gen_scale = 0.;
+
+   for(int it = 1; it <= iterations; it++){
+     PlotCorrectionFactors_Bayes_chi2(current_bayes, filename, chi2, it);
+     iteration_vector.push_back(static_cast<double>(it));
+     
+     chi2_vector.push_back(chi2/current_bayes->GetNbinsX());
+     
+     current_bayes->SetLineColor( getColor(colours++) );
+     
+
+     com->cd();  
+     
+     current_ratio = (TH1D*)current_bayes->Clone(TString::Format("ratio_%i", it));   
+     
+     cout << "Integral Gen " << hGen->Integral() << "\tIntegral unfold " << current_bayes->Integral() << endl;
+     
+     current_ratio->Divide(hGen);
+     current_ratio->SetLineStyle(colours);
+     First_Plot( original_com, current_ratio, it-1, max_val_com, min_val_com); 
+     current_ratio->Draw("hist" + drawoptions);     
+     
+     com->Update();
+
+     current_bayes->Scale(1./current_bayes->Integral() );
+     First_Plot( original, current_bayes, it-1, max_val, min_val); 
+
+     can->cd();
+     current_bayes->SetName(TString::Format("iteration%i", it));
+     current_bayes->Draw("hist" + drawoptions);
+     can->Update();   
+
+     
+     
+     drawoptions = "same";
+     legend->AddEntry( current_bayes, TString::Format("%i iterations", it), "l");
+     
+   }
+    hGen->Scale(1./ hGen->Integral() );   
+   
+   can->cd();
+   hGen->SetMarkerStyle(21);
+   hGen->SetMarkerSize(0.6);
+   hGen->Draw("samep");
+   legend->AddEntry( hGen, "Generator level", "p");
+   legend->Draw();
+      
+   filename.ReplaceAll(".","");
+   filename.ReplaceAll("/","_");
+
+   can->SaveAs("LetsTestIterations_" + filename + ".pdf"); 
+   can->SaveAs("LetsTestIterations_" + filename + ".C"); 
+
+   com->cd();
+   hGen->Divide(hGen);
+   hGen->Draw("samep");
+   legend->Draw();
+
+   com->SaveAs("LetsTest_Ratios_" + filename + ".pdf"); 
+   com->SaveAs("LetsTest_Ratios_" + filename + ".C"); 
+
+
+   //-- Plot evolution of chi2.
+
+   double *X_axis = &iteration_vector[0];
+   double *Y_axis = &chi2_vector[0];
+
+   can->cd();
+
+   TGraph *iteration_plot = new TGraph( iterations, X_axis, Y_axis );
+   iteration_plot->SetMarkerStyle(22);
+   iteration_plot->SetMarkerSize(2);
+   iteration_plot->Draw("ap");
+   can->SaveAs("LetsTestIterations_chi2_" + filename + ".pdf"); 
+   can->SaveAs("LetsTestIterations_chi2_" + filename + ".C"); 
+   
+  }  
+}
+
 
 
 // --------------------------------------------------------------------------------------
@@ -147,7 +315,7 @@ void PlotCorrectionFactors_BinByBin_Unfolded(TH1D* &histo, TString filename , TS
    TFile *_file0 = TFile::Open( filename, "Read");
    if( _file0->GetListOfKeys()->Contains( "response" ) ){
    
- 
+	 
    /* Extract GEN and DET (MC) and DATA distribution */
 
    RooUnfoldResponse* response = (RooUnfoldResponse*)_file0->Get("response");
@@ -261,7 +429,7 @@ void Plot_JES_vs_E(TH1D* &histo, TString filename , TString legend, TString vari
    /* Open DATA and MC */
    TFile *_file0 = TFile::Open( filename, "Read");
    cout << "$$$ " << variable << endl;
-   if( _file0->GetListOfKeys()->Contains( variable ) ){ 
+   if( _file0->GetListOfKeys()->Contains( "hJER_per_eDet" ) ){ 
    
    cout << "$$$ " << filename << "\tcontains " << variable << endl;
 
@@ -304,12 +472,11 @@ void Plot_JES_vs_E(TH1D* &histo, TString filename , TString legend, TString vari
 	  
      TGraph *sigma_plot 	= new TGraph( E_axis.size(), E_axis_arr, sigma_arr );
      TGraph *mu_plot 		= new TGraph( E_axis.size(), E_axis_arr, mu_arr );
-   
-     histo = (TH1D*)hE->Clone(legend);
-   
+      
      for(int bin_E = 0; bin_E < E_axis.size(); bin_E++){
-       histo->SetBinContent( bin_E, mu_arr[bin_E]);
+       hE->SetBinContent( bin_E, mu_arr[bin_E]);
      }
+     histo = (TH1D*)hE->Clone(legend);
    }
 }
 
@@ -317,17 +484,21 @@ void Plot_JES_vs_E(TH1D* &histo, TString filename , TString legend, TString vari
 // --------------------------------------------------------------------------------------
 
 /**********************************
-* Plot Bayesian unfolding vs. Gen *
+* Plot Bayes unfolding vs. Gen *
 **********************************/  
 
-void Plot_Bayes_vs_Gen(TH1D* &histo, TString filename , TString legend){
+void Plot_Bayes_vs_Gen(TH1D* &histo, TString filename , TString legend, TString not_needed){
 
   TH1D* hGen;
   	Plot_GenLevel(hGen, filename, legend, "");
   TH1D* hBayes;
-  	PlotCorrectionFactors_Bayesian( hBayes, filename, legend, "");
+  	PlotCorrectionFactors_Bayes( hBayes, filename, legend, "");
 	
   histo = (TH1D*)hBayes->Clone(legend);
+  
+//  histo->Scale(1./histo->Integral() );
+//  hGen->Scale(1./hGen->Integral() );
+  
   histo->Divide(hGen);
 } 
 
@@ -338,7 +509,7 @@ void Plot_Bayes_vs_Gen(TH1D* &histo, TString filename , TString legend){
 * Plot Bin-by-bin unfolding vs. Gen *
 ************************************/  
 
-void Plot_BinByBin_vs_Gen(TH1D* &histo, TString filename , TString legend){
+void Plot_BinByBin_vs_Gen(TH1D* &histo, TString filename , TString legend, TString not_needed){
 
   TH1D* hGen;
   	Plot_GenLevel(hGen, filename, legend, "");
@@ -368,3 +539,171 @@ void Determine_function( void(*current_function)(TH1D* &, TString, TString, TStr
 }
 
 
+
+
+// --------------------------------------------------------------------------------------
+
+ /**********************
+ * Unfold data - Bayes *
+ **********************/ 
+
+void Unfold_data_Bayes( TH1D* &histo, TString MC_file, TString legend, TString data_file){
+
+   gROOT->SetStyle ("Plain");
+   gStyle->SetPalette(1);
+   gSystem->Load("~/RooUnfold-1.1.1/libRooUnfold.so");
+
+   /* Open DATA and MC */
+
+   TFile *_file_MC = TFile::Open( MC_file, "Read");
+   if( _file_MC->GetListOfKeys()->Contains( "response" ) ){
+
+     /* Extract GEN and DET (MC) and DATA distribution */
+
+     RooUnfoldResponse* response = (RooUnfoldResponse*)_file_MC->Get("response");
+     TH1D *hGen = (TH1D*)_file_MC->Get("hGenJet_energy");   hGen->Sumw2();
+
+     TFile *_file_data = TFile::Open(data_file, "Read");
+     TH1D *hDet = (TH1D*)_file_data->Get("hCastorJet_energy");   hDet->Sumw2();
+
+     int iterations = 4;
+
+     RooUnfoldBayes unfold_mc_bayes (response, hDet, iterations);
+     TH1D* hReco_mc_bayes= (TH1D*) unfold_mc_bayes.Hreco();
+
+     hReco_mc_bayes->SetName(TString::Format("hReco_bayes_%i_iterations", iterations));
+
+     histo = (TH1D*)hReco_mc_bayes->Clone(legend);
+   }
+}
+
+
+// --------------------------------------------------------------------------------------
+
+  /***************************
+  * Unfold data - bin-by-bin *
+  ***************************/
+    
+
+
+void Unfold_data_BinByBin( TH1D* &histo, TString MC_file, TString legend, TString data_file){
+
+   gROOT->SetStyle ("Plain");
+   gStyle->SetPalette(1);
+   gSystem->Load("~/RooUnfold-1.1.1/libRooUnfold.so");
+
+   /* Open DATA and MC */
+
+   TFile *_file_MC = TFile::Open( MC_file, "Read");
+   if( _file_MC->GetListOfKeys()->Contains( "response" ) ){
+
+     /* Extract GEN and DET (MC) and DATA distribution */
+
+     RooUnfoldResponse* response = (RooUnfoldResponse*)_file_MC->Get("response");
+     TH1D *hGen = (TH1D*)_file_MC->Get("hGenJet_energy");   hGen->Sumw2();
+
+     TFile *_file_data = TFile::Open(data_file, "Read");
+     TH1D *hDet = (TH1D*)_file_data->Get("hCastorJet_energy");   hDet->Sumw2();
+
+     int iterations = 4;
+
+     RooUnfoldBinByBin unfold_mc_binbybin (response, hDet);
+     TH1D* hReco_mc_binbybin= (TH1D*) unfold_mc_binbybin.Hreco();
+
+     hReco_mc_binbybin->SetName(TString::Format("hReco_binbybin"));
+
+     histo = (TH1D*)hReco_mc_binbybin->Clone(legend);
+   }
+}
+
+
+
+// --------------------------------------------------------------------------------------
+
+
+  /*****************************
+  * Create 2D plots from file. *
+  *****************************/
+
+void Plot_2D_Energy_Response(TH1D* &histo, TString MC_file, TString legend, TString label){
+
+  cout << "\t\t\tLabel is\t" << label << endl;
+
+  TFile *_file0 = TFile::Open( MC_file ); 
+
+  TString save_name;
+  save_name = MC_file;
+  save_name.ReplaceAll("LoopRootFiles/","");
+  save_name.ReplaceAll(".root","");
+
+
+  vector<TString> distributions;
+   map<TString, TString> xTitle;
+   map<TString, TString> yTitle;
+
+  TString plot = "";
+  
+  /****************************
+  * Prepare plots and titles. * 
+  ****************************/	
+
+  plot = "hJER_per_energy";
+  distributions.push_back( plot );
+    xTitle[plot] = "E_{gen} (GeV)";
+    yTitle[plot] = "#frac{E_{det}-E_{gen}}{E_{gen}}";
+
+  plot = "hJER_per_eDet";
+  distributions.push_back( plot );
+    xTitle[plot] = "E_{det} (GeV)";
+    yTitle[plot] = "#frac{E_{gen}-E_{det}}{E_{det}}";
+
+  plot = "hJER_per_eGen";
+  distributions.push_back( plot );
+    xTitle[plot] = "E_{gen} (GeV)";
+    yTitle[plot] = "#frac{E_{gen}-E_{det}}{E_{det}}";
+
+  plot = "hCastorJet_energy_response";
+  distributions.push_back( plot );
+    xTitle[plot] = "E_{det} (GeV)";
+    yTitle[plot] = "E_{gen} (GeV)";
+
+  /******************
+  * Prepare Canvas. *
+  ******************/  
+  
+  TCanvas *can = new TCanvas("can", "can", 1.);
+    can->SetLeftMargin(0.20);
+    can->SetRightMargin(0.18);
+    can->SetBottomMargin(0.20);  
+    can->SetTopMargin(0.02);
+
+  vector<TString> plot_names;
+
+  for(int plot_ = 0; plot_ < distributions.size(); plot_++){
+ 
+    if( !_file0->GetListOfKeys()->Contains( distributions[plot_] ) ){ continue; }
+
+    TH2D *hDistr = (TH2D*)_file0->Get( distributions[plot_] );
+    can->cd();
+    hDistr->Scale( 1./hDistr->Integral() );
+    hDistr->Draw("colz");
+    hDistr->GetXaxis()->SetTitle( xTitle[plot_] ); 
+    hDistr->GetYaxis()->SetTitle( yTitle[plot_] );
+    can->SetLogz();
+
+    TString plot_name_ = label + "/" + distributions[plot_] + "_" + save_name;
+    plot_name_.ReplaceAll("1.", "1");
+    plot_name_.ReplaceAll("0.", "0");
+
+    plot_names.push_back( plot_name_ );
+
+    can->SaveAs( "Plots/" + plot_names[plot_] + ".pdf" );
+    can->SaveAs( "Plots/" + plot_names[plot_] + ".C" );
+  }
+
+  if( plot_names.size() == 4 ){
+    Four_plots( TString::Format(plot_names[0] + ".pdf"), TString::Format(plot_names[1] + ".pdf"), TString::Format(plot_names[2] + ".pdf"), TString::Format(plot_names[3] + ".pdf"), "Energy response distributions: " + legend,"2D_plots.tex");
+  }
+
+
+}

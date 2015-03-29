@@ -83,13 +83,15 @@
 #define EbinWidth_rel 1.4
 #define PI 3.14159265359
 
+#define cut_EI false
+
 #define comments_ false
 #define do_calibration_discrete false
 #define do_calibration_function false
 
-#define par0 0.53221  
-#define par1 0.85787
-#define par2 -0.018093
+#define par0 1.48
+#define par1 0.063
+#define par2 -16.
 
 #include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
 //#include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
@@ -233,7 +235,6 @@ cout << "Variable bins done" << endl;
 	}
 	
 	// Castor jet histograms
-//	TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",Ebins, Emin, Emax);
         TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",	Ebins, Emin, Emax);
         TH1D *hGenJet_energy = new TH1D("hGenJet_energy","GenJet energy distribution",		Ebins, Emin, Emax);
 	TH1D *hCastorJet_pt = new TH1D("hCastorJet_pt","CastorJet pt distribution",30,0,30);
@@ -272,8 +273,6 @@ cout << "Variable bins done" << endl;
 	  TH2D *hCastorJet_Matrix_had_det_nsector = new TH2D("hCastorJet_responseMatrix_had_det_nsector", 	"Castor jet Response Matrix (had. det. jet)"	,Ebins, Emin, Emax, Ebins, Emin, Emax);
           TH2D *hCastorJet_Matrix_em_det_nsector = new TH2D("hCastorJet_responseMatrix_em_det_nsector", 	"Castor jet Response Matrix (em. det. jets)"	,Ebins, Emin, Emax, Ebins, Emin, Emax);
 	  	  
-//          TH2D *hCastorJet_Matrix_had_pi = new TH2D("hCastorJet_responseMatrix_had_pi", "Castor jet Response Matrix (had-had)",Ebins-1, Ebins_var,Ebins-1, Ebins_var);
-
         TH1D *hCastorJet_energy_gen = new TH1D("hCastorJet_energy_gen","CastorJet energy distribution",Ebins-1, Ebins_var);
         TH1D *hCastorJet_pt_gen = new TH1D("hCastorJet_pt_gen","CastorJet pt distribution",500,0,10.);
 
@@ -336,13 +335,6 @@ cout << "Variable bins done" << endl;
         TH1D *hUnmatched = new TH1D("hUnmatched", "Castor and Gen jets don't match", Ebins, Emin, Emax);
         TH1D *hJRE = new TH1D("hJRE", "Jet Reconstruction Efficiency", Ebins, Emin, Emax);
 
-        // JER
-//        TH1D *hJER_all = new TH1D("hJER_all", TString::Format("Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
-//        TH2D *hJER_per_energy_all = new TH2D("hJER_per_energy_all", "#DeltaE/E for fixed energies;E_{gen};JER",	200.,100.,3000., 	200, -5, 5);
-//        TH2D *hJER_per_distance_all = new TH2D("hJER_per_distance_all", "#DeltaE/E for distance;#DeltaR;JER", 	200, 0., 6.5, 		200, -5, 5);
-//	TH2D *hJER_per_eta_all = new TH2D("hJER_per_eta_all", "#DeltaE/E for distance;#DeltaR;JER", 		14,	-6.6,-5.2, 	200, -5, 5);
-//	TH2D *hEnergy_per_eta_all = new TH2D("hEnergy_per_eta_all", "E_{gen} vs. #eta of leading jet", 				200, 100., 3000.,  	14,-6.6,-5.2);
-
 	// Towers vs. phi
 	TH2D *hTower_phi = new TH2D("hTower_phi", "N_{towers} vs. #Delta#varphi;N_{towers};#Delta#varphi", 6,-0.5,5.5, 50,-3.15,3.15);
 
@@ -355,9 +347,7 @@ cout << "Variable bins done" << endl;
 
 	// RooUnfold.
 
-//	RooUnfoldResponse response (Ebins, Emin, Emax);
 	RooUnfoldResponse response 		(hCastorJet_energy, hCastorJet_energy, "response");
-//	RooUnfoldResponse response_all		(hCastorJet_energy, hCastorJet_energy, "response_all");
 
 	// Jet distance distribution.
 	TH1D *hDistance 	= new TH1D("hJetDistance",	"Distance between matched jets;#DeltaR;dN/d#DeltaR", 200, 0., 2.);
@@ -366,14 +356,7 @@ cout << "Variable bins done" << endl;
 	TH2D *hEtaPhiDiff 	= new TH2D("hEtaPhiDiff", 	"Distance in #eta and #varphi;#eta;#varphi",200,0.,0.8,200,0.,3.15);
         TH2D *hEtaRDiff 	= new TH2D("hEtaRDiff", 	"Distance in #eta and R;#Delta#eta;#DeltaR",200,0.,0.8,200,0.,3.3);
         TH2D *hPhiRDiff 	= new TH2D("hPhiRDiff", 	"Distance in #eta and #varphi;#Delta#varphi;#DeltaR",200,0.,3.3,200,0.,3.3);
-/*
-        TH1D *hDistance_all 	= new TH1D("hJetDistance_all", 	"Distance between matched jets;#DeltaR;dN/d#DeltaR", 200, 0., 2.);
-        TH1D *hPhiDiff_all 	= new TH1D("hPhiDiff_all", 	"Distance in #varphi;#Delta#varphi;dN/d#Delta#varphi", 200, 0., 3.15);
-        TH1D *hEtaDiff_all 	= new TH1D("hEtaDiff_all", 	"Distance in #eta;#Delta#eta;dN/d#Delta#eta", 200, 0., 0.8);
-        TH2D *hEtaPhiDiff_all 	= new TH2D("hEtaPhiDiff_all", 	"Distance in #eta and #varphi;#eta;#varphi",200,0.,0.8,200,0.,3.15);
-        TH2D *hEtaRDiff_all 	= new TH2D("hEtaRDiff_all", 	"Distance in #eta and R;#Delta#eta;#DeltaR",200,0.,0.8,200,0.,3.3);
-        TH2D *hPhiRDiff_all 	= new TH2D("hPhiRDiff_all", 	"Distance in #eta and #varphi;#Delta#varphi;#DeltaR",200,0.,3.3,200,0.,3.3);
-	*/
+
 	// Pion to electron ratio.
 	TH1D *hElectron_energy	= new TH1D("hElectron_energy",	"Energy of electron jets;E_{e} (GeV)",	20, 0., 1000.);
         TH1D *hPion_energy  	= new TH1D("hPion_energy",  	"Energy of Pion jets;E_{#pi} (GeV)",   	20, 0., 1000.);
@@ -387,6 +370,15 @@ cout << "Variable bins done" << endl;
 
 	// Compare phi on gen and det level.
 	TH2D *hPhi_gen_det = new TH2D("hPhi_gen_det", "#varphi_{gen} vs. #varphi_{det};#varphi_{gen};#varphi_{det}", 50, -6.29, 6.29, 50, -6.29, 6.29);
+	
+	// Needed for correct calibration.
+	TH2D *hResponse 	= new TH2D("hResponse", "E_{det}/E_{gen};E_{det};#frac{E_{det}}{E_{gen}}", Ebins, Emin, Emax, 100, 0., 5.);	hResponse->Sumw2();
+        TH2D *hResponse_gen 	= new TH2D("hResponse_gen", "E_{det}/E_{gen};E_{gen};#frac{E_{det}}{E_{gen}}", Ebins, Emin, Emax, 100, 0., 5.);	hResponse_gen->Sumw2();
+	
+	TH2D *hGen_fine = new TH2D("hGen_fine", "E_{gen}", Ebins, Emin, Emax, Ebins * 1000, Emin, Emax);							hGen_fine->Sumw2();
+        TH2D *hDet_fine = new TH2D("hDet_fine", "E_{det}", Ebins, Emin, Emax, Ebins * 1000, Emin, Emax);                                                        hGen_fine->Sumw2();
+
+
 
 	hCastorJet_energy->Sumw2();
 	hCastorJet_pt->Sumw2();
@@ -690,6 +682,7 @@ cout << "Variable bins done" << endl;
 					  
 					  
 					  // -- Need to remove energy?
+					  if( cut_EI ){
 					  double E_gen_cut = 0.;
 					  int genjet = 0;
 					  while (E_gen_cut == 0. && genjet < CastorGenJets->size()){
@@ -715,7 +708,8 @@ cout << "Variable bins done" << endl;
 				   	  hIsolationEnergy_Edet->Fill( E_gen_cut / det_energy );
 
 					  // If energy around jet is too high, continue.
-					  if( E_gen_cut > 0.00 * det_energy ){ break; }					  
+					  if( E_gen_cut > 0.0 * det_energy ){ break; }					  
+					  } // Cut on EI.
 
 					  // -- looking into distance information.
 					  // Leading jets, no pair matched yet.
@@ -725,30 +719,25 @@ cout << "Variable bins done" << endl;
 					  if( do_calibration_discrete ){ det_energy = CalibratedDet(lowedge, muval, det_energy); }
 					  else if( do_calibration_function ){ det_energy = CalibratedDet( det_energy, par0, par1, par2); }
 					  
-					  //if( matched_pairs == 0){
-					    response.Fill( det_energy, gen_energy); 
+					  response.Fill( det_energy, gen_energy); 
 					    
-					    hCastorJet_energy_response->Fill( det_energy, gen_energy);
+					  hCastorJet_energy_response->Fill( det_energy, gen_energy);
 
-					    hCastorJet_energy->Fill( det_energy );
-					    hGenJet_energy->Fill( gen_energy );
-					 
-                                            hDistance->Fill( lowest_distance );
-                                            hPhiDiff -> Fill( phidiff );
-                                            hEtaDiff -> Fill( etadiff );
-                                            hEtaPhiDiff -> Fill( etadiff, phidiff );
-                                            hEtaRDiff -> Fill( etadiff, lowest_distance );
-                                            hPhiRDiff -> Fill( phidiff, lowest_distance );
-					  //} 
-/*	
-					  response_all.Fill( det_energy, gen_energy);
-					  hDistance_all	->Fill( lowest_distance );
-                                          hPhiDiff_all 	-> Fill( phidiff );
-                                          hEtaDiff_all 	-> Fill( etadiff );
-                                          hEtaPhiDiff_all -> Fill( etadiff, phidiff );
-                                          hEtaRDiff_all -> Fill( etadiff, lowest_distance );
-                                          hPhiRDiff_all -> Fill( phidiff, lowest_distance );
-*/
+					  hCastorJet_energy->Fill( det_energy );
+					  hGenJet_energy->Fill( gen_energy );					  		
+					  hGen_fine->Fill( gen_energy, gen_energy );
+                                          hDet_fine->Fill( gen_energy, det_energy );
+ 					  hResponse->Fill( det_energy, det_energy/gen_energy );
+                                          hResponse_gen->Fill( gen_energy, det_energy/gen_energy );
+
+					
+                                          hDistance->Fill( lowest_distance );
+                                          hPhiDiff -> Fill( phidiff );
+                                          hEtaDiff -> Fill( etadiff );
+                                          hEtaPhiDiff -> Fill( etadiff, phidiff );
+                                          hEtaRDiff -> Fill( etadiff, lowest_distance );
+                                          hPhiRDiff -> Fill( phidiff, lowest_distance );
+
 					  hCastorJet_energy_ratio->Fill( gen_energy/det_energy, det_energy);
 					  /* Remove det and gen jet from vector. */
 					  CastorJets->erase( CastorJets->begin() + 0 ); // + 0 because we start from Castorjets.
@@ -763,13 +752,7 @@ cout << "Variable bins done" << endl;
 					  double JER_eDet = (gen_energy - det_energy)/det_energy;					
 
 					  hTower_phi		->Fill( castor_sectors, phi_det );
-/*
-                                          hJER_all		->Fill( JER );
-                                          hJER_per_energy_all	->Fill( gen_energy, JER);
-                                          hJER_per_distance_all	->Fill( sqrt(pow(phi_det - phi_gen, 2.) + pow(eta_det - eta_gen, 2.)), JER );
-                                          hJER_per_eta_all	->Fill( eta_gen, JER);
-                                          hEnergy_per_eta_all	->Fill( gen_energy, eta_gen );
-*/					  
+					  
 					  if( matched_pairs == 0){
                                             hJER		->Fill( JER );
                                             hJER_per_energy	->Fill( gen_energy, JER);
@@ -879,7 +862,7 @@ cout << "Variable bins done" << endl;
         float etamargin = etaband_;         
 	//TString datestring = date;
 
-	sprintf(filename, date_ + "_" + jettype_ + "_Output_JetAnalyzer_radii_strippedTree_etaband_%f_%i_%i_sectors.root", etamargin, counter_events, sectors_);
+	sprintf(filename, date_ + "_JetAnalyzer_etaband_%f_%i_%i_sectors_" + jettype_ + ".root", etamargin, counter_events, sectors_);
 	TFile* output = new TFile(filename,"RECREATE");
 	output->cd();
 		
@@ -1002,6 +985,12 @@ cout << "Variable bins done" << endl;
 	
 	hCastorJet_Matrix_had_det_nsector->Write();
         hCastorJet_Matrix_em_det_nsector ->Write();			
+
+	// Proper calibration.
+	hGen_fine	->Write();
+	hDet_fine	->Write();
+	hResponse	->Write();
+	hResponse_gen	->Write();
 
 	// Test phi.
 	 hPhi_gen_det->Write();

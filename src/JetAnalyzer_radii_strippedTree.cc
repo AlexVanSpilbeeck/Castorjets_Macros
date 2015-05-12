@@ -16,7 +16,7 @@
 
 
 
-#include "IsolationCut.h"
+#include "IsolationCut.cpp"
 #include "CalibCorrection.h"
 #include "CastorSector.h"
 
@@ -90,9 +90,10 @@
 
 #define comments_ false
 #define do_calibration_discrete false
-#define do_calibration_function false
+#define do_calibration_function true
+#define sector_dependence true
 
-#define prepare_unfolding false
+#define prepare_unfolding true
 
 #include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
 //#include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
@@ -781,7 +782,8 @@ cout << "TH3";
             if( cut_EI && !prepare_unfolding_){
               double E_gen_cut = 0.;
               int genjet = 0;
-
+	      IsolationCut isolation_energy( phi_det, castor_sectors );
+	      
               while (E_gen_cut == 0. && genjet < CastorGenJets->size()){
                 if( genjet == leading_gen_ ){ genjet++; continue; }
                 MyGenJet genjet_ = (*CastorGenJets)[ genjet ];
@@ -790,7 +792,7 @@ cout << "TH3";
                 while( genpart <  (genjet_.JetPart).size() && E_gen_cut == 0.){
                   double phipart = ( (genjet_.JetPart)[genpart]).Phi();
 				       					 
-                    if( IsolationCut( phi_det, castor_sectors, phipart) ){ 
+                    if( isolation_energy.EnergyContamination( phipart ) ){ 
                       E_gen_cut += ( (genjet_.JetPart)[genpart]).Energy();
 		    } // Check if energy is present in Castor sectors.
 		    genpart++;
@@ -819,7 +821,9 @@ cout << "TH3";
 	      if( do_calibration_discrete ){ 
 		det_energy = CalibratedDet(lowedge, muval, det_energy, sector);
 	      }
-	      else if( do_calibration_function ){ det_energy = CalibratedDet( det_energy , sector); }
+	      else if( do_calibration_function && !sector_dependence){ det_energy = CalibratedDet( det_energy ); }
+              else if( do_calibration_function && !sector_dependence){ det_energy = CalibratedDet( det_energy, sector ); }
+
 					  
 	      //response.Fill( det_energy, gen_energy); 
 					    

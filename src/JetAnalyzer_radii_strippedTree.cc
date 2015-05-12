@@ -19,6 +19,7 @@
 #include "IsolationCut.cpp"
 #include "CalibCorrection.h"
 #include "CastorSector.h"
+#include "PlaceThreshold.h"
 
 //STANDARD ROOT INCLUDES
 
@@ -80,8 +81,9 @@
 //using namespace fastjet;
 
 #define jetPtThreshold 35.
-#define jetEThreshold_gen 0. 
-#define jetEThreshold_det 0. 
+#define jetEThreshold_gen 100. 
+#define jetEThreshold_det 100. 
+#define jetEThreshold 200.
 #define EbinWidth 5.
 #define EbinWidth_rel 1.4
 #define PI 3.14159265359
@@ -98,6 +100,8 @@
 #include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
 //#include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
 #endif
+
+
 
 
 
@@ -180,7 +184,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 //	double Emin = jetEThreshold_det + 0., Emax = 3000.;
 //	int Ebins = static_cast<int> ( (Emax - Emin)/EbinWidth );
 	double Emin = 0., Emax = 3000.;
-	int Ebins = 200;
+	int Ebins = 50;
 
 
 	/* If we want variable Ebins. */
@@ -559,6 +563,46 @@ cout << "TH3";
 		
   	  hCastorJet_multi->Fill(NCastorJets);
           */
+
+	  ///////////////////////////////////
+	  // Cut out jets below threshold. //
+	  ///////////////////////////////////
+
+	  if( comments_ && jetEThreshold > 0. ){
+	    for( int idet = CastorJets->size()-1; idet > -1; idet--){
+	      cout << "// --DET\t" <<  (*CastorJets)[idet].energy << endl;
+	    }
+            for( int igen = CastorGenJets->size()-1; igen > -1; igen--){
+              cout << "// --GEN\t" <<  (*CastorGenJets)[igen].Energy() << endl;
+            }	   
+	    cout << "\n\n";
+	  }
+
+	  
+	  if( jetEThreshold > 0. ){
+	    for( int idet = CastorJets->size()-1; idet > -1; idet--){
+	      if( (*CastorJets)[idet].energy < jetEThreshold ){ CastorJets->erase( CastorJets->begin() + idet); }
+	    }
+	    if( !isData_ ){
+              for( int igen = CastorGenJets->size()-1; igen > -1; igen--){
+                if( (*CastorGenJets)[igen].Energy() < jetEThreshold ){ CastorGenJets->erase( CastorGenJets->begin() + igen) ; }
+              }
+	    }
+	  }
+
+          if( comments_ && jetEThreshold > 0. ){
+            for( int idet = CastorJets->size()-1; idet > -1; idet--){
+              cout << "// --DET\t" <<  (*CastorJets)[idet].energy << endl;
+            }
+	    if( !isData_ ){
+              for( int igen = CastorGenJets->size()-1; igen > -1; igen--){
+                cout << "// --GEN\t" <<  (*CastorGenJets)[igen].Energy() << endl;
+              }
+	    }
+	    cout << "\n\n\n\n" << endl;
+          }
+
+
   	  // Match DET and GEN jets. 
   	  if( !isData_ ) { 
 	    hNumber_of_match_jets->Fill( CastorJets->size(), CastorGenJets->size());             

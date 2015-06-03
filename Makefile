@@ -47,8 +47,11 @@ JER: MacroPlot_JER.o $(program_OBJS) $(program_TREE_SOS)
 JER_2D: MacroPlot_Matrix_JER.o $(program_OBJS) $(program_TREE_SOS)
 	g++ -g MacroPlot_Matrix_JER.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(program_UNFOLD) -o JER_2D ${LDFLAGS}
 
-Response: MacroPlot_Matrix_ResponseMatrix.o $(program_OBJS) $(program_TREE_SOS)
-	g++ -g MacroPlot_Matrix_ResponseMatrix.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(program_UNFOLD) -o Response ${LDFLAGS}
+Response: MacroPlot_Matrix_ResponseMatrix_2by3.o $(program_OBJS) $(program_TREE_SOS)
+	g++ -g MacroPlot_Matrix_ResponseMatrix_2by3.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(program_UNFOLD) $(LIBHISTPAINTER) -o Response ${LDFLAGS}
+
+Response_1by3: MacroPlot_Matrix_ResponseMatrix_1by3.o $(program_OBJS) $(program_TREE_SOS)
+	g++ -g MacroPlot_Matrix_ResponseMatrix_1by3.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(program_UNFOLD) $(LIBHISTPAINTER) -o Response_1by3 ${LDFLAGS}
 
 Systematics: MacroPlot_CompareSystematics.o $(program_OBJS) $(program_TREE_SOS)
 	g++ -g MacroPlot_CompareSystematics.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(program_UNFOLD) -o Systematics ${LDFLAGS}
@@ -69,6 +72,12 @@ JER_JES:  MacroPlot_JER_mean_spread_numbers.o $(program_OBJS) $(program_TREE_SOS
 Calibration:  MacroPlot_Apply_Calibration.o $(program_OBJS) $(program_TREE_SOS)
 	g++ -g MacroPlot_Apply_Calibration.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(program_UNFOLD) -o Calibration ${LDFLAGS}		
 
+Calibration_phi:  MacroPlot_Apply_Calibration_azimuthal.o $(program_OBJS) $(program_TREE_SOS)
+	g++ -g MacroPlot_Apply_Calibration_azimuthal.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(program_UNFOLD) -o Calibration_azimuthal ${LDFLAGS}
+
+Calibration_function:  MacroPlot_Apply_Calibration_function.o $(program_OBJS) $(program_TREE_SOS)
+	g++ -g MacroPlot_Apply_Calibration_function.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(program_UNFOLD) -o Calibration_function ${LDFLAGS}
+
 JER_Matrix:  MacroPlot_Matrix_JER_2by2.o $(program_OBJS) $(program_TREE_SOS)
 	g++ -g MacroPlot_Matrix_JER_2by2.o -I color.h $(program_OBJS) $(program_TREE_SOS) $(LIBHISTPAINTER) $(program_UNFOLD) -o JER_Matrix ${LDFLAGS} 
 
@@ -81,5 +90,6 @@ Edet:  MacroPlot_E_det.o $(program_OBJS) $(program_TREE_SOS)
 clean:
 	@- $(RM) Run *.o 
 	@- $(RM) $(program_OBJS) 
+	@- $(RM) Calib*.o
 
 distclean: clean

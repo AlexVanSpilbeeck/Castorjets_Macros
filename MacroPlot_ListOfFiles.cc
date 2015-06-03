@@ -44,6 +44,11 @@
 #include "NonZeroMinimum.h"
 #include "MacroPlot_Unfold_energy_MC.h"
 
+#include "Unfolder.cpp"
+
+
+//#include "Function_Rebin.h"
+
 //#ifndef FUNCTION_FIRSTPLOT_H
 //#include "Function_FirstPlot.h"
 //#endif
@@ -54,6 +59,7 @@ using namespace std;
 int main(){
    gROOT->SetStyle ("Plain");
    gStyle->SetPalette(1);
+   gStyle->SetOptTitle(0);
 
 //   TString label = "20150323_Plots_Calibrating_ak5ak5";
    TString label = "20150330_Plots_unfolding";
@@ -80,68 +86,86 @@ int main(){
    
    int style_of_line = 1; 
 
-   
+   TString setup;  
+   TString Ethresh;
+ 
    std::map<TString, TString> axis_of_interest;
+   std::map<TString, TString> legends;
+   std::map<TString, TString> xtitle, ytitle, htitle;
 
-   bool vary_eta = false;
-   bool vary_eI = false;
-   bool compare_radii = false;
+   bool vary_eta 	= false;
+   bool vary_eI 	= false;
+   bool compare_radii 	= false;
    bool after_calibration = false;
-   bool after_all = true;
-   bool compare_had = false;
-   bool compare_em = false;
-   bool determine_fit = false;
+   bool after_all 	= false;
+   bool compare_had 	= false;
+   bool compare_em 	= false;
+   bool determine_fit 	= false;
+   bool systematics_ 	= true;
 
    cout << "Files" << endl;
+
+     cout << "What is the setup?\t";
+     cin >> setup;
+     cout << "What is energy threshold?\t";
+     cin >> Ethresh;
 
    /********
    * DATA. * 
    ********/ 
 
-   TString datafile = "LoopRootFiles/20150402_data_JetAnalyzer_4661641_0_sectors_had.root";
-   
-   
-   if( determine_fit ){
-   
-     filenames.push_back("LoopRootFiles/20150317_ak5ak5_JetAnalyzer_etaband_0.400000_12137851_0_sectors_had.root");
-       legendEntries.push_back("#eta band: 0.4");
-       colours.push_back(getColor(color_index++));      
-   }
+   TString datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
 
-   if( after_calibration ){ 
-/*     
-     filenames.push_back("LoopRootFiles/20150330_ak5ak5_calibrated_piecewise_logform_to_constant_JetAnalyzer_etaband_0.400000_12137851_0_sectors_had.root");
-       legendEntries.push_back("(ak5, ak5) - calibrated (constant)");
-       colours.push_back(getColor(color_index++)); 
-       linestyle.push_back( style_of_line++);
-       fileLabel.push_back("ak5ak5_calibrated_constant");     
+   if( systematics_ ){
 
-*/
-     filenames.push_back("LoopRootFiles/20150330_ak5ak5_calibrated_piecewise_logform_to_slope_JetAnalyzer_etaband_0.400000_12137851_0_sectors_had.root");
-       legendEntries.push_back("(ak5, ak5) - calibrated (slope)");
+     datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
+     legends["Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Data";
+     
+     filenames.push_back("Histograms/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root");
+       legendEntries.push_back("(ak5, ak5)");
        colours.push_back(getColor(color_index++));
        linestyle.push_back( style_of_line++);
-       fileLabel.push_back("ak5ak5_calibrated_slope");
-
-
+       fileLabel.push_back("Actual");    
+       legends["Histograms/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Pythia6 Z2*";
  
-   } // After calibration
+     filenames.push_back("Histograms/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000.root");
+       legendEntries.push_back("(ak5, ak5) - Full Simulation");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line++);
+       fileLabel.push_back("Full simulation");    
+       legends["Histograms/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Full simulation";
+   
+     filenames.push_back("Histograms/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root");
+       legendEntries.push_back("(ak5, ak5) - Nominal");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line++);
+       fileLabel.push_back("(0,0)");    
+       legends["Histograms/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "(0,0)";
 
+     filenames.push_back("Histograms/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000.root");
+       legendEntries.push_back("(ak5, ak5) - Pythia8 (4C)");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line++);
+       fileLabel.push_back("Pythia8 (4C)");
+       legends["Histograms/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Pythia8 (4C)";
+
+   }
 
    if( after_all ){ 
-     
+/*     
      filenames.push_back("LoopRootFiles/20150402_unfolding_JetAnalyzer_etaband_0.400000_12137851_0_sectors_had.root");
        legendEntries.push_back("(ak5, ak5) - unfolding");
        colours.push_back(getColor(color_index++)); 
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("ak5ak5_response");      
-/*       
-     filenames.push_back("LoopRootFiles/20150330_ak5ak5_response_isolated_JetAnalyzer_etaband_1.400000_12137851_0_sectors_had.root");
+*/       
+
+     filenames.push_back("ak5ak5_raw_calibrated_sector_E200_JetAnalyzer_etaband_1.400000_12137851_0_sectors_had.root");
        legendEntries.push_back("(ak5, ak5) - unfolding isolated");
        colours.push_back(getColor(color_index++)); 
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("ak5ak5_isolated");         
-*/       
+       
    } // After calibration
 
 
@@ -149,42 +173,42 @@ int main(){
      //-- All files in this section have E_I = 0, eta_band = 0.4
 
      if( compare_had ){
-     filenames.push_back("LoopRootFiles/20150317_ak5ak5_JetAnalyzer_etaband_0.400000_12137851_0_sectors_had.root");
+     filenames.push_back("");
        legendEntries.push_back("(ak5, ak5)");
        colours.push_back(getColor(color_index++)); 
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("ak5ak5");  
-/*    
-     filenames.push_back("LoopRootFiles/20150317_ak5ak7_JetAnalyzer_etaband_0.400000_12137851_0_sectors_had.root");
+   
+     filenames.push_back("");
        legendEntries.push_back("(ak5, ak7)");
        colours.push_back(getColor(color_index++));            
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("ak5ak7");         
 
-     filenames.push_back("LoopRootFiles/20150317_ak3ak3_JetAnalyzer_etaband_0.400000_12139019_0_sectors_had.root");
+     filenames.push_back("");
        legendEntries.push_back("(ak3, ak3)");
        colours.push_back(getColor(color_index++)); 
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("ak3ak3");
 
-     filenames.push_back("LoopRootFiles/20150317_ak3ak5_JetAnalyzer_etaband_0.400000_12139019_0_sectors_had.root");
+     filenames.push_back("");
        legendEntries.push_back("(ak3, ak5)");
        colours.push_back(getColor(color_index++)); 
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("ak3ak5");                         
 
-     filenames.push_back("LoopRootFiles/20150317_ak3ak7_JetAnalyzer_etaband_0.400000_12139019_0_sectors_had.root");
+     filenames.push_back("");
        legendEntries.push_back("(ak3, ak7)");
        colours.push_back(getColor(color_index++)); 
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("ak3ak7");   
        
-      filenames.push_back("LoopRootFiles/20150317_ak7ak7_JetAnalyzer_etaband_0.400000_12135484_0_sectors_had.root");
+     filenames.push_back("");
        legendEntries.push_back("(ak7, ak7)");
        colours.push_back(getColor(color_index++));            
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("ak7ak7");  
-*/       
+       
      } // Compare had.
 
      if( compare_em ){
@@ -413,6 +437,7 @@ int main(){
      save["Plot_PhiDiff"] = "PhiDiff";    
      logx["Plot_PhiDiff"] = false;
      logy["Plot_PhiDiff"] = false;
+     normalise["Plot_PhiDiff"]= true;
      
    Plot_list.push_back("Plot_EtaDiff");
      xTitle["Plot_EtaDiff"] = "#Delta#eta";
@@ -421,6 +446,7 @@ int main(){
      save["Plot_EtaDiff"] = "EtaDiff"; 
      logx["Plot_EtaDiff"] = false;
      logy["Plot_EtaDiff"] = false;
+     normalise["Plot_Etadiff"]= true;
      
    Plot_list.push_back("Plot_Distance");
      xTitle["Plot_Distance"] = "#DeltaR";
@@ -429,6 +455,7 @@ int main(){
      save["Plot_Distance"] = "Distance";
      logx["Plot_Distance"] = false;
      logy["Plot_Distance"] = false;
+     normalise["Plot_Distance"]= true;
      
    Plot_list.push_back("Plot_EnergyIsolation");
      xTitle["Plot_EnergyIsolation"] = "E_{I} (GeV)";
@@ -437,25 +464,29 @@ int main(){
      save["Plot_EnergyIsolation"] = "EnergyIsolation";      
      logx["Plot_EnergyIsolation"] = true;
      logy["Plot_EnergyIsolation"] = true;
+     normalise["Plot_EnergyIsolation"]= true;
 
    Plot_list.push_back("Plot_GenLevel");
      xTitle["Plot_GenLevel"] = "E_{gen} (GeV)";
      yTitle["Plot_GenLevel"] = "#frac{dN}{dE_{gen}}";
      labels["Plot_GenLevel"] = label;
      save["Plot_GenLevel"] = "Gen_energy"; 
+     normalise["Plot_GenLevel"]= true;
      
    Plot_list.push_back("Plot_DetLevel");
      xTitle["Plot_DetLevel"] = "E_{det} (GeV)";
      yTitle["Plot_DetLevel"] = "#frac{dN}{dE_{det}}";
      labels["Plot_GenLevel"] = label;
      save["Plot_DetLevel"] = "Det_energy";
+     normalise["Plot_DetLevel"]= true;
 
    Plot_list.push_back("Plot_GenLevelEta");
      xTitle["Plot_GenLevelEta"] = "#Delta#eta";
      yTitle["Plot_GenLevelEta"] = "#frac{dN}{#Delta#Eta}";
      labels["Plot_GenLevelEta"] = label;
      save["Plot_GenLevelEta"] = "Gen_eta";  
-    
+     normalise["Plot_GenLevelEta"]= true;
+*/    
     
    /***************************************
    * Calibration - response and all that. *
@@ -493,20 +524,19 @@ int main(){
      yTitle["PlotCorrectionFactors_Bayes"] = "#frac{dN}{dE}";
      labels["PlotCorrectionFactors_Bayes"] = label;
      save["PlotCorrectionFactors_Bayes"] = "Bayes";
-*/
-/*
+
    Plot_list.push_back("Bayes_iterations");
      xTitle["Bayes_iterations"] = "";
      yTitle["Bayes_iterations"] = "#chi^{2}";
-     labels["Bayes_iterations"] = "5";
+     labels["Bayes_iterations"] = "10";
      save["Bayes_iterations"] = "";
-*/  
+ 
    Plot_list.push_back("Bayes_iterations_data");
      xTitle["Bayes_iterations_data"] = "";
      yTitle["Bayes_iterations_data"] = "#chi^{2}";
      labels["Bayes_iterations_data"] = datafile;
      save["Bayes_iterations_data"] = "";     
-/*              
+              
    Plot_list.push_back("Plot_BinByBin_vs_Gen");
      xTitle["Plot_BinByBin_vs_Gen"] = "E";
      yTitle["Plot_BinByBin_vs_Gen"] = "#frac{Bin-by-bin}{Gen}";
@@ -538,14 +568,20 @@ int main(){
      yTitle["Unfold_data_BinByBin"] = "#frac{dN}{dE}";
      labels["Unfold_data_BinByBin"] = datafile;
      save["Unfold_data_BinByBin"] = "Unfolded_data_BinByBin";     
-*/     
+*/   
    Plot_list.push_back("Compare_unfolded_data");
      xTitle["Compare_unfolded_data"] = "E (GeV)";
      yTitle["Compare_unfolded_data"] = "#frac{dN}{dE}";
      labels["Compare_unfolded_data"] = datafile;
      save["Compare_unfolded_data"] = "Comparison";      
 
-/*     
+/*
+   Plot_list.push_back("Compare_unfolded_data_all");
+     xTitle["Compare_unfolded_data_all"] = "E (GeV)";
+     yTitle["Compare_unfolded_data_all"] = "#frac{dN}{dE}";
+     labels["Compare_unfolded_data_all"] = datafile;
+     save["Compare_unfolded_data_all"] = "Comparison";
+     
    Plot_list.push_back("Compare_det_level");
      xTitle["Compare_det_level"] = "E (GeV)";
      yTitle["Compare_det_level"] = "#frac{dN}{dE}";
@@ -737,7 +773,10 @@ int main(){
 		
      else if( Plot_list[plot] == "Compare_det_level"){
      	current_function = &Compare_det_level; }  	  
-	
+
+     else if( Plot_list[plot] == "Compare_det_level_all"){
+        current_function = &Compare_det_level_all; }	
+
      //-- Reset variables.
       
      drawoptions = "";
@@ -757,6 +796,46 @@ int main(){
       
    } // Loop over plots.
  
+
+   xtitle["hCastorJet_energy"] = "E_{Det} [GeV]";
+   ytitle["hCastorJet_energy"] = "#frac{1}{N}.#frac{dN}{dE_{Det}}";
+   htitle["hCastorJet_energy"] = "Detector level jet energy (all)";
+
+
+
+
+   Unfolder my_first_unfolder(filenames, datafile, "20150529", 1);
+   my_first_unfolder.LabelPlots( setup + "_Emin_" + Ethresh );
+   my_first_unfolder.PrepareLegend( legends );
+   my_first_unfolder.PrepareTitles( xtitle, ytitle, htitle );
+
+   my_first_unfolder.Hist_DetLevel();
+   my_first_unfolder.Hist_DetLevel_lead();
+//   my_first_unfolder.Hist_GenLevel();
+//   my_first_unfolder.Hist_getTruth();
+//   my_first_unfolder.Plot_Unfolded();
+//   my_first_unfolder.Plot_Unfolded_Ratio();
+   if( setup == "unfold" )   my_first_unfolder.DoublePaddedComparison("all");
+   if( setup == "unfold" )   my_first_unfolder.DoublePaddedComparison("lead");
+//   my_first_unfolder.DoublePaddedComparison("hCastorJet_energy");
+//   cout << "--- DoublePaddedComparison - hCastorJet_energy" << endl;
+//   my_first_unfolder.DoublePaddedComparison("hCastorJet_energy_lead");
+
+//   my_first_unfolder.Hist_DetLevel_DataWithSmear();
+//   my_first_unfolder.Hist_DetLevel_MCWithSmear();
+   my_first_unfolder.Systematics_CompareDetLevel();
+   my_first_unfolder.Systematics_CompareGenLevel();
+   my_first_unfolder.CompareGenLevel();
+   cout << "--- Systematics" << endl;
+ 	
+   if( setup == "unfold" )   my_first_unfolder.ClosureTest_data("lead");
+   if( setup == "unfold" )   my_first_unfolder.ClosureTest_data("all");
+   if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC("lead");
+   if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC("all");
+   if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC_detLevel("lead");
+   if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC_detLevel("all");
+   if( setup == "unfold" )   cout << "--- ClosureTest" << endl;
        
   return(0); 
+
 }

@@ -91,6 +91,7 @@ int main(){
  
    std::map<TString, TString> axis_of_interest;
    std::map<TString, TString> legends;
+   std::map<TString, TString> printLabel;
    std::map<TString, TString> xtitle, ytitle, htitle;
 
    bool vary_eta 	= false;
@@ -120,34 +121,43 @@ int main(){
 
      datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
      legends["Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Data";
+
+     TString MCfile = "Histograms/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root";
      
-     filenames.push_back("Histograms/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root");
+     filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5)");
        colours.push_back(getColor(color_index++));
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("Actual");    
-       legends["Histograms/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Pythia6 Z2*";
+       printLabel[MCfile] = "Pythia6Z2star";
+       legends[MCfile] = "Pythia6 Z2*";
  
-     filenames.push_back("Histograms/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000.root");
+     MCfile = "Histograms/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000.root";
+     filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5) - Full Simulation");
        colours.push_back(getColor(color_index++));
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("Full simulation");    
-       legends["Histograms/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Full simulation";
-   
-     filenames.push_back("Histograms/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root");
+       printLabel[MCfile] = "FullSimulation";
+       legends[MCfile] = "Full simulation";
+
+     MCfile = "Histograms/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root"; 
+     filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5) - Nominal");
        colours.push_back(getColor(color_index++));
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("(0,0)");    
-       legends["Histograms/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "(0,0)";
+       printLabel[MCfile] = "Nominal";
+       legends[MCfile] = "(0,0)";
 
-     filenames.push_back("Histograms/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000.root");
+     MCfile = "Histograms/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000.root";
+     filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5) - Pythia8 (4C)");
        colours.push_back(getColor(color_index++));
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("Pythia8 (4C)");
-       legends["Histograms/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Pythia8 (4C)";
+       printLabel[MCfile] = "Pythia84C";
+       legends[MCfile] = "Pythia8 (4C)";
 
    }
 
@@ -804,38 +814,61 @@ int main(){
 
 
 
-   Unfolder my_first_unfolder(filenames, datafile, "20150529", 1);
+   Unfolder my_first_unfolder(filenames, datafile, "20150529", 0);
    my_first_unfolder.LabelPlots( setup + "_Emin_" + Ethresh );
-   my_first_unfolder.PrepareLegend( legends );
+   my_first_unfolder.PrepareLegend( legends, printLabel );
    my_first_unfolder.PrepareTitles( xtitle, ytitle, htitle );
 
-   my_first_unfolder.Hist_DetLevel();
-   my_first_unfolder.Hist_DetLevel_lead();
+//   my_first_unfolder.Hist_DetLevel();
+//   my_first_unfolder.Hist_DetLevel_lead();
 //   my_first_unfolder.Hist_GenLevel();
 //   my_first_unfolder.Hist_getTruth();
 //   my_first_unfolder.Plot_Unfolded();
 //   my_first_unfolder.Plot_Unfolded_Ratio();
-   if( setup == "unfold" )   my_first_unfolder.DoublePaddedComparison("all");
-   if( setup == "unfold" )   my_first_unfolder.DoublePaddedComparison("lead");
-//   my_first_unfolder.DoublePaddedComparison("hCastorJet_energy");
+//   if( setup == "unfold" )   my_first_unfolder.DoublePaddedComparison("all");
+//   if( setup == "unfold" )   my_first_unfolder.DoublePaddedComparison("lead");
+
+//   if( setup == "unfold")    my_first_unfolder.DoublePaddedComparison_unfolding("all", 6);
+
 //   cout << "--- DoublePaddedComparison - hCastorJet_energy" << endl;
 //   my_first_unfolder.DoublePaddedComparison("hCastorJet_energy_lead");
 
 //   my_first_unfolder.Hist_DetLevel_DataWithSmear();
 //   my_first_unfolder.Hist_DetLevel_MCWithSmear();
-   my_first_unfolder.Systematics_CompareDetLevel();
-   my_first_unfolder.Systematics_CompareGenLevel();
-   my_first_unfolder.CompareGenLevel();
+//   my_first_unfolder.Systematics_CompareDetLevel();
+//   my_first_unfolder.Systematics_CompareGenLevel();
+//   my_first_unfolder.CompareGenLevel();
    cout << "--- Systematics" << endl;
- 	
+
+   if( setup == "isolated"){ 
+//     my_first_unfolder.CalculateSystematics("all"); 
+     my_first_unfolder.CalculateSystematics("one", 12);
+     my_first_unfolder.CalculateSystematics("one", 13);
+     my_first_unfolder.CalculateSystematics("one", 14);
+     my_first_unfolder.CalculateSystematics("one", 15);
+   }
+
+//   if( setup == "isolated"){ my_first_unfolder.CalculateSystematics_comparison(); }
+
+
+/*	
    if( setup == "unfold" )   my_first_unfolder.ClosureTest_data("lead");
    if( setup == "unfold" )   my_first_unfolder.ClosureTest_data("all");
+   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_data("lead");
+   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_data("all");
+   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_MC("lead");
+   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_MC("all");
+   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_MC_det("lead");
+   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_MC_det("all");
+
    if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC("lead");
    if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC("all");
    if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC_detLevel("lead");
    if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC_detLevel("all");
    if( setup == "unfold" )   cout << "--- ClosureTest" << endl;
-       
+*/ 
+//   if( setup == "isolated" ) my_first_unfolder.GetCalibration();
+      
   return(0); 
 
 }

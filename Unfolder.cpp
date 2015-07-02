@@ -1,8 +1,10 @@
 //STANDARD ROOT INCLUDES
 #include <TROOT.h>
 #include <TGraph.h>
+#include <TGraphErrors.h>
 #include <TH1.h>
 #include <TH2.h>
+#include <THnSparse.h>
 #include <TF1.h>
 #include <TProfile.h>
 #include <TStyle.h>
@@ -46,8 +48,9 @@
 #include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
 #include "color.h"
 #include "Function_Rebin.h"
+#include "Function_average_histogram.h"
 //#include "Function_make_Tex.h"
-//#include "Function_FirstPlot.h"
+
 
 //#define normalise_1 true
 
@@ -84,13 +87,13 @@ class Unfolder{
 
    // Helper functions to prepare canvas, titles, labels, ...
    void PrepareCanvas( TCanvas* &can_, TString label);
-   void PrepareLegend( map<TString, TString> entries );
+   void PrepareLegend( map<TString, TString> entries, map<TString, TString> printLabel );
    void PrepareTitles( map<TString, TString> xtitle ,  map<TString, TString> ytitle ,  map<TString, TString> htitle);
    void LabelPlots( TString label );
  
-   void DoublePaddedComparison_unfolding(TString variable);
-   void Plot_Unfolded(TPad* &pad_, TString variable);
-   void Plot_Unfolded_Ratio(TPad* &pad_, TString variable);
+   void DoublePaddedComparison_unfolding(TString variable, int iterations = 0);
+   void Plot_Unfolded(TPad* &pad_, TString variable, int iterations = 0);
+   void Plot_Unfolded_Ratio(TPad* &pad_, TString variable, int iterations = 0);
 
    void SplitCanvas(TCanvas* &can_, TPad* &pad_abs_, TPad* &pad_ratio_);
 
@@ -108,6 +111,18 @@ class Unfolder{
    void ClosureTest_MC(TString variable = "lead");
    void ClosureTest_MC_detLevel(TString variable = "lead");
 
+   void Chi2_comparison_data(TString variable = "lead");
+   void Chi2_comparison_MC(TString variable = "lead");
+   void Chi2_comparison_MC_det(TString variable = "lead");
+  
+   double Chi2_testII( TH1D* hist_data, TH1D* hist_MC);
+   double Chi2_testIII( TH1D* hist_data, TH1D* hist_MC);
+
+   void CalibrationFunction(int phi_first, int phi_last);
+   void CalibrationFunction_workingsectors(int first_sector, int last_sector);
+   void CalculateSystematics(TString setup = "separate", int sector = 0);
+   void CalculateSystematics_comparison();
+
   private:
    vector<TString> MC_files_;
    TString datafile_;
@@ -118,10 +133,15 @@ class Unfolder{
    map<TString, TString> xtitle_;
    map<TString, TString> ytitle_;
    map<TString, TString> htitle_;
+   map<TString, TString> printLabel_;
+   map<TString, vector<double> > calibration_parameters_;
 
    void MakeDoublePaddedComparison(TCanvas * &can, vector<TH1D*>, TLegend *leg);
    double Chi2_test( TH1D* hist_data, TH1D* hist_MC);
    double Det_to_gen_scale(int file);
+
+   void Histogram_settings_ratio(TH1* hist);
+   void Histogram_settings_absolute(TH1* hist);
 
 };
 
@@ -774,9 +794,10 @@ void Unfolder::PrepareCanvas( TCanvas* &can_, TString label){
 
 }
 
-void Unfolder::PrepareLegend( map<TString, TString> legend_info ){
+void Unfolder::PrepareLegend( map<TString, TString> legend_info, map<TString, TString> printLabel ){
 
   legend_info_ = legend_info;
+  printLabel_ = printLabel;
 
 }
 
@@ -795,7 +816,7 @@ void Unfolder::PrepareTitles( map<TString, TString> xtitle, map<TString, TString
 
 
 
-void Unfolder::DoublePaddedComparison_unfolding(TString variable){
+void Unfolder::DoublePaddedComparison_unfolding(TString variable, int iterations){
 
   TCanvas* can_;
   TPad* pad_abs_, *pad_ratio_;
@@ -804,8 +825,8 @@ void Unfolder::DoublePaddedComparison_unfolding(TString variable){
   SplitCanvas(can_, pad_abs_, pad_ratio_);
 
   Hist_GenLevel(pad_abs_, true);
-  Plot_Unfolded(pad_abs_, variable);
-  Plot_Unfolded_Ratio(pad_ratio_, variable);
+  Plot_Unfolded(pad_abs_, variable, iterations);
+  Plot_Unfolded_Ratio(pad_ratio_, variable, iterations);
 
   can_->SaveAs( folder_ + "/UnfoldedEnergy_Data_and_MC_" + variable + "_" + label_ + ".pdf");
   can_->SaveAs( folder_ + "/UnfoldedEnergy_Data_and_MC_" + variable + "_" + label_ + ".C");
@@ -816,7 +837,7 @@ void Unfolder::DoublePaddedComparison_unfolding(TString variable){
 //
 
 
-void Unfolder::Plot_Unfolded(TPad* & pad_, TString variable){
+void Unfolder::Plot_Unfolded(TPad* & pad_, TString variable, int iterations){
   pad_->cd();
 
   TLegend *leg = new TLegend(0.6, 0.50, 0.95, 0.95);
@@ -854,7 +875,15 @@ void Unfolder::Plot_Unfolded(TPad* & pad_, TString variable){
 
   TH1D* hData;
 
-  for(int iterations_ = 1; iterations_ < 16; iterations_++){
+  int iterations_min = 1;
+  int iterations_max = 15;
+
+  if( iterations > 0 ){
+    iterations_min = iterations;
+    iterations_max = iterations;
+
+  }
+  for(int iterations_ = iterations_min; iterations_ < iterations_max+1; iterations_++){
     if( variable == "all") { Get_DetEnergy(-1, hData); }
     if( variable == "lead"){ Get_DetEnergy_lead(-1, hData); }
     hData->Scale( det_to_gen);
@@ -864,10 +893,10 @@ void Unfolder::Plot_Unfolded(TPad* & pad_, TString variable){
     hData->SetMarkerStyle( 24 );
     leg->AddEntry( hData, TString::Format("Data %i it.", iterations_), "p");
     hData->       DrawClone("edatasame");
-
+  
     First_Plot( hGen, hData, 2, min_val, max_val);
   }
-  
+ 
   leg->Draw();
 
   pad_->SetLogy();
@@ -878,7 +907,7 @@ void Unfolder::Plot_Unfolded(TPad* & pad_, TString variable){
 // -- Relative distributions.
 //
 
-void Unfolder::Plot_Unfolded_Ratio(TPad* & pad_, TString variable){
+void Unfolder::Plot_Unfolded_Ratio(TPad* & pad_, TString variable, int iterations){
   pad_->cd();
 
   int color_ = 1;
@@ -914,7 +943,16 @@ void Unfolder::Plot_Unfolded_Ratio(TPad* & pad_, TString variable){
 
   TH1D* hData;
 
-  for(int iterations_ = 1; iterations_ < 16; iterations_++){
+  int iterations_min = 1;
+  int iterations_max = 15;
+
+  if( iterations > 0 ){
+    iterations_min = iterations;
+    iterations_max = iterations;
+
+  }
+  for(int iterations_ = iterations_min; iterations_ < iterations_max+1; iterations_++){
+
     if( variable == "all") { Get_DetEnergy(-1, hData); }
     if( variable == "lead"){ Get_DetEnergy_lead(-1, hData); }
     hData->Scale( det_to_gen);
@@ -1167,7 +1205,7 @@ void Unfolder::ClosureTest_data(TString variable){
   TH1D* hist_result;  
   TString htitle;
   TLegend *leg = new TLegend(0.65, 0.45, 0.95, 0.95);
-  int iterations_ = 15;
+  int iterations_ = 16;
   double xaxisgraph[iterations_], yaxisgraph[iterations_];
 
   vector<TH1D*> histos;
@@ -1189,29 +1227,31 @@ void Unfolder::ClosureTest_data(TString variable){
 
   // Loop over number of Bayesian iterations, and unfold->smear detector level distribution.
   // Calculate chi2 as we go.
-  for(int iterations = 1; iterations <= iterations_; iterations++){
+  double chi2 = hist_original->Chi2Test( hist_original, "CHI2/NDF");
+  double chi2_prev = chi2;
 
-    cout << "\t\t\tClosure test data - iteration " << iterations << " of variable " << variable << endl;
+  for(int iterations = 1; iterations <= iterations_; iterations++){
 
     hist_result = (TH1D*)hist_original->Clone(TString::Format("Closure_%i_iterations", iterations) );
     hist_result->SetName( TString::Format("Closure_%i_iterations", iterations) );
     hist_result->SetTitle( TString::Format("Closure_%i_iterations", iterations) );
     Get_DetUnfolded( -1, hist_result, iterations, variable );
     Get_GenSmeared( -1, hist_result , hist_result, variable); 
-    //hist_int = (TH1D*)hist_result->Clone(TString::Format("it_unfolded_%i", iterations) );
-    //list_of_iterations.push_back( hist_int);
-    hist_result->SetLineColor( getColor( iterations + 1 ) );
+
+    hist_result->SetLineColor( getColor( iterations + 1) );
     hist_result->SetLineStyle( iterations + 1 );
     hist_result->SetLineWidth( 3 );
-    hist_result->SetMarkerColor(  getColor( iterations+1 ) );
+    hist_result->SetMarkerColor(  getColor( iterations + 1) );
+
     leg->AddEntry( hist_result, TString::Format("Treated data, %i it.", iterations) , "p");
     histos.push_back( hist_result );
 
-
     // Chi2 test.
-    double chi2 = Chi2_test( hist_original, hist_result );
+    // chi2 = hist_original->Chi2Test( hist_result, "CHI2/NDF");
+    chi2 = Chi2_test( hist_original, hist_result);
     xaxisgraph[iterations] = iterations;
-    yaxisgraph[iterations] = chi2;
+    yaxisgraph[iterations] = chi2_prev - chi2;
+    chi2_prev = chi2;
   }
 
   // Make sure to set histogram axes.
@@ -1225,18 +1265,12 @@ void Unfolder::ClosureTest_data(TString variable){
   can->SaveAs("ClosureTest_data_" + variable + label_ + ".C");
   can->SaveAs("ClosureTest_data_" + variable + label_ + ".pdf");
 
-  for( int i = 0; i < histos.size(); i++){
-
-    cout << "histo\t" << i << "\t" << (histos[i])->GetNbinsX() << endl;
-
-  }
-
   // Finish chi2 study.
   TCanvas *can_chi2;
   PrepareCanvas( can_chi2, "CHI2_Test_" + variable);
   TGraph* chi2_evolution = new TGraph(iterations_, xaxisgraph, yaxisgraph);
   chi2_evolution->GetXaxis()->SetTitle("N_{it.}");
-  chi2_evolution->GetYaxis()->SetTitle("#chi^{2}");
+  chi2_evolution->GetYaxis()->SetTitle("#chi^{2}/NDF");
   chi2_evolution->Draw("A*");
   can_chi2->SaveAs("Chi2_Test_data_" + variable + label_ + ".C");
   can_chi2->SaveAs("Chi2_Test_data_" + variable + label_ + ".pdf");
@@ -1292,7 +1326,8 @@ void Unfolder::ClosureTest_MC_detLevel(TString variable){
     leg->AddEntry( hist_result, TString::Format("Treated data, %i it.", iterations) , "p");
 
     // Chi2 test.
-    double chi2 = Chi2_test( hist_original, hist_result );
+//    double chi2 = Chi2_test( hist_original, hist_result );
+    double chi2 = hist_original->Chi2Test( hist_result, "CHI2/NDF");
 cout << "CHI2 is " << chi2 << endl;
     xaxisgraph[iterations] = iterations;
     yaxisgraph[iterations] = chi2;
@@ -1314,7 +1349,7 @@ cout << "CHI2 is " << chi2 << endl;
   PrepareCanvas( can_chi2, "CHI2_Test_" + variable);
   TGraph* chi2_evolution = new TGraph(iterations_, xaxisgraph, yaxisgraph);
   chi2_evolution->GetXaxis()->SetTitle("N_{it.}");
-  chi2_evolution->GetYaxis()->SetTitle("#chi^{2}");
+  chi2_evolution->GetYaxis()->SetTitle("#chi^{2}/NDF");
   chi2_evolution->Draw("A*");
   can_chi2->SaveAs("Chi2_Test_MC_det_" + variable + label_ + ".C");
   can_chi2->SaveAs("Chi2_Test_MC_det_" + variable + label_ + ".pdf");
@@ -1370,7 +1405,8 @@ void Unfolder::ClosureTest_MC(TString variable){
     leg->AddEntry( hist_result, TString::Format("Treated data, %i it.", iterations) , "p");
 
     // Chi2 test.
-    double chi2 = Chi2_test( hist_original, hist_result );
+//    double chi2 = Chi2_test( hist_original, hist_result );
+    double chi2 = hist_original->Chi2Test( hist_result, "CHI2/NDF");
     cout << "CHI2 is " << chi2 << endl;
     xaxisgraph[iterations] = iterations;
     yaxisgraph[iterations] = chi2;
@@ -1392,7 +1428,7 @@ void Unfolder::ClosureTest_MC(TString variable){
   PrepareCanvas( can_chi2, "CHI2_Test_" + variable);
   TGraph* chi2_evolution = new TGraph(iterations_, xaxisgraph, yaxisgraph);
   chi2_evolution->GetXaxis()->SetTitle("N_{it.}");
-  chi2_evolution->GetYaxis()->SetTitle("#chi^{2}");
+  chi2_evolution->GetYaxis()->SetTitle("#chi^{2}/NDF");
   chi2_evolution->Draw("A*");
   can_chi2->SaveAs("Chi2_Test_MC_" + variable + label_ + ".C");
   can_chi2->SaveAs("Chi2_Test_MC_" + variable + label_ + ".pdf");
@@ -1527,9 +1563,55 @@ double Unfolder::Chi2_test( TH1D* hist_data, TH1D* hist_MC){
 
    double h1 = hist_data->GetBinContent( bin );
    double h2 = hist_MC->GetBinContent( bin );
+   double H1 = hist_data->Integral( );
 
    if( h1 != 0.){ 
      chi2 += (h1-h2)*(h1-h2)/h1;
+    }
+  }
+  return chi2/ndf;
+}
+
+/**************************
+* -- CHI2 calculation II. *
+**************************/
+
+double Unfolder::Chi2_testII( TH1D* hist_data, TH1D* hist_MC){
+
+  int ndf = hist_data->GetNbinsX();
+  double chi2 = 0.;
+
+  for( int bin = 0; bin <= ndf; bin++){
+
+   double h1 = hist_data->GetBinContent( bin );
+   double h2 = hist_MC->GetBinContent( bin );
+   double H1 = hist_data->Integral( );
+
+   if( h1 != 0.){ 
+     chi2 += (h1-h2)*(h1-h2)/(h1 + h2);
+    }
+  }
+  return chi2/ndf;
+}
+
+
+/***************************
+* -- CHI2 calculation III. *
+***************************/
+
+double Unfolder::Chi2_testIII( TH1D* hist_data, TH1D* hist_MC){
+
+  int ndf = hist_data->GetNbinsX();
+  double chi2 = 0.;
+
+  for( int bin = 0; bin <= ndf; bin++){
+
+   double h1 = hist_data->GetBinContent( bin );
+   double h2 = hist_MC->GetBinContent( bin );
+   double H1 = hist_data->Integral( );
+
+   if( h1 != 0.){ 
+     chi2 += (h1-h2)*(h1-h2)/H1;
     }
   }
   return chi2/ndf;
@@ -1547,3 +1629,1156 @@ double Unfolder::Det_to_gen_scale(int file){
   double scale_ratio = static_cast<double>( hDet->Integral() )/static_cast<double>( hGen->Integral() );
   return scale_ratio;
 }	
+
+
+
+
+
+
+
+/****************************************
+* Compare different chi2 evolutions.
+*/
+
+
+
+
+
+
+
+void Unfolder::Chi2_comparison_data(TString variable){
+  // Prepare variables and objects.
+  TH1D* hist_original;
+  TH1D* hist_result;  
+  TString htitle;
+
+  int iterations_ = 20;
+  double xaxisgraph[iterations_], yaxisgraph_chi0[iterations_], yaxisgraph_chi1[iterations_], yaxisgraph_chi2[iterations_];
+  
+  // Get the detector level distribution.
+  if( variable == "lead"){	Get_DetEnergy_lead(-1, hist_original );	htitle = "E_{det} spectrum (leading)";}
+  else{				Get_DetEnergy(-1, hist_original );	htitle = "E_{det} spectrum (all)";	}
+
+  if( normalise_1 ){ hist_original->Scale( 1./hist_original->Integral() ); }
+
+  // Loop over number of Bayesian iterations, and unfold->smear detector level distribution.
+  // Calculate chi2 as we go.
+  double chi2 = hist_original->Chi2Test( hist_original, "CHI2/NDF");
+  double chi2_prev = chi2;
+
+  for(int iterations = 1; iterations <= iterations_; iterations++){
+
+    hist_result = (TH1D*)hist_original->Clone(TString::Format("Closure_%i_iterations", iterations) );
+    hist_result->SetName( TString::Format("Closure_%i_iterations", iterations) );
+    hist_result->SetTitle( TString::Format("Closure_%i_iterations", iterations) );
+    Get_DetUnfolded( -1, hist_result, iterations, variable );
+    Get_GenSmeared( -1, hist_result , hist_result, variable); 
+
+
+    // Chi2 test.
+//    chi2 = hist_original->Chi2Test( hist_result, "CHI2/NDF");
+    xaxisgraph[iterations] 	= iterations;
+    yaxisgraph_chi0[iterations] = Chi2_test( hist_original, hist_result);
+    yaxisgraph_chi1[iterations] = Chi2_testII( hist_original, hist_result);
+    yaxisgraph_chi2[iterations] = Chi2_testIII( hist_original, hist_result);
+  }
+
+
+  // Finish chi2 study.
+  TCanvas *can_chi2;
+  PrepareCanvas( can_chi2, "CHI2_Test_" + variable);
+  TGraph* chi2_evolution_0 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi0);
+  TGraph* chi2_evolution_1 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi1);
+  TGraph* chi2_evolution_2 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi2);
+  chi2_evolution_0->GetXaxis()->SetTitle("N_{it.}");
+  chi2_evolution_0->GetYaxis()->SetTitle("#chi^{2}/NDF");
+  chi2_evolution_0->Draw("A*");
+  chi2_evolution_1->SetMarkerColor( kRed );
+  chi2_evolution_1->SetMarkerStyle( 21 );
+  chi2_evolution_1->Draw("psame");
+  chi2_evolution_2->SetMarkerColor( kGreen );
+  chi2_evolution_2->SetMarkerStyle( 22 );
+  chi2_evolution_2->Draw("psame");
+  can_chi2->SaveAs("Chi2_comparison_data_" + variable + label_ + ".C");
+  can_chi2->SaveAs("Chi2_comparison_data_" + variable + label_ + ".pdf");
+}
+
+
+
+
+
+
+
+
+
+
+void Unfolder::Chi2_comparison_MC_det(TString variable){
+  // Prepare variables and objects.
+  TH1D* hist_original;
+  TH1D* hist_result;  
+  TString htitle;
+
+  int iterations_ = 20;
+  double xaxisgraph[iterations_], yaxisgraph_chi0[iterations_], yaxisgraph_chi1[iterations_], yaxisgraph_chi2[iterations_];
+  
+  // Get the detector level distribution.
+  if( variable == "lead"){	Get_DetEnergy_lead(0, hist_original );	htitle = "E_{det} spectrum (leading)";}
+  else{				Get_DetEnergy(0, hist_original );	htitle = "E_{det} spectrum (all)";	}
+
+  if( normalise_1 ){ hist_original->Scale( 1./hist_original->Integral() ); }
+
+  // Loop over number of Bayesian iterations, and unfold->smear detector level distribution.
+  // Calculate chi2 as we go.
+  double chi2 = hist_original->Chi2Test( hist_original, "CHI2/NDF");
+  double chi2_prev = chi2;
+
+  for(int iterations = 1; iterations <= iterations_; iterations++){
+
+    hist_result = (TH1D*)hist_original->Clone(TString::Format("Closure_%i_iterations", iterations) );
+    hist_result->SetName( TString::Format("Closure_%i_iterations", iterations) );
+    hist_result->SetTitle( TString::Format("Closure_%i_iterations", iterations) );
+    Get_DetUnfolded( 0, hist_result, iterations, variable );
+    Get_GenSmeared( 0, hist_result , hist_result, variable); 
+
+
+    // Chi2 test.
+//    chi2 = hist_original->Chi2Test( hist_result, "CHI2/NDF");
+    xaxisgraph[iterations] 	= iterations;
+    yaxisgraph_chi0[iterations] = Chi2_test( hist_original, hist_result);
+    yaxisgraph_chi1[iterations] = Chi2_testII( hist_original, hist_result);
+    yaxisgraph_chi2[iterations] = Chi2_testIII( hist_original, hist_result);
+  }
+
+
+  // Finish chi2 study.
+  TCanvas *can_chi2;
+  PrepareCanvas( can_chi2, "CHI2_Test_" + variable);
+  TGraph* chi2_evolution_0 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi0);
+  TGraph* chi2_evolution_1 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi1);
+  TGraph* chi2_evolution_2 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi2);
+  chi2_evolution_0->GetXaxis()->SetTitle("N_{it.}");
+  chi2_evolution_0->GetYaxis()->SetTitle("#chi^{2}/NDF");
+  chi2_evolution_0->Draw("A*");
+  chi2_evolution_1->SetMarkerColor( kRed );
+  chi2_evolution_1->SetMarkerStyle( 21 );
+  chi2_evolution_1->Draw("psame");
+  chi2_evolution_2->SetMarkerColor( kGreen );
+  chi2_evolution_2->SetMarkerStyle( 22 );
+  chi2_evolution_2->Draw("psame");
+  can_chi2->SaveAs("Chi2_comparison_MC_det_" + variable + label_ + ".C");
+  can_chi2->SaveAs("Chi2_comparison_MC_det_" + variable + label_ + ".pdf");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void Unfolder::Chi2_comparison_MC(TString variable){
+  // Prepare variables and objects.
+  TH1D* hist_original;
+  TH1D* hist_result;  
+  TString htitle;
+
+  int iterations_ = 20;
+  double xaxisgraph[iterations_], yaxisgraph_chi0[iterations_], yaxisgraph_chi1[iterations_], yaxisgraph_chi2[iterations_];
+  
+  // Get the detector level distribution.
+  if( variable == "lead"){	Get_GenEnergy_lead(0, hist_original );	htitle = "E_{det} spectrum (leading)";}
+  else{				Get_GenEnergy(0, hist_original );	htitle = "E_{det} spectrum (all)";	}
+
+  if( normalise_1 ){ hist_original->Scale( 1./hist_original->Integral() ); }
+
+  // Loop over number of Bayesian iterations, and unfold->smear detector level distribution.
+  // Calculate chi2 as we go.
+  double chi2 = hist_original->Chi2Test( hist_original, "CHI2/NDF");
+  double chi2_prev = chi2;
+
+  for(int iterations = 1; iterations <= iterations_; iterations++){
+
+    hist_result = (TH1D*)hist_original->Clone(TString::Format("Closure_%i_iterations", iterations) );
+    hist_result->SetName( TString::Format("Closure_%i_iterations", iterations) );
+    hist_result->SetTitle( TString::Format("Closure_%i_iterations", iterations) );
+    Get_GenSmeared( 0, hist_result , hist_result, variable); 
+    Get_DetUnfolded( 0, hist_result, iterations, variable );
+
+
+
+    // Chi2 test.
+//    chi2 = hist_original->Chi2Test( hist_result, "CHI2/NDF");
+    xaxisgraph[iterations] 	= iterations;
+    yaxisgraph_chi0[iterations] = Chi2_test( hist_original, hist_result);
+    yaxisgraph_chi1[iterations] = Chi2_testII( hist_original, hist_result);
+    yaxisgraph_chi2[iterations] = Chi2_testIII( hist_original, hist_result);
+  }
+
+
+  // Finish chi2 study.
+  TCanvas *can_chi2;
+  PrepareCanvas( can_chi2, "CHI2_Test_" + variable);
+  TGraph* chi2_evolution_0 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi0);
+  TGraph* chi2_evolution_1 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi1);
+  TGraph* chi2_evolution_2 = new TGraph(iterations_, xaxisgraph, yaxisgraph_chi2);
+  chi2_evolution_0->GetXaxis()->SetTitle("N_{it.}");
+  chi2_evolution_0->GetYaxis()->SetTitle("#chi^{2}/NDF");
+  chi2_evolution_0->Draw("A*");
+  chi2_evolution_1->SetMarkerColor( kRed );
+  chi2_evolution_1->SetMarkerStyle( 21 );
+  chi2_evolution_1->Draw("psame");
+  chi2_evolution_2->SetMarkerColor( kGreen );
+  chi2_evolution_2->SetMarkerStyle( 22 );
+  chi2_evolution_2->Draw("psame");
+  can_chi2->SaveAs("Chi2_comparison_MC_" + variable + label_ + ".C");
+  can_chi2->SaveAs("Chi2_comparison_MC_" + variable + label_ + ".pdf");
+}
+
+
+
+
+
+
+
+
+/************************************************************
+* Code to extract a calibration function from the MC files. *
+************************************************************/
+
+void Unfolder::CalibrationFunction(int first_sector, int last_sector){
+
+  ofstream calibrating_values;
+  calibrating_values.open("Calibrating_values.txt", ios::out | ios::app | ios::binary);
+
+  int rebinner = 1;
+
+  // Step 1 - open Root files and retrieve 2D histograms.
+   
+  TLegend *legend_det = new TLegend(0.25, 0.50, 0.50, 0.95);
+    legend_det->SetFillStyle( 0 );
+    legend_det->SetBorderSize( 0 );
+   
+  TLegend *legend_gen = new TLegend(0.25, 0.50, 0.50, 0.95);
+    legend_gen->SetFillStyle( 0 );
+    legend_gen->SetBorderSize( 0 );   
+ 
+  TString date = "20150305_had";
+
+  TString numb = "12137851";
+
+  int Slice_threshold = 0.;
+  int event_threshold_ = 50.;
+
+
+  /*******************************************
+  * Create a new subdirectory for the plots. *
+  ********************************************/
+  double E_gen_cut = 0.;
+  TString distr = "gaus";
+
+  std::vector<TString> legendEntries;
+  std::vector<TString> plotVariables;
+  std::vector<TString> jetSelection;
+    std::vector<TString> plotX;
+    std::vector<TString> plotY;
+    std::vector<TString> plotTitle;
+  std::vector<int>     colours;
+  std::vector<double> plot_min;
+  std::vector<TString> can_suffix;
+   
+  bool draw_legend = false;
+  TString calib_ = "_compare";
+  TString drawoptions = "A";
+  int color_index = 0;
+
+  TCanvas *can_true = new TCanvas("can_true" + calib_, "can_true" + calib_, 1000, 1000);
+    can_true	->SetLeftMargin(0.25);
+    can_true	->SetTopMargin(0.05);
+    can_true	->SetBottomMargin(0.14);	 
+	 
+  TCanvas *can_meas = new TCanvas("can_meas" + calib_, "can_meas" + calib_, 1000, 1000);
+    can_meas	->SetLeftMargin(0.25);
+    can_meas	->SetTopMargin(0.05);
+    can_meas	->SetBottomMargin(0.14); 
+      
+  TCanvas *can_fit = new TCanvas("can_fit" + calib_, "can_fit" + calib_, 1000, 1000);
+    can_fit	->SetLeftMargin(0.25);
+    can_fit	->SetTopMargin(0.05);
+    can_fit	->SetBottomMargin(0.14);         
+	 
+  TCanvas *can_aver = new TCanvas("can_aver" + calib_, "can_aver" + calib_, 1000, 1000);
+    can_aver	->SetLeftMargin(0.25);
+    can_aver	->SetRightMargin(0.05);
+    can_aver	->SetBottomMargin(0.14);
+      
+  TLine *line = new TLine(0.,1.,1733.,1.);
+  line->SetLineWidth(2);
+
+//  TF1* analytical = new TF1("Analytical", " ( x < 200.) * ( [0] + [1] * log( [2] + x) ) + (x > 200. )* ( [3] + [4] * x) ", 0., 900.);
+   TF1* analytical = new TF1("Analytical", " ( x > 100.) * ( [0] + [1] * log( [2] + x) )", 200., 900.);
+    analytical->SetParLimits(2, -199., 1000.);
+
+  /* Open files. */
+  for(int file = 0; file < MC_files_.size(); file++){
+
+    TFile *_file0 = TFile::Open( MC_files_[file], "Read");
+    TString label = TString::Format( printLabel_[ MC_files_[file] ] + "_sector_%i_to_%i", first_sector, last_sector);
+
+    int	new_dir = mkdir( ("Plots/" + label).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
+       
+    TCanvas *c = new TCanvas("can", "can",  1000, 1000);
+      c->SetLeftMargin(0.20);
+      c->SetRightMargin(0.18);
+      c->SetBottomMargin(0.20);  
+
+    // -- Extract the response, Edet and Egen distributions from the files.
+
+    THnSparseD* hResponse 	= (THnSparseD*)_file0->Get("hResponse_gen_phi");			//hResponse->Draw("colz");
+    THnSparse* hGenE_fine_phi   = (THnSparse*)_file0->Get("hGen_fine_phi");
+    THnSparse* hDetE_fine_phi = (THnSparse*)_file0->Get("hDet_fine_phi");
+      
+    TH2D* hDetE 	= (TH2D*)_file0->Get("hCastorJet_energy_response");//	hDetE->Draw("colz");	
+      hDetE->RebinX( rebinner );
+      hDetE->RebinY( rebinner );
+
+    TH2D* hGenE	= (TH2D*)_file0->Get("hGen_fine");//			hGenE->Draw("colz");	
+      hGenE->RebinX( rebinner );*
+      hGenE->RebinY( rebinner );
+       
+    TH1D* hGen	= (TH1D*)_file0->Get("hGenJet_energy");		
+
+    // Templates for 1D projections of THnSparse.
+    TH1D* hSlice_storage;
+    TH1D* hEgen_storage;
+    TH1D* hEdet_storage;
+
+    double mean_alpha_nom = 0., mean_alpha_denom = 0.;
+    double mean_beta_nom = 0., mean_beta_denom = 0.;
+    double mean_gamma_nom = 0., mean_gamma_denom = 0.;
+
+    for( int bin_phi = first_sector; bin_phi <=last_sector; bin_phi++){//  hResponse->GetNbinsZ(); bin_phi++){
+  //     if( bin_phi > 11 && bin_phi < 16 ){ continue; }       
+
+       vector<double> mean_response;
+       vector<double> mean_response_inverse;
+       vector<double> mean_eDet;
+       vector<double> error_eDet;
+       vector<double> mean_eGen;
+       vector<double> error_eGen;
+       vector<double> eGen_center;
+       vector<double> error_energy;
+      
+       int valid_fits = 0;
+
+       THnSparse* hGenE_sparse = 	(THnSparse*)hGenE_fine_phi->Clone("");//TString::Format("GenE_bin_%i", bin_phi) );
+       THnSparse* hDetE_sparse = 	(THnSparse*)hDetE_fine_phi->Clone("");//TString::Format("DetE_bin_%i", bin_phi) );
+       THnSparse* hResponse_sparse =	(THnSparse*)hResponse	->Clone("");//TString::Format("Response_bin_%i", bin_phi) );
+
+       hGenE_sparse ->GetAxis(2)->SetRange(bin_phi, bin_phi);
+       hDetE_sparse ->GetAxis(2)->SetRange(bin_phi, bin_phi);
+       hResponse_sparse      ->GetAxis(2)->SetRange(bin_phi, bin_phi);
+
+       TH2D* hGenE_selection  = (TH2D*)hGenE_sparse->Projection(1,0);
+         hGenE_selection->RebinX( rebinner );
+	 hGenE_selection->RebinY( rebinner );
+       TH2D* hDetE_selection  = (TH2D*)hDetE_sparse->Projection(1,0);
+         hDetE_selection->RebinX( rebinner );
+	 hDetE_selection->RebinY( rebinner );
+       TH2D* hResponse_selection = (TH2D*)hResponse_sparse->Projection(1,0);
+	 hResponse_selection->RebinX( rebinner );
+	 hResponse_selection->RebinY( rebinner );
+	 
+cout << "// -- BINS COMPARISON\t" << hGenE_selection->GetNbinsX() << "\t" << hGenE_selection->GetXaxis()->GetTitle() << "\t" << hGenE_selection->GetNbinsY() << "\t" << hGenE_selection->GetYaxis()->GetTitle() << "\t"
+				  << hDetE_selection->GetNbinsX() << "\t" << hDetE_selection->GetXaxis()->GetTitle() << "\t" << hDetE_selection->GetNbinsY() << "\t" << hDetE_selection->GetYaxis()->GetTitle() << "\t"
+				  << hResponse_selection->GetNbinsX() << "\t" << hResponse_selection->GetXaxis()->GetTitle() << "\t" << hResponse_selection->GetNbinsY() << "\t" << hResponse_selection->GetYaxis()->GetTitle() << endl;	
+
+       // Create a histogram to store slices with low statistics.
+       if( bin_phi == first_sector ){ hSlice_storage     = (TH1D*)hResponse_selection->ProjectionY("Storage", 1, 1, "do"); }
+         for(int bins_store = 0; bins_store <= hSlice_storage->GetNbinsX(); bins_store++){ hSlice_storage->SetBinContent(bins_store, 0.); }
+
+       // Do the same for the energies.
+       if( bin_phi == first_sector ){ hEgen_storage = (TH1D*)hGenE_selection->ProjectionY("Storage_gen", 0, 0, "do"); hEgen_storage->Rebin( rebinner*100 ); }
+         for(int bins_store = 0; bins_store <= hEgen_storage->GetNbinsX(); bins_store++){ hEgen_storage->SetBinContent(bins_store, 0.); }
+
+       if( bin_phi == first_sector ){ hEdet_storage = (TH1D*)hDetE_selection->ProjectionY("Storage_det", 0, 0, "do"); hEdet_storage->Rebin( rebinner*100 ); }
+         for(int bins_store = 0; bins_store <= hEdet_storage->GetNbinsX(); bins_store++){ hEdet_storage->SetBinContent(bins_store, 0.); }
+
+       /******************
+       * Loop over bins. *       
+       ******************/                 
+                    
+       for(int bin_E = 1; bin_E < hGenE->GetNbinsX() ; bin_E++){
+
+	 // Get 1D projections.
+         TH1D* hResponse_1D 	= (TH1D*)hResponse_selection->ProjectionY(TString::Format("Response_1D_bin_%i_phi_%i", bin_E, bin_phi), 	bin_E, bin_E, "do");
+
+         TH1D* hGenE_1D  = (TH1D*)hGenE_selection->ProjectionY(TString::Format("eGen_1D_bin_%i_phi_%i", bin_E, bin_phi), bin_E, bin_E, "o");
+	   hGenE_1D->Rebin( rebinner*100 );
+
+         TH1D* hDetE_1D  = (TH1D*)hDetE_selection->ProjectionY(TString::Format("eDet_1D_bin_%i_phi_%i", bin_E, bin_phi), bin_E, bin_E, "o");
+	   hDetE_1D->Rebin( rebinner*100 );
+
+	 
+	 // Create gaussian.
+	 TF1 *fit_response	= new TF1(TString::Format("Fit_Response_1D_bin_%i_phi_%i", bin_E, bin_phi), "gaus");
+
+	 // If our current histogram has too few events, we save it for later.
+	 if( (hResponse_1D->Integral() + hSlice_storage->Integral() )< event_threshold_ ){
+ 	   hSlice_storage	->Add( hResponse_1D );	
+	   hEgen_storage	->Add( hGenE_1D );	
+	   hEdet_storage	->Add( hDetE_1D );
+	   continue;
+	 }
+
+	 // Our current histogram, combined with the stored histogram, has enough statistics. Add them and go on.
+         else if( ( hResponse_1D->Integral() + hSlice_storage->Integral() ) >= event_threshold_ ){
+           hResponse_1D ->Add( hSlice_storage );
+           hGenE_1D     ->Add( hEgen_storage );
+	   hDetE_1D	->Add( hEdet_storage );
+         }
+
+	 // Empty the bins of our storage histogram for a next run.
+	 for(int bins_store = 0; bins_store <= hSlice_storage->GetNbinsX(); bins_store++){ hSlice_storage->SetBinContent(bins_store, 0.); 	hSlice_storage->SetBinError(bins_store, 0.);}
+	 for(int bins_store = 0; bins_store <= hEgen_storage->GetNbinsX(); bins_store++){ hEgen_storage->SetBinContent(bins_store, 0.); 	hEgen_storage->SetBinError(bins_store, 0.);}
+	 for(int bins_store = 0; bins_store <= hEdet_storage->GetNbinsX(); bins_store++){ hEdet_storage->SetBinContent(bins_store, 0.); 	hEdet_storage->SetBinError(bins_store, 0.);}
+
+	 TCanvas* can_slice = new TCanvas( TString::Format("Slice_%i", bin_E), TString::Format("Slice_%i_phi_%i", bin_E, bin_phi), 1);
+
+	 // -- Fit Gaussian.
+	 hResponse_1D	->Draw();
+	 
+	 if( file == 0 ){
+  	   hResponse_1D	->Fit( fit_response , "Q0");	 
+	   can_slice->SaveAs(TString::Format("Plots/" + label + "/Slice_%i.C", bin_E) );
+           can_slice->SaveAs(TString::Format("Plots/" + label + "/Slice_%i.pdf", bin_E) );
+	}
+	else{
+	  hResponse_1D ->Fit( fit_response , "Q0");
+	}
+	 
+	 // -- Extract mean values.
+	 if( fit_response->GetParameter(1) != 0. ){
+	   double R = fit_response->GetParameter(1);
+	   double sR= fit_response->GetParError(1);	
+
+	   mean_response	.push_back( R );
+	   mean_response_inverse.push_back( 1./R );
+	   mean_eDet		.push_back( GetAverage(hDetE_1D) );
+	   mean_eGen		.push_back( GetAverage(hGenE_1D) );
+	   eGen_center		.push_back( hGen->GetBinCenter( bin_E ) );
+
+	   if( R == 0.){ 	error_eGen	.push_back( 0. ); }
+	   else{ 		error_eGen	.push_back( sR ); }
+           if( R == 0.){	error_eDet	.push_back( 0. ); }
+	   else{ 		error_eDet	.push_back( sR/(R*R) ); }
+	   error_energy		.push_back( 0. );	   
+	   
+	   valid_fits++;
+	   
+	 }
+       } // Loop over energybins.
+       
+       // Print out our values.
+       for( int bin = 0; bin < mean_eDet.size(); bin++){
+         cout << "lowedge.push_back(\t" << mean_eGen[bin] << "\t); muval.push_back(\t" << mean_response[bin] << ");" << endl;
+       }
+
+       // Transform the vectors into arrays.       
+       double * E_gen_axis	= &mean_eGen[0],
+       	      * E_det_axis	= &mean_eDet[0],
+	      * response_val	= &mean_response[0],
+	      * response_inverse= &mean_response_inverse[0],
+	      * eGen_bin	= &eGen_center[0],
+	      * err_R		= &error_eGen[0],
+	      * err_1overR	= &error_eDet[0],
+	      * err_energy	= &error_energy[0];
+       // Create graphs from the arrays.
+
+       // -- E gen versus response
+       TGraphErrors * Response_true = new TGraphErrors( mean_eGen.size(), E_gen_axis, response_val, err_energy, err_R);
+       	 Response_true	->GetXaxis()->SetTitle("E_{gen}");
+	 Response_true	->GetXaxis()->SetTitleOffset(0.9);
+	 Response_true	->GetXaxis()->SetTitleSize(0.06);
+	 Response_true	->GetXaxis()->SetLabelSize(0.05);
+	 Response_true	->GetXaxis()->SetNdivisions(505);
+	 	 
+	 Response_true	->GetYaxis()->SetTitle("< #frac{E_{det}}{E_{gen}} >");
+	 Response_true	->GetYaxis()->SetTitleOffset(1.8);
+	 Response_true	->GetYaxis()->SetTitleSize(0.06);
+	 Response_true	->GetYaxis()->SetLabelSize(0.07);	 
+	 Response_true	->GetYaxis()->SetRangeUser(0., 4.);
+	 
+	 Response_true	->SetMarkerColor( getColor(bin_phi) );
+	 Response_true	->SetLineColor( getColor(bin_phi) );
+	 Response_true	->SetMarkerStyle( 23 );
+
+	 Response_true	->SetName( TString::Format("Truth_response_sector_%i", static_cast<int>( (bin_phi  - bin_phi%3)/3 )) );
+	 
+       // -- E det versus 1/response
+       TH1F* hEdet_axis = new TH1F("hEdet_axis", "hEdet_axis", 100, 0, mean_eGen[ mean_eGen.size()-1] );
+         hEdet_axis->GetYaxis()->SetRangeUser(0., 4.0);
+       	 hEdet_axis	->GetXaxis()->SetTitle("E_{det}");
+	 hEdet_axis	->GetXaxis()->SetTitleOffset(0.9);
+	 hEdet_axis	->GetXaxis()->SetTitleSize(0.06);
+	 hEdet_axis	->GetXaxis()->SetLabelSize(0.05);
+	 hEdet_axis	->GetXaxis()->SetNdivisions(505);
+	 	 
+	 hEdet_axis	->GetYaxis()->SetTitle("< #frac{E_{gen}}{E_{det}} >");  
+	 hEdet_axis	->GetYaxis()->SetRangeUser(0.,4.0);      
+	 hEdet_axis	->GetYaxis()->SetTitleOffset(1.8);
+	 hEdet_axis	->GetYaxis()->SetTitleSize(0.06);
+	 hEdet_axis	->GetYaxis()->SetLabelSize(0.07); 
+	       
+       TGraphErrors * Response_meas = new TGraphErrors( mean_eDet.size(), E_det_axis, response_inverse,  err_energy, err_1overR);
+       	 Response_meas	->GetXaxis()->SetTitle("E_{det}");
+	 Response_meas	->GetXaxis()->SetTitleOffset(0.9);
+	 Response_meas	->GetXaxis()->SetTitleSize(0.06);
+	 Response_meas	->GetXaxis()->SetLabelSize(0.05);
+	 Response_meas	->GetXaxis()->SetNdivisions(505);
+	 	 
+	 Response_meas	->GetYaxis()->SetTitle("< #frac{E_{gen}}{E_{det}} >");  
+	 Response_meas	->GetYaxis()->SetRangeUser(0.,4.0);      
+	 Response_meas	->GetYaxis()->SetTitleOffset(1.8);
+	 Response_meas	->GetYaxis()->SetTitleSize(0.06);
+	 Response_meas	->GetYaxis()->SetLabelSize(0.07);
+	 
+	 
+	 Response_meas	->SetMarkerColor( getColor(bin_phi) );
+	 Response_meas	->SetLineColor( getColor(bin_phi) );
+	 Response_meas	->SetMarkerStyle( 20 + file );
+
+/*		  	
+       // -- E gen versus average Egen.
+       TGraph * Gen_average = new TGraph( eGen_center.size(), eGen_bin, E_gen_axis);
+         Gen_average	->GetXaxis()->SetTitle("E_{gen}");
+a;	 Gen_average	->GetYaxis()->SetTitle("<E>");
+	 
+       // -- E gen versus average Edet.
+       TGraph * Det_average = new TGraph( eGen_center.size(), eGen_bin, E_det_axis);
+         Det_average	->GetXaxis()->SetTitle("E_{gen}");
+	 Det_average	->GetYaxis()->SetTitle("<E>");	
+*/ 
+       legend_det->AddEntry( Response_meas, TString::Format("Sector %i", bin_phi), "lp");
+//       legend_gen->AddEntry( Response_meas, legendEntries[file], "lp");
+ 
+       // Draw.
+       can_true->cd();	 
+       Response_true->Draw("p" + drawoptions);
+       line->Draw();
+
+	can_true->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_true_calib_phi_%i_" + label + ".C", bin_phi) );
+        can_true->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_true_calib_phi_%i_.pdf", bin_phi) );
+
+	// Draw.
+
+       can_fit->cd();
+       Response_meas->Draw("p" + drawoptions);
+       drawoptions="same";	
+
+       can_meas->cd(); 
+       Response_meas->Draw("ape");// + drawoptions);
+       line->Draw();
+
+       cout << "Sector\t" << bin_phi << endl;
+       analytical->SetLineColor( getColor(bin_phi) );
+       Response_meas->Fit( analytical, "0", "", 200., 900.); 
+       if( first_sector >= 12 && last_sector <= 15){ can_fit->cd(); analytical->DrawCopy("lsame"); }
+
+       can_fit->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_fit_calib_phi_%i_" + label + ".C", bin_phi) );
+       can_fit->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_fit_calib_phi_%i_" + label + ".pdf", bin_phi) );
+         
+       if( bin_phi < 12 || bin_phi > 15){
+         double alpha = analytical->GetParameter( 0);
+         double salpha = analytical->GetParError( 0);
+         mean_alpha_nom += alpha/(salpha*salpha);
+         mean_alpha_denom += 1./(salpha*salpha);       
+
+         double beta = analytical->GetParameter( 1);
+         double sbeta = analytical->GetParError( 1);
+         mean_beta_nom += beta/(sbeta*sbeta);
+         mean_beta_denom += 1./(sbeta*sbeta);   
+
+         double gamma = analytical->GetParameter( 2);
+         double sgamma = analytical->GetParError( 2);
+         mean_gamma_nom += gamma/(sgamma*sgamma);
+         mean_gamma_denom += 1./(sgamma*sgamma);   
+       }
+
+	can_meas->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_meas_calib_phi_%i_" + label + ".C", bin_phi) );
+        can_meas->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_meas_calib_phi_%i_" + label + ".pdf", bin_phi) );
+
+
+	// Delete the histograms to avoid memory leak.
+       hGenE_selection->~TH2();
+       hDetE_selection->~TH2();
+       hResponse_selection->~TH2();
+
+       hGenE_sparse->~THnSparse();
+       hDetE_sparse->~THnSparse();
+       hResponse_sparse->~THnSparse();
+     } // Loop over phi.
+
+     calibrating_values << legend_info_[ MC_files_[file] ] << endl;
+     calibrating_values << " --- The Parameters --- " << endl;
+     calibrating_values << "Mean alpha\t" << mean_alpha_nom/mean_alpha_denom << "\t+/-\t" << sqrt( 1./ mean_alpha_denom) << endl;
+     calibrating_values << "Mean beta\t" << mean_beta_nom/mean_beta_denom << "\t+/-\t" << sqrt( 1./ mean_beta_denom) << endl;
+     calibrating_values << "Mean gamma\t" << mean_gamma_nom/mean_gamma_denom << "\t+/-\t" << sqrt( 1./ mean_gamma_denom) << endl << endl;
+
+     std::vector<double> parameters_calibration;
+       parameters_calibration.push_back( mean_alpha_nom/mean_alpha_denom );
+       parameters_calibration.push_back( mean_beta_nom/mean_beta_denom );
+       parameters_calibration.push_back( mean_gamma_nom/mean_gamma_denom );
+
+     calibration_parameters_[ MC_files_[file] ] = parameters_calibration;
+
+     // Save.
+     can_true->cd();
+     legend_gen->Draw();
+     	can_true->SaveAs("Plots/" + label +"/CalibrationFactors_true_" + calib_ + "_" + label + ".C");		
+	can_true->SaveAs("Plots/" + label +"/CalibrationFactors_true_" + calib_ + "_" + label + ".pdf");
+     
+     can_meas->cd();
+     legend_det->Draw();
+     	can_meas->SaveAs("Plots/" + label +"/CalibrationFactors_meas_" + calib_ + "_" + label + ".C"); 		
+	can_meas->SaveAs("Plots/" + label +"/CalibrationFactors_meas_" + calib_ + "_" + label + ".pdf");
+
+     can_fit->cd();
+     legend_det->Draw();
+//        analytical->SetParameters(mean_alpha_nom/mean_alpha_denom, mean_beta_nom/mean_beta_denom, mean_gamma_nom/mean_gamma_denom);
+	TF1* analytical_mean = new TF1("Analytical_mean", "( [0] + [1] * log( [2] + x) )", 200., 900.);
+        analytical_mean->SetParameters(mean_alpha_nom/mean_alpha_denom, mean_beta_nom/mean_beta_denom, mean_gamma_nom/mean_gamma_denom); 
+	analytical_mean->SetLineColor( TColor::GetColor("#FC00E7") );
+
+	can_fit->SaveAs("Plots/" + label +"/CalibrationFactors_meas_with_fit" + calib_ + "_" + label + ".C");             
+	can_fit->SaveAs("Plots/" + label +"/CalibrationFactors_meas_with_fit" + calib_ + "_" + label + ".pdf");
+
+    drawoptions = "A";
+
+    can_fit->Clear();
+    can_meas->Clear();
+    can_true->Clear();
+    legend_det->Clear();
+
+  } // Loop over files.
+}
+
+
+
+
+/************************************************************
+* Code to extract a calibration function from the MC files. *
+************************************************************/
+
+void Unfolder::CalibrationFunction_workingsectors(int first_sector, int last_sector){
+
+  ofstream calibrating_values;
+  calibrating_values.open("Calibrating_values.txt", ios::out | ios::app | ios::binary);
+
+  int rebinner = 1;
+
+  // Step 1 - open Root files and retrieve 2D histograms.
+   
+  TLegend *legend_det = new TLegend(0.25, 0.60, 0.50, 0.95);
+    legend_det->SetFillStyle( 0 );
+    legend_det->SetBorderSize( 0 );
+   
+  TLegend *legend_gen = new TLegend(0.25, 0.60, 0.50, 0.95);
+    legend_gen->SetFillStyle( 0 );
+    legend_gen->SetBorderSize( 0 );  
+
+  int Slice_threshold = 0.;
+  int event_threshold_ = 50.;
+
+
+  /*******************************************
+  * Create a new subdirectory for the plots. *
+  ********************************************/
+  double E_gen_cut = 0.;
+  TString distr = "gaus";
+
+  std::vector<TString> legendEntries;
+  std::vector<TString> plotVariables;
+  std::vector<TString> jetSelection;
+    std::vector<TString> plotX;
+    std::vector<TString> plotY;
+    std::vector<TString> plotTitle;
+  std::vector<int>     colours;
+  std::vector<double> plot_min;
+  std::vector<TString> can_suffix;
+   
+  bool draw_legend = false;
+  TString calib_ = "_compare";
+  TString drawoptions = "A";
+  int color_index = 0;
+
+  TCanvas *can_true = new TCanvas("can_true" + calib_, "can_true" + calib_, 1000, 1000);
+    can_true	->SetLeftMargin(0.25);
+    can_true	->SetTopMargin(0.05);
+    can_true	->SetBottomMargin(0.14);	 
+	 
+  TCanvas *can_meas = new TCanvas("can_meas" + calib_, "can_meas" + calib_, 1000, 1000);
+    can_meas	->SetLeftMargin(0.25);
+    can_meas	->SetTopMargin(0.05);
+    can_meas	->SetBottomMargin(0.14); 
+      
+  TCanvas *can_fit = new TCanvas("can_fit" + calib_, "can_fit" + calib_, 1000, 1000);
+    can_fit	->SetLeftMargin(0.25);
+    can_fit	->SetTopMargin(0.05);
+    can_fit	->SetBottomMargin(0.14);         
+	 
+  TCanvas *can_aver = new TCanvas("can_aver" + calib_, "can_aver" + calib_, 1000, 1000);
+    can_aver	->SetLeftMargin(0.25);
+    can_aver	->SetRightMargin(0.05);
+    can_aver	->SetBottomMargin(0.14);
+      
+  TLine *line = new TLine(0.,1.,1733.,1.);
+  line->SetLineWidth(2);
+
+//  TF1* analytical = new TF1("Analytical", " ( x < 200.) * ( [0] + [1] * log( [2] + x) ) + (x > 200. )* ( [3] + [4] * x) ", 0., 900.);
+  TF1* analytical = new TF1("Analytical", " ( [0] + [1] * log( [2] + x) )", 200., 900.);
+    analytical->SetParLimits(2, -199., 1000.);
+
+  /* Open files. */
+
+  for(int file = 0; file < MC_files_.size(); file++){
+
+    TFile *_file0 = TFile::Open( MC_files_[file], "Read");
+    TString label;
+    if( first_sector == 1 && last_sector == 16){ label = TString::Format( printLabel_[ MC_files_[file] ] + "_allsectors"); }
+    else if( first_sector != last_sector ){ label = TString::Format( printLabel_[ MC_files_[file] ] + "_sectors_%i_to_%i", first_sector, last_sector); }
+    else{ label = TString::Format( printLabel_[ MC_files_[file] ] + "_sector_%i", first_sector); }
+
+    int	new_dir = mkdir( ("Plots/" + label).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
+       
+    TCanvas *c = new TCanvas("can", "can",  1000, 1000);
+      c->SetLeftMargin(0.20);
+      c->SetRightMargin(0.18);
+      c->SetBottomMargin(0.20);  
+
+    // -- Extract the response, Edet and Egen distributions from the files.
+
+    THnSparseD* hResponse 	= (THnSparseD*)_file0->Get("hResponse_gen_phi");			//hResponse->Draw("colz");
+    THnSparse* hGenE_fine_phi   = (THnSparse*)_file0->Get("hGen_fine_phi");
+    THnSparse* hDetE_fine_phi = (THnSparse*)_file0->Get("hDet_fine_phi");
+      
+    TH2D* hDetE 	= (TH2D*)_file0->Get("hCastorJet_energy_response");//	hDetE->Draw("colz");	
+      hDetE->RebinX( rebinner );
+      hDetE->RebinY( rebinner );
+
+    TH2D* hGenE	= (TH2D*)_file0->Get("hGen_fine");//			hGenE->Draw("colz");	
+      hGenE->RebinX( rebinner );*
+      hGenE->RebinY( rebinner );
+       
+    TH1D* hGen	= (TH1D*)_file0->Get("hGenJet_energy");		
+
+    // Templates for 1D projections of THnSparse.
+    TH1D* hSlice_storage;
+    TH1D* hEgen_storage;
+    TH1D* hEdet_storage;
+
+    // Prepare the histograms;
+    // 1. Project the 3D histogram into its desired axes.
+    // 2. Rebin the histogram to its desired number of bins per axis.
+    // 3. Reset the contents etc.
+    TH2D* hGenE_selection  = (TH2D*)hGenE_fine_phi->Projection(1,0);
+       hGenE_selection->RebinX( rebinner );
+       hGenE_selection->RebinY( rebinner );
+       hGenE_selection->Reset();
+    TH2D* hDetE_selection  = (TH2D*)hDetE_fine_phi->Projection(1,0);
+       hDetE_selection->RebinX( rebinner );
+       hDetE_selection->RebinY( rebinner );
+       hDetE_selection->Reset();
+    TH2D* hResponse_selection = (TH2D*)hResponse->Projection(1,0);
+       hResponse_selection->RebinX( rebinner );
+       hResponse_selection->RebinY( rebinner );
+       hResponse_selection->Reset();
+
+    for( int bin_phi = first_sector; bin_phi <= last_sector; bin_phi++){//  hResponse->GetNbinsZ(); bin_phi++){
+       if( first_sector != last_sector && ( bin_phi > 11 && bin_phi < 16) ){ continue; }
+
+       THnSparse* hGenE_sparse = 	(THnSparse*)hGenE_fine_phi->Clone("");//TString::Format("GenE_bin_%i", bin_phi) );
+       THnSparse* hDetE_sparse = 	(THnSparse*)hDetE_fine_phi->Clone("");//TString::Format("DetE_bin_%i", bin_phi) );
+       THnSparse* hResponse_sparse =	(THnSparse*)hResponse	->Clone("");//TString::Format("Response_bin_%i", bin_phi) );
+
+       hGenE_sparse 	->GetAxis(2)->SetRange(bin_phi, bin_phi);
+       hDetE_sparse 	->GetAxis(2)->SetRange(bin_phi, bin_phi);
+       hResponse_sparse ->GetAxis(2)->SetRange(bin_phi, bin_phi);
+
+       TH2D* hGenE_selection_phi  = (TH2D*)hGenE_sparse->Projection(1,0);
+         hGenE_selection_phi	->RebinX( rebinner );
+	 hGenE_selection_phi	->RebinY( rebinner );
+       TH2D* hDetE_selection_phi  = (TH2D*)hDetE_sparse->Projection(1,0);
+         hDetE_selection_phi	->RebinX( rebinner );
+	 hDetE_selection_phi	->RebinY( rebinner );
+       TH2D* hResponse_selection_phi = (TH2D*)hResponse_sparse->Projection(1,0);
+	 hResponse_selection_phi->RebinX( rebinner );
+	 hResponse_selection_phi->RebinY( rebinner );
+
+       hGenE_selection		->Add( hGenE_selection_phi );
+       hDetE_selection		->Add( hDetE_selection_phi );
+       hResponse_selection	->Add( hResponse_selection_phi );
+
+       // Delete the histograms to avoid memory leak.
+       hGenE_selection_phi->~TH2();
+       hDetE_selection_phi->~TH2();
+       hResponse_selection_phi->~TH2();
+
+       hGenE_sparse->~THnSparse();
+       hDetE_sparse->~THnSparse();
+       hResponse_sparse->~THnSparse();
+
+/*	 
+cout << "// -- BINS COMPARISON\t" << hGenE_selection->GetNbinsX() << "\t" << hGenE_selection->GetXaxis()->GetTitle() << "\t" << hGenE_selection->GetNbinsY() << "\t" << hGenE_selection->GetYaxis()->GetTitle() << "\t"
+				  << hDetE_selection->GetNbinsX() << "\t" << hDetE_selection->GetXaxis()->GetTitle() << "\t" << hDetE_selection->GetNbinsY() << "\t" << hDetE_selection->GetYaxis()->GetTitle() << "\t"
+				  << hResponse_selection->GetNbinsX() << "\t" << hResponse_selection->GetXaxis()->GetTitle() << "\t" << hResponse_selection->GetNbinsY() << "\t" << hResponse_selection->GetYaxis()->GetTitle() << endl;	
+*/
+
+     } // Loop over phi.
+    
+     vector<double> mean_response;
+     vector<double> mean_response_inverse;
+     vector<double> mean_eDet;
+     vector<double> error_eDet;
+     vector<double> mean_eGen;
+     vector<double> error_eGen;
+     vector<double> eGen_center;
+     vector<double> error_energy;
+      
+     int valid_fits = 0;
+
+     // Create a histogram to store slices with low statistics.
+     hSlice_storage     = (TH1D*)hResponse_selection->ProjectionY("Storage", 1, 1, "do");
+       for(int bins_store = 0; bins_store <= hSlice_storage->GetNbinsX(); bins_store++){ hSlice_storage->SetBinContent(bins_store, 0.); }
+
+     // Do the same for the energies.
+     hEgen_storage = (TH1D*)hGenE_selection->ProjectionY("Storage_gen", 0, 0, "do"); hEgen_storage->Rebin( rebinner*100 );
+       for(int bins_store = 0; bins_store <= hEgen_storage->GetNbinsX(); bins_store++){ hEgen_storage->SetBinContent(bins_store, 0.); }
+
+     hEdet_storage = (TH1D*)hDetE_selection->ProjectionY("Storage_det", 0, 0, "do"); hEdet_storage->Rebin( rebinner*100 );
+       for(int bins_store = 0; bins_store <= hEdet_storage->GetNbinsX(); bins_store++){ hEdet_storage->SetBinContent(bins_store, 0.); }
+
+     /******************
+     * Loop over bins. *       
+     ******************/                 
+                    
+     for(int bin_E = 1; bin_E < hGenE->GetNbinsX() ; bin_E++){
+
+       // Get 1D projections.
+       TH1D* hResponse_1D 	= (TH1D*)hResponse_selection->ProjectionY(TString::Format("Response_1D_bin_%i", bin_E), 	bin_E, bin_E, "do");
+
+       TH1D* hGenE_1D  = (TH1D*)hGenE_selection->ProjectionY(TString::Format("eGen_1D_bin_%i", bin_E), bin_E, bin_E, "o");
+	 hGenE_1D->Rebin( rebinner*100 );
+
+       TH1D* hDetE_1D  = (TH1D*)hDetE_selection->ProjectionY(TString::Format("eDet_1D_bin_%i", bin_E), bin_E, bin_E, "o");
+	 hDetE_1D->Rebin( rebinner*100 );
+ 
+       // Create gaussian.
+       TF1 *fit_response	= new TF1(TString::Format("Fit_Response_1D_bin_%i", bin_E), "gaus");
+
+       // If our current histogram has too few events, we save it for later.
+       if( (hResponse_1D->Integral() + hSlice_storage->Integral() )< event_threshold_ ){
+ 	 hSlice_storage	->Add( hResponse_1D );	
+	 hEgen_storage	->Add( hGenE_1D );	
+	 hEdet_storage	->Add( hDetE_1D );
+	 continue;
+       }
+
+       // Our current histogram, combined with the stored histogram, has enough statistics. Add them and go on.
+       else if( ( hResponse_1D->Integral() + hSlice_storage->Integral() ) >= event_threshold_ ){
+         hResponse_1D ->Add( hSlice_storage );
+         hGenE_1D     ->Add( hEgen_storage );
+	 hDetE_1D	->Add( hEdet_storage );
+       }
+
+       // Empty the bins of our storage histogram for a next run.
+       for(int bins_store = 0; bins_store <= hSlice_storage->GetNbinsX(); bins_store++){ hSlice_storage->SetBinContent(bins_store, 0.); 	hSlice_storage->SetBinError(bins_store, 0.);}
+       for(int bins_store = 0; bins_store <= hEgen_storage->GetNbinsX(); bins_store++){ hEgen_storage->SetBinContent(bins_store, 0.); 	hEgen_storage->SetBinError(bins_store, 0.);}
+       for(int bins_store = 0; bins_store <= hEdet_storage->GetNbinsX(); bins_store++){ hEdet_storage->SetBinContent(bins_store, 0.); 	hEdet_storage->SetBinError(bins_store, 0.);}
+
+	 TCanvas* can_slice = new TCanvas( TString::Format("Slice_%i", bin_E), TString::Format("Slice_%i", bin_E), 1);
+
+	 // -- Fit Gaussian.
+	 hResponse_1D	->Draw();
+	 
+	 if( file == 0 ){
+  	   hResponse_1D	->Fit( fit_response , "Q0");	 
+	   can_slice->SaveAs(TString::Format("Plots/" + label + "/Slice_%i.C", bin_E) );
+           can_slice->SaveAs(TString::Format("Plots/" + label + "/Slice_%i.pdf", bin_E) );
+	}
+	else{
+	  hResponse_1D ->Fit( fit_response , "Q0");
+	}
+	 
+	 // -- Extract mean values.
+	 if( fit_response->GetParameter(1) != 0. ){
+	   double R = fit_response->GetParameter(1);
+	   double sR= fit_response->GetParError(1);	
+
+	   mean_response	.push_back( R );
+	   mean_response_inverse.push_back( 1./R );
+	   mean_eDet		.push_back( GetAverage(hDetE_1D) );
+	   mean_eGen		.push_back( GetAverage(hGenE_1D) );
+	   eGen_center		.push_back( hGen->GetBinCenter( bin_E ) );
+
+	   if( R == 0.){ 	error_eGen	.push_back( 0. ); }
+	   else{ 		error_eGen	.push_back( sR ); }
+           if( R == 0.){	error_eDet	.push_back( 0. ); }
+	   else{ 		error_eDet	.push_back( sR/(R*R) ); }
+	   error_energy		.push_back( 0. );	   
+	   
+	   valid_fits++;
+	   
+	 }
+       } // Loop over energybins.
+       
+       // Print out our values.
+     for( int bin = 0; bin < mean_eDet.size(); bin++){
+       cout << "lowedge.push_back(\t" << mean_eGen[bin] << "\t); muval.push_back(\t" << mean_response[bin] << ");" << endl;
+     }
+
+       // Transform the vectors into arrays.       
+     double * E_gen_axis	= &mean_eGen[0],
+       	      * E_det_axis	= &mean_eDet[0],
+	      * response_val	= &mean_response[0],
+	      * response_inverse= &mean_response_inverse[0],
+	      * eGen_bin	= &eGen_center[0],
+	      * err_R		= &error_eGen[0],
+	      * err_1overR	= &error_eDet[0],
+	      * err_energy	= &error_energy[0];
+       // Create graphs from the arrays.
+
+       // -- E gen versus response
+     TGraphErrors * Response_true = new TGraphErrors( mean_eGen.size(), E_gen_axis, response_val, err_energy, err_R);
+     Response_true	->GetXaxis()->SetTitle("E_{gen}");
+     Response_true	->GetXaxis()->SetTitleOffset(0.9);
+     Response_true	->GetXaxis()->SetTitleSize(0.06);
+     Response_true	->GetXaxis()->SetLabelSize(0.05);
+     Response_true	->GetXaxis()->SetNdivisions(505);
+	 	 
+     Response_true	->GetYaxis()->SetTitle("< #frac{E_{det}}{E_{gen}} >");
+     Response_true	->GetYaxis()->SetTitleOffset(1.8);
+     Response_true	->GetYaxis()->SetTitleSize(0.06);
+     Response_true	->GetYaxis()->SetLabelSize(0.07);	 
+     Response_true	->GetYaxis()->SetRangeUser(0., 4.);
+     
+     Response_true	->SetMarkerColor( getColor(1) );
+     Response_true	->SetLineColor( getColor(1) );
+     Response_true	->SetMarkerStyle( 23 );
+
+     Response_true	->SetName( TString::Format("Truth_response") );
+	 
+       // -- E det versus 1/response
+     TH1F* hEdet_axis = new TH1F("hEdet_axis", "hEdet_axis", 100, 0, mean_eGen[ mean_eGen.size()-1] );
+     hEdet_axis->GetYaxis()->SetRangeUser(0., 4.0);
+     hEdet_axis	->GetXaxis()->SetTitle("E_{det}");
+     hEdet_axis	->GetXaxis()->SetTitleOffset(0.9);
+     hEdet_axis	->GetXaxis()->SetTitleSize(0.06);
+     hEdet_axis	->GetXaxis()->SetLabelSize(0.05);
+     hEdet_axis	->GetXaxis()->SetNdivisions(505);
+	 	 
+     hEdet_axis	->GetYaxis()->SetTitle("< #frac{E_{gen}}{E_{det}} >");  
+     hEdet_axis	->GetYaxis()->SetRangeUser(0.,4.0);      
+     hEdet_axis	->GetYaxis()->SetTitleOffset(1.8);
+     hEdet_axis	->GetYaxis()->SetTitleSize(0.06);
+     hEdet_axis	->GetYaxis()->SetLabelSize(0.07); 
+	       
+     TGraphErrors * Response_meas = new TGraphErrors( mean_eDet.size(), E_det_axis, response_inverse,  err_energy, err_1overR);
+     Response_meas	->GetXaxis()->SetTitle("E_{det}");
+     Response_meas	->GetXaxis()->SetTitleOffset(0.9);
+     Response_meas	->GetXaxis()->SetTitleSize(0.06);
+     Response_meas	->GetXaxis()->SetLabelSize(0.05);
+     Response_meas	->GetXaxis()->SetNdivisions(505);
+	 	 
+     Response_meas	->GetYaxis()->SetTitle("< #frac{E_{gen}}{E_{det}} >");  
+     Response_meas	->GetYaxis()->SetRangeUser(0.,4.0);      
+     Response_meas	->GetYaxis()->SetTitleOffset(1.8);
+     Response_meas	->GetYaxis()->SetTitleSize(0.06);
+     Response_meas	->GetYaxis()->SetLabelSize(0.07);
+	 
+	 
+     Response_meas	->SetMarkerColor( getColor(1) );
+     Response_meas	->SetLineColor( getColor(1) );
+     Response_meas	->SetMarkerStyle( 20 + file );
+
+/*		  	
+       // -- E gen versus average Egen.
+       TGraph * Gen_average = new TGraph( eGen_center.size(), eGen_bin, E_gen_axis);
+         Gen_average	->GetXaxis()->SetTitle("E_{gen}");
+a;	 Gen_average	->GetYaxis()->SetTitle("<E>");
+	 
+       // -- E gen versus average Edet.
+       TGraph * Det_average = new TGraph( eGen_center.size(), eGen_bin, E_det_axis);
+         Det_average	->GetXaxis()->SetTitle("E_{gen}");
+	 Det_average	->GetYaxis()->SetTitle("<E>");	
+*/ 
+     legend_det->AddEntry( Response_meas, TString::Format("Sectors 1-11, 16"), "lp");
+//       legend_gen->AddEntry( Response_meas, legendEntries[file], "lp");
+ 
+     // Draw.
+     can_true->cd();	 
+     Response_true->Draw("p" + drawoptions);
+     line->Draw();
+
+     can_true->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_true_calib_" + label + ".C") );
+     can_true->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_true_calib_" + label + ".pdf") );
+
+     // Draw.
+
+     can_fit->cd();
+     Response_meas->Draw("p" + drawoptions);
+     
+     can_fit->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_fit_calib_" + label + ".C") );
+     can_fit->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_fit_calib_" + label + ".pdf") );
+	
+     drawoptions="same";	
+
+     can_meas->cd(); 
+     Response_meas->Draw("ape");// + drawoptions);
+     line->Draw();
+
+     analytical->SetLineColor( getColor(file+1) );
+     Response_meas->Fit( analytical, "", "", 200., 900.);
+
+     can_meas->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_meas_calib_" + label + ".C") );
+     can_meas->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_meas_calib_" + label + ".pdf") );
+
+     std::vector<double> parameters_calibration;
+       parameters_calibration.push_back( analytical->GetParameter(0) );
+       parameters_calibration.push_back( analytical->GetParameter(1) );
+       parameters_calibration.push_back( analytical->GetParameter(2) );
+
+     calibration_parameters_[ MC_files_[file] ] = parameters_calibration;
+
+     // Save.
+     can_true->cd();
+     legend_gen->Draw();
+     	can_true->SaveAs("Plots/" + label +"/CalibrationFactors_true_" + calib_ + "_" + label + ".C");		
+	can_true->SaveAs("Plots/" + label +"/CalibrationFactors_true_" + calib_ + "_" + label + ".pdf");
+     
+     can_meas->cd();
+     legend_det->Draw();
+     	can_meas->SaveAs("Plots/" + label +"/CalibrationFactors_meas_" + calib_ + "_" + label + ".C"); 		
+	can_meas->SaveAs("Plots/" + label +"/CalibrationFactors_meas_" + calib_ + "_" + label + ".pdf");
+
+     can_fit->cd();
+     legend_det->Draw();
+
+	can_fit->SaveAs("Plots/" + label +"/CalibrationFactors_meas_with_fit" + calib_ + "_" + label + ".C");             
+	can_fit->SaveAs("Plots/" + label +"/CalibrationFactors_meas_with_fit" + calib_ + "_" + label + ".pdf");
+
+    drawoptions = "A";
+
+    can_fit->Clear();
+    can_meas->Clear();
+    can_true->Clear();
+    legend_det->Clear();
+
+  } // Loop over files.
+}
+
+
+
+
+void Unfolder::CalculateSystematics(TString setup, int sector){
+  // Start by executing the calibration determination to obtain the necessary parameters.
+  if( setup == "all" ){ CalibrationFunction_workingsectors(1,16); }
+  else{ CalibrationFunction_workingsectors(sector, sector); }
+
+  // Create a canvas to plot.
+  TCanvas *can;
+  PrepareCanvas( can, "Systematics_comparison");
+
+  TPad *pad1, *pad2;
+  SplitCanvas(can, pad1, pad2);
+
+  TLegend *legend_det = new TLegend(0.25, 0.0, 0.50, 0.50);
+    legend_det->SetFillStyle( 0 );
+    legend_det->SetBorderSize( 0 );
+
+  // 1. Loop over files.
+  // 2. Get parameters and use in function.
+  // 3. Plot function as Graph.
+  // 4. Profit.
+
+  TString drawoptions = "";
+  TH1F* original_calibration;
+
+  // Needed for the range of the y-axis.
+  double min_val, max_val;
+
+  for(int file = 0; file < MC_files_.size(); file++){
+
+    double alpha = (calibration_parameters_[ MC_files_[file] ])[0];
+    double beta = (calibration_parameters_[ MC_files_[file] ])[1];
+    double gamma = (calibration_parameters_[ MC_files_[file] ])[2];
+
+    TF1* calibration_function = new TF1("calibration_function_", "[0] + [1] * log( [2] + x)", 200., 900.);
+    calibration_function->SetParameters( alpha, beta, gamma );
+    TH1* calibration_histogram = calibration_function->GetHistogram();
+
+    if( file == 0 ){
+      original_calibration = (TH1F*)calibration_histogram->Clone("Original_calibration_function_" + setup);
+      original_calibration->GetYaxis()->SetRangeUser(0., 2.);
+    }
+
+    legend_det->AddEntry( calibration_histogram, legend_info_[ MC_files_[file]], "l");
+
+    pad1->cd();
+
+    calibration_histogram->SetLineColor( getColor( file+1 ) );
+    calibration_histogram->GetXaxis()->SetTitle("E_{det}");
+    calibration_histogram->GetYaxis()->SetRangeUser(0., 4.);
+    calibration_histogram->GetYaxis()->SetTitle("<#frac{E_{gen}}{E_{det}}>");
+    calibration_histogram->DrawCopy("hist" + drawoptions);
+
+    pad1->Update();
+
+    pad2->cd();
+    calibration_histogram->Divide( original_calibration );
+    calibration_histogram->GetYaxis()->SetTitle( "Syst./MC");
+    calibration_histogram->GetYaxis()->SetRangeUser(0.75,1.2);
+
+    calibration_histogram->Draw("hist" + drawoptions);
+
+    drawoptions = "same"; 
+  }
+  pad1->cd();
+  legend_det->Draw();
+
+  can->SaveAs(TString::Format( "Systematics_comparison_" + setup + "_%i.C", sector));
+  can->SaveAs(TString::Format( "Systematics_comparison_" + setup + "_%i.pdf", sector) );
+}
+
+
+
+
+
+
+
+void Unfolder::Histogram_settings_absolute(TH1* hist){
+
+  hist->GetYaxis()->SetLabelSize(0.05);
+  hist->GetYaxis()->SetTitleSize(0.07);
+  hist->GetYaxis()->SetTitleOffset( 1.25);  
+
+}
+
+void Unfolder::Histogram_settings_ratio(TH1* hist){
+
+  hist->GetYaxis()->SetLabelSize(0.065);
+  hist->GetYaxis()->SetTitleSize(0.08);
+  hist->GetYaxis()->SetTitleOffset( 1.00);  
+
+  hist->GetXaxis()->SetLabelSize(0.06);
+  hist->GetXaxis()->SetTitleSize(0.08);
+  hist->GetXaxis()->SetTitleOffset( 0.8); 
+
+}

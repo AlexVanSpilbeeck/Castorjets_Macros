@@ -120,6 +120,7 @@ class Unfolder{
 
    void CalibrationFunction(int phi_first, int phi_last, TGraphErrors* &gre);
    void CalibrationFunction_workingsectors(int first_sector, int last_sector, TGraphErrors* &gre);
+   void CalibrationFunction_sectors();
    void CalculateSystematics(TString setup = "separate", int sector = 0);
    void CalculateSystematics_comparison();
 
@@ -1947,6 +1948,8 @@ void Unfolder::CalibrationFunction(int first_sector, int last_sector, TGraphErro
     TFile *_file0 = TFile::Open( MC_files_[file], "Read");
     TString label = TString::Format( printLabel_[ MC_files_[file] ] + "_sector_%i_to_%i", first_sector, last_sector);
 
+
+    label = "Test_this_" + label;
     int	new_dir = mkdir( ("Plots/" + label).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
        
     TCanvas *c = new TCanvas("can", "can",  1000, 1000);
@@ -1982,6 +1985,8 @@ void Unfolder::CalibrationFunction(int first_sector, int last_sector, TGraphErro
     for( int bin_phi = first_sector; bin_phi <=last_sector; bin_phi++){//  hResponse->GetNbinsZ(); bin_phi++){
   //     if( bin_phi > 11 && bin_phi < 16 ){ continue; }       
 
+
+
        vector<double> mean_response;
        vector<double> mean_response_inverse;
        vector<double> mean_eDet;
@@ -2011,178 +2016,25 @@ void Unfolder::CalibrationFunction(int first_sector, int last_sector, TGraphErro
 	 hResponse_selection->RebinX( rebinner );
 	 hResponse_selection->RebinY( rebinner );
 	 
-cout << "// -- BINS COMPARISON\t" << hGenE_selection->GetNbinsX() << "\t" << hGenE_selection->GetXaxis()->GetTitle() << "\t" << hGenE_selection->GetNbinsY() << "\t" << hGenE_selection->GetYaxis()->GetTitle() << "\t"
-				  << hDetE_selection->GetNbinsX() << "\t" << hDetE_selection->GetXaxis()->GetTitle() << "\t" << hDetE_selection->GetNbinsY() << "\t" << hDetE_selection->GetYaxis()->GetTitle() << "\t"
-				  << hResponse_selection->GetNbinsX() << "\t" << hResponse_selection->GetXaxis()->GetTitle() << "\t" << hResponse_selection->GetNbinsY() << "\t" << hResponse_selection->GetYaxis()->GetTitle() << endl;	
+       TGraphErrors * Response_true;
+       TGraphErrors * Response_meas;
 
-       // Create a histogram to store slices with low statistics.
-       if( bin_phi == first_sector ){ hSlice_storage     = (TH1D*)hResponse_selection->ProjectionY("Storage", 1, 1, "do"); }
-         for(int bins_store = 0; bins_store <= hSlice_storage->GetNbinsX(); bins_store++){ hSlice_storage->SetBinContent(bins_store, 0.); }
+       Analyze_response( hResponse_selection, hGenE_selection, hDetE_selection, hGenE, label, hGen, file, Response_meas, Response_true);
 
-       // Do the same for the energies.
-       if( bin_phi == first_sector ){ hEgen_storage = (TH1D*)hGenE_selection->ProjectionY("Storage_gen", 0, 0, "do"); hEgen_storage->Rebin( rebinner*100 ); }
-         for(int bins_store = 0; bins_store <= hEgen_storage->GetNbinsX(); bins_store++){ hEgen_storage->SetBinContent(bins_store, 0.); }
 
-       if( bin_phi == first_sector ){ hEdet_storage = (TH1D*)hDetE_selection->ProjectionY("Storage_det", 0, 0, "do"); hEdet_storage->Rebin( rebinner*100 ); }
-         for(int bins_store = 0; bins_store <= hEdet_storage->GetNbinsX(); bins_store++){ hEdet_storage->SetBinContent(bins_store, 0.); }
 
-       /******************
-       * Loop over bins. *       
-       ******************/                 
-                    
-       for(int bin_E = 1; bin_E < hGenE->GetNbinsX() ; bin_E++){
-
-	 // Get 1D projections.
-         TH1D* hResponse_1D 	= (TH1D*)hResponse_selection->ProjectionY(TString::Format("Response_1D_bin_%i_phi_%i", bin_E, bin_phi), 	bin_E, bin_E, "do");
-
-         TH1D* hGenE_1D  = (TH1D*)hGenE_selection->ProjectionY(TString::Format("eGen_1D_bin_%i_phi_%i", bin_E, bin_phi), bin_E, bin_E, "o");
-	   hGenE_1D->Rebin( rebinner*100 );
-
-         TH1D* hDetE_1D  = (TH1D*)hDetE_selection->ProjectionY(TString::Format("eDet_1D_bin_%i_phi_%i", bin_E, bin_phi), bin_E, bin_E, "o");
-	   hDetE_1D->Rebin( rebinner*100 );
-
-	 
-	 // Create gaussian.
-	 TF1 *fit_response	= new TF1(TString::Format("Fit_Response_1D_bin_%i_phi_%i", bin_E, bin_phi), "gaus");
-
-	 // If our current histogram has too few events, we save it for later.
-	 if( (hResponse_1D->Integral() + hSlice_storage->Integral() )< event_threshold_ ){
- 	   hSlice_storage	->Add( hResponse_1D );	
-	   hEgen_storage	->Add( hGenE_1D );	
-	   hEdet_storage	->Add( hDetE_1D );
-	   continue;
-	 }
-
-	 // Our current histogram, combined with the stored histogram, has enough statistics. Add them and go on.
-         else if( ( hResponse_1D->Integral() + hSlice_storage->Integral() ) >= event_threshold_ ){
-           hResponse_1D ->Add( hSlice_storage );
-           hGenE_1D     ->Add( hEgen_storage );
-	   hDetE_1D	->Add( hEdet_storage );
-         }
-
-	 // Empty the bins of our storage histogram for a next run.
-	 for(int bins_store = 0; bins_store <= hSlice_storage->GetNbinsX(); bins_store++){ hSlice_storage->SetBinContent(bins_store, 0.); 	hSlice_storage->SetBinError(bins_store, 0.);}
-	 for(int bins_store = 0; bins_store <= hEgen_storage->GetNbinsX(); bins_store++){ hEgen_storage->SetBinContent(bins_store, 0.); 	hEgen_storage->SetBinError(bins_store, 0.);}
-	 for(int bins_store = 0; bins_store <= hEdet_storage->GetNbinsX(); bins_store++){ hEdet_storage->SetBinContent(bins_store, 0.); 	hEdet_storage->SetBinError(bins_store, 0.);}
-
-	 TCanvas* can_slice = new TCanvas( TString::Format("Slice_%i", bin_E), TString::Format("Slice_%i_phi_%i", bin_E, bin_phi), 1);
-
-	 // -- Fit Gaussian.
-	 hResponse_1D	->Draw();
-	 
-	 if( file == 0 ){
-  	   hResponse_1D	->Fit( fit_response , "Q0");	 
-	   can_slice->SaveAs(TString::Format("Plots/" + label + "/Slice_%i.C", bin_E) );
-           can_slice->SaveAs(TString::Format("Plots/" + label + "/Slice_%i.pdf", bin_E) );
-	}
-	else{
-	  hResponse_1D ->Fit( fit_response , "Q0");
-	}
-	 
-	 // -- Extract mean values.
-	 if( fit_response->GetParameter(1) != 0. ){
-	   double R = fit_response->GetParameter(1);
-	   double sR= fit_response->GetParError(1);	
-
-	   mean_response	.push_back( R );
-	   mean_response_inverse.push_back( 1./R );
-	   mean_eDet		.push_back( GetAverage(hDetE_1D) );
-	   mean_eGen		.push_back( GetAverage(hGenE_1D) );
-	   eGen_center		.push_back( hGen->GetBinCenter( bin_E ) );
-
-	   if( R == 0.){ 	error_eGen	.push_back( 0. ); }
-	   else{ 		error_eGen	.push_back( sR ); }
-           if( R == 0.){	error_eDet	.push_back( 0. ); }
-	   else{ 		error_eDet	.push_back( sR/(R*R) ); }
-	   error_energy		.push_back( 0. );	   
-	   
-	   valid_fits++;
-	   
-	 }
-       } // Loop over energybins.
-       
-       // Print out our values.
-       for( int bin = 0; bin < mean_eDet.size(); bin++){
-         cout << "lowedge.push_back(\t" << mean_eGen[bin] << "\t); muval.push_back(\t" << mean_response[bin] << ");" << endl;
-       }
-
-       // Transform the vectors into arrays.       
-       double * E_gen_axis	= &mean_eGen[0],
-       	      * E_det_axis	= &mean_eDet[0],
-	      * response_val	= &mean_response[0],
-	      * response_inverse= &mean_response_inverse[0],
-	      * eGen_bin	= &eGen_center[0],
-	      * err_R		= &error_eGen[0],
-	      * err_1overR	= &error_eDet[0],
-	      * err_energy	= &error_energy[0];
-       // Create graphs from the arrays.
-
-       // -- E gen versus response
-       TGraphErrors * Response_true = new TGraphErrors( mean_eGen.size(), E_gen_axis, response_val, err_energy, err_R);
-       	 Response_true	->GetXaxis()->SetTitle("E_{gen}");
-	 Response_true	->GetXaxis()->SetTitleOffset(0.9);
-	 Response_true	->GetXaxis()->SetTitleSize(0.06);
-	 Response_true	->GetXaxis()->SetLabelSize(0.05);
-	 Response_true	->GetXaxis()->SetNdivisions(505);
-	 	 
-	 Response_true	->GetYaxis()->SetTitle("< #frac{E_{det}}{E_{gen}} >");
-	 Response_true	->GetYaxis()->SetTitleOffset(1.8);
-	 Response_true	->GetYaxis()->SetTitleSize(0.06);
-	 Response_true	->GetYaxis()->SetLabelSize(0.07);	 
-	 Response_true	->GetYaxis()->SetRangeUser(0., 4.);
-	 
-	 Response_true	->SetMarkerColor( getColor(bin_phi) );
-	 Response_true	->SetLineColor( getColor(bin_phi) );
-	 Response_true	->SetMarkerStyle( 23 );
-
-	 Response_true	->SetName( TString::Format("Truth_response_sector_%i", static_cast<int>( (bin_phi  - bin_phi%3)/3 )) );
-	 
-       // -- E det versus 1/response
-       TH1F* hEdet_axis = new TH1F("hEdet_axis", "hEdet_axis", 100, 0, mean_eGen[ mean_eGen.size()-1] );
-         hEdet_axis->GetYaxis()->SetRangeUser(0., 4.0);
-       	 hEdet_axis	->GetXaxis()->SetTitle("E_{det}");
-	 hEdet_axis	->GetXaxis()->SetTitleOffset(0.9);
-	 hEdet_axis	->GetXaxis()->SetTitleSize(0.06);
-	 hEdet_axis	->GetXaxis()->SetLabelSize(0.05);
-	 hEdet_axis	->GetXaxis()->SetNdivisions(505);
-	 	 
-	 hEdet_axis	->GetYaxis()->SetTitle("< #frac{E_{gen}}{E_{det}} >");  
-	 hEdet_axis	->GetYaxis()->SetRangeUser(0.,4.0);      
-	 hEdet_axis	->GetYaxis()->SetTitleOffset(1.8);
-	 hEdet_axis	->GetYaxis()->SetTitleSize(0.06);
-	 hEdet_axis	->GetYaxis()->SetLabelSize(0.07); 
-	       
-       TGraphErrors * Response_meas = new TGraphErrors( mean_eDet.size(), E_det_axis, response_inverse,  err_energy, err_1overR);
-       	 Response_meas	->GetXaxis()->SetTitle("E_{det}");
-	 Response_meas	->GetXaxis()->SetTitleOffset(0.9);
-	 Response_meas	->GetXaxis()->SetTitleSize(0.06);
-	 Response_meas	->GetXaxis()->SetLabelSize(0.05);
-	 Response_meas	->GetXaxis()->SetNdivisions(505);
-	 	 
-	 Response_meas	->GetYaxis()->SetTitle("< #frac{E_{gen}}{E_{det}} >");  
-	 Response_meas	->GetYaxis()->SetRangeUser(0.,4.0);      
-	 Response_meas	->GetYaxis()->SetTitleOffset(1.8);
-	 Response_meas	->GetYaxis()->SetTitleSize(0.06);
-	 Response_meas	->GetYaxis()->SetLabelSize(0.07);
-	 
-	 
-	 Response_meas	->SetMarkerColor( getColor(bin_phi) );
-	 Response_meas	->SetLineColor( getColor(bin_phi) );
-	 Response_meas	->SetMarkerStyle( 20 + file );
-	 Response_meas	->SetName( TString::Format("Truth_response_sector_%i", bin_phi) );
-	 gre = (TGraphErrors*)Response_meas->Clone( TString::Format("Truth_response_sector_%i", bin_phi) );
-
-/*		  	
+       /*		  	
        // -- E gen versus average Egen.
        TGraph * Gen_average = new TGraph( eGen_center.size(), eGen_bin, E_gen_axis);
          Gen_average	->GetXaxis()->SetTitle("E_{gen}");
-a;	 Gen_average	->GetYaxis()->SetTitle("<E>");
+	 Gen_average	->GetYaxis()->SetTitle("<E>");
 	 
        // -- E gen versus average Edet.
        TGraph * Det_average = new TGraph( eGen_center.size(), eGen_bin, E_det_axis);
          Det_average	->GetXaxis()->SetTitle("E_{gen}");
 	 Det_average	->GetYaxis()->SetTitle("<E>");	
-*/ 
+       */ 
+
        legend_det->AddEntry( Response_meas, TString::Format("Sector %i", bin_phi), "lp");
 //       legend_gen->AddEntry( Response_meas, legendEntries[file], "lp");
  
@@ -2373,7 +2225,7 @@ void Unfolder::CalibrationFunction_workingsectors(int first_sector, int last_sec
     else if( first_sector != last_sector ){ label = TString::Format( printLabel_[ MC_files_[file] ] + "_sectors_%i_to_%i", first_sector, last_sector); }
     else{ label = TString::Format( printLabel_[ MC_files_[file] ] + "_sector_%i", first_sector); }
 
-label = "O7O7_" + label;
+    label = "O7O7_" + label;
     int	new_dir = mkdir( ("Plots/" + label).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
        
     TCanvas *c = new TCanvas("can", "can",  1000, 1000);
@@ -2467,6 +2319,8 @@ cout << "// -- BINS COMPARISON\t" << hGenE_selection->GetNbinsX() << "\t" << hGe
 
      Analyze_response( hResponse_selection, hGenE_selection, hDetE_selection, hGenE, label, hGen, file, Response_meas, Response_true);
 		  	
+
+
        // -- E gen versus average Egen.
        //TGraph * Gen_average = new TGraph( eGen_center.size(), eGen_bin, E_gen_axis);
        //  Gen_average	->GetXaxis()->SetTitle("E_{gen}");
@@ -2622,6 +2476,261 @@ for(int file_ = 0; file_ < MC_files_.size(); file_++){
   can->SaveAs("DoesThisWork.pdf");
   
 }
+
+
+
+
+
+
+/************************************************************
+* Code to extract a calibration function from the MC files. *
+************************************************************/
+
+void Unfolder::CalibrationFunction_sectors(){
+
+  ofstream calibrating_values;
+  calibrating_values.open("Calibrating_values.txt", ios::out | ios::app | ios::binary);
+
+  int rebinner = 1;
+
+  // Step 1 - open Root files and retrieve 2D histograms.
+   
+  TLegend *legend_det = new TLegend(0.25, 0.60, 0.75, 0.95);
+    legend_det->SetFillStyle( 0 );
+    legend_det->SetBorderSize( 0 );
+   
+  TLegend *legend_gen = new TLegend(0.25, 0.60, 0.50, 0.95);
+    legend_gen->SetFillStyle( 0 );
+    legend_gen->SetBorderSize( 0 );  
+
+  int Slice_threshold = 0.;
+  int event_threshold_ = 50.;
+
+  /*******************************************
+  * Create a new subdirectory for the plots. *
+  ********************************************/
+  double E_gen_cut = 0.;
+  TString distr = "gaus";
+
+  std::vector<TString> legendEntries;
+  std::vector<TString> plotVariables;
+  std::vector<TString> jetSelection;
+    std::vector<TString> plotX;
+    std::vector<TString> plotY;
+    std::vector<TString> plotTitle;
+  std::vector<int>     colours;
+  std::vector<double> plot_min;
+  std::vector<TString> can_suffix;
+   
+  bool draw_legend = false;
+  TString calib_ = "_compare";
+  TString drawoptions = "A";
+  int color_index = 0;
+
+  TCanvas *can_true = new TCanvas("can_true" + calib_, "can_true" + calib_, 1000, 1000);
+    can_true	->SetLeftMargin(0.25);
+    can_true	->SetTopMargin(0.05);
+    can_true	->SetBottomMargin(0.14);	 
+	 
+  TCanvas *can_meas = new TCanvas("can_meas" + calib_, "can_meas" + calib_, 1000, 1000);
+    can_meas	->SetLeftMargin(0.25);
+    can_meas	->SetTopMargin(0.05);
+    can_meas	->SetBottomMargin(0.14); 
+      
+  TCanvas *can_fit = new TCanvas("can_fit" + calib_, "can_fit" + calib_, 1000, 1000);
+    can_fit	->SetLeftMargin(0.25);
+    can_fit	->SetTopMargin(0.05);
+    can_fit	->SetBottomMargin(0.14);         
+	 
+  TCanvas *can_aver = new TCanvas("can_aver" + calib_, "can_aver" + calib_, 1000, 1000);
+    can_aver	->SetLeftMargin(0.25);
+    can_aver	->SetRightMargin(0.05);
+    can_aver	->SetBottomMargin(0.14);
+      
+  TLine *line = new TLine(0.,1.,1733.,1.);
+  line->SetLineWidth(2);
+
+//  TF1* analytical = new TF1("Analytical", " ( x < 200.) * ( [0] + [1] * log( [2] + x) ) + (x > 200. )* ( [3] + [4] * x) ", 0., 900.);
+  TF1* analytical = new TF1("Analytical", " ( [0] + [1] * log( [2] + x) )", 200., 900.);
+    analytical->SetParLimits(2, -199., 1000.);
+
+  /* Open files. */
+
+
+  for(int sector = 11; sector <= 15; sector++){
+    TString label;
+    if( sector == 11 )	{ label = TString::Format( "Systematics_comparison_allsectors"); }
+    else 		{ label = TString::Format( "Systematics_comparison_sector_%i", sector); }
+
+    int	new_dir = mkdir( ("Plots/" + label).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
+
+    for(int file = 0; file < MC_files_.size(); file++){
+
+      TFile *_file0 = TFile::Open( MC_files_[file], "Read");
+       
+      TCanvas *c = new TCanvas("can", "can",  1000, 1000);
+        c->SetLeftMargin(0.20);
+        c->SetRightMargin(0.18);
+        c->SetBottomMargin(0.20);  
+
+       // -- Extract the response, Edet and Egen distributions from the files.
+  
+      THnSparseD* hResponse 	= (THnSparseD*)_file0->Get("hResponse_gen_phi");			//hResponse->Draw("colz");
+      THnSparse* hGenE_fine_phi   = (THnSparse*)_file0->Get("hGen_fine_phi");
+      THnSparse* hDetE_fine_phi = (THnSparse*)_file0->Get("hDet_fine_phi");
+      
+      TH2D* hDetE 	= (TH2D*)_file0->Get("hCastorJet_energy_response");//	hDetE->Draw("colz");	
+        hDetE->RebinX( rebinner );
+        hDetE->RebinY( rebinner );
+
+      TH2D* hGenE	= (TH2D*)_file0->Get("hGen_fine");//			hGenE->Draw("colz");	
+        hGenE->RebinX( rebinner );*
+        hGenE->RebinY( rebinner );
+       
+      TH1D* hGen	= (TH1D*)_file0->Get("hGenJet_energy");		
+
+      // Templates for 1D projections of THnSparse.
+      TH1D* hSlice_storage;
+      TH1D* hEgen_storage;
+      TH1D* hEdet_storage;
+
+      // Prepare the histograms;
+      // 1. Project the 3D histogram into its desired axes.
+      // 2. Rebin the histogram to its desired number of bins per axis.
+      // 3. Reset the contents etc.
+      TH2D* hGenE_selection  = (TH2D*)hGenE_fine_phi->Projection(1,0);
+         hGenE_selection->RebinX( rebinner );
+         hGenE_selection->RebinY( rebinner );
+         hGenE_selection->Reset();
+      TH2D* hDetE_selection  = (TH2D*)hDetE_fine_phi->Projection(1,0);
+         hDetE_selection->RebinX( rebinner );
+         hDetE_selection->RebinY( rebinner );
+         hDetE_selection->Reset();
+      TH2D* hResponse_selection = (TH2D*)hResponse->Projection(1,0);
+         hResponse_selection->RebinX( rebinner );
+         hResponse_selection->RebinY( rebinner );
+         hResponse_selection->Reset();
+
+
+
+      for( int bin_phi = 1; bin_phi <= 16; bin_phi++){
+       if( sector == 11 && (bin_phi > 11 && bin_phi < 16)){ continue; }
+       else if( sector != 11 && sector != bin_phi ){ continue; }
+
+       THnSparse* hGenE_sparse = 	(THnSparse*)hGenE_fine_phi->Clone("");	//TString::Format("GenE_bin_%i", bin_phi) );
+       THnSparse* hDetE_sparse = 	(THnSparse*)hDetE_fine_phi->Clone("");	//TString::Format("DetE_bin_%i", bin_phi) );
+       THnSparse* hResponse_sparse =	(THnSparse*)hResponse	->Clone("");	//TString::Format("Response_bin_%i", bin_phi) );
+
+       hGenE_sparse 	->GetAxis(2)->SetRange(bin_phi, bin_phi);
+       hDetE_sparse 	->GetAxis(2)->SetRange(bin_phi, bin_phi);
+       hResponse_sparse ->GetAxis(2)->SetRange(bin_phi, bin_phi);
+
+       TH2D* hGenE_selection_phi  = (TH2D*)hGenE_sparse->Projection(1,0);
+         hGenE_selection_phi	->RebinX( rebinner );
+	 hGenE_selection_phi	->RebinY( rebinner );
+       TH2D* hDetE_selection_phi  = (TH2D*)hDetE_sparse->Projection(1,0);
+         hDetE_selection_phi	->RebinX( rebinner );
+	 hDetE_selection_phi	->RebinY( rebinner );
+       TH2D* hResponse_selection_phi = (TH2D*)hResponse_sparse->Projection(1,0);
+	 hResponse_selection_phi->RebinX( rebinner );
+	 hResponse_selection_phi->RebinY( rebinner );
+
+       hGenE_selection		->Add( hGenE_selection_phi );
+       hDetE_selection		->Add( hDetE_selection_phi );
+       hResponse_selection	->Add( hResponse_selection_phi );
+
+       // Delete the histograms to avoid memory leak.
+       hGenE_selection_phi->~TH2();
+       hDetE_selection_phi->~TH2();
+       hResponse_selection_phi->~TH2();
+
+       hGenE_sparse->~THnSparse();
+       hDetE_sparse->~THnSparse();
+       hResponse_sparse->~THnSparse();
+      } // Loop over phi.
+
+      TGraphErrors * Response_true;
+      TGraphErrors * Response_meas;
+
+      Analyze_response( hResponse_selection, hGenE_selection, hDetE_selection, hGenE, label, hGen, file, Response_meas, Response_true);
+
+       Response_meas->SetName( TString::Format("%s_" + printLabel_[ MC_files_[file] ], Response_meas->GetName()) );
+       Response_true->SetName( TString::Format("%c_" + printLabel_[ MC_files_[file] ], Response_true->GetName()) );
+		  	
+      if( sector == 11){legend_det->AddEntry( Response_meas, TString::Format(legend_info_[ MC_files_[file] ] + " (Sectors 1-11, 16)"), "lp"); }
+      else{		legend_det->AddEntry( Response_meas, TString::Format(legend_info_[ MC_files_[file] ] + " (Sector %i)", sector), "lp"); }
+ 
+       // Draw.
+       can_true->cd();	 
+       Response_true->Draw("p" + drawoptions);
+       line->Draw();
+
+       can_true->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_true_calib_" + label + ".C") );
+       can_true->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_true_calib_" + label + ".pdf") );
+
+       // Draw.
+ 
+       can_fit->cd();
+       Response_meas->Draw("p" + drawoptions);
+     
+       can_fit->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_fit_calib_" + label + ".C") );
+       can_fit->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_fit_calib_" + label + ".pdf") );
+	
+       drawoptions="same";	
+
+       can_meas->cd(); 
+       Response_meas->Draw("ape");// + drawoptions);
+       line->Draw();
+
+       analytical->SetLineColor( getColor(file+1) );
+       Response_meas->Fit( analytical, "", "", 200., 900.);
+
+       can_meas->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_meas_calib_" + label + ".C") );
+       can_meas->SaveAs(TString::Format("Plots/" + label + "/CalibrationFactors_meas_calib_" + label + ".pdf") );
+
+       std::vector<double> parameters_calibration;
+         parameters_calibration.push_back( analytical->GetParameter(0) );
+         parameters_calibration.push_back( analytical->GetParameter(1) );
+         parameters_calibration.push_back( analytical->GetParameter(2) );
+
+       calibration_parameters_[ MC_files_[file] ] = parameters_calibration;
+
+     }
+     cout << "Finished all files" << endl;
+
+       // Save.
+       can_true->cd();
+       legend_gen->Draw();
+       	can_true->SaveAs("Plots/" + label +"/CalibrationFactors_true_" + calib_ + "_" + label + ".C");		
+	can_true->SaveAs("Plots/" + label +"/CalibrationFactors_true_" + calib_ + "_" + label + ".pdf");
+     
+       can_meas->cd();
+       legend_det->Draw();
+     	can_meas->SaveAs("Plots/" + label +"/CalibrationFactors_meas_" + calib_ + "_" + label + ".C"); 		
+	can_meas->SaveAs("Plots/" + label +"/CalibrationFactors_meas_" + calib_ + "_" + label + ".pdf");
+
+       can_fit->cd();
+       legend_det->Draw();
+
+	can_fit->SaveAs("Plots/" + label +"/CalibrationFactors_meas_with_fit" + calib_ + "_" + label + ".C");             
+	can_fit->SaveAs("Plots/" + label +"/CalibrationFactors_meas_with_fit" + calib_ + "_" + label + ".pdf");
+
+      drawoptions = "A";
+
+      can_fit->Clear();
+      can_meas->Clear();
+      can_true->Clear();
+      legend_det->Clear();
+
+
+  } // Loop over sectors sects.
+}
+
+
+
+
+
+
 
 
 
@@ -2898,8 +3007,8 @@ void Unfolder::Analyze_response(TH2D* hResponse_selection, TH2D* hGenE_selection
      Response_meas	->GetYaxis()->SetLabelSize(0.07);
 	 
 	 
-     Response_meas	->SetMarkerColor( getColor(1) );
-     Response_meas	->SetLineColor( getColor(1) );
+     Response_meas	->SetMarkerColor( getColor(file+1) );
+     Response_meas	->SetLineColor( getColor(file+1) );
      Response_meas	->SetMarkerStyle( 20 + file );
 
      gre_meas = (TGraphErrors*)Response_meas->Clone( "TGraphErrors_Calibration_response_meas_" + label );

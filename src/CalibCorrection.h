@@ -6,6 +6,8 @@
 #include <vector>
 #include <map>
 
+//#include "Calibrating_Values.h"
+
 double FillCorrectionVectors( std::vector<double>& lowedge, std::vector<double>& muval){
 
 //-- Calibration with method described by Kostas.
@@ -637,141 +639,281 @@ double CalibratedDet_function( std::map<int, std::vector<double> >& lowedge_map,
 *************************************************/
 
 
-double Energy_sector_0( double edet ){
-  double c0 =	3.06945e-05;
-  double c1 =	1.79276;
-  return edet * ( c0 * edet + c1);
+
+
+
+double Energy_sector_0_data( double edet ){
+  double alpha = 1.96882;
+  double beta = -0.0360644;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_0_MC( double edet ){
+  double alpha = -3.26999;
+  double beta = 0.680778;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_1_data( double edet ){
+  double alpha = 2.01454;
+  double beta = -0.0392255;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_1_MC( double edet ){
+  double alpha = 1.07041;
+  double beta = 0.0823836;
+  double gamma = 130.591;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_2_data( double edet ){
+  double alpha = 1.98529;
+  double beta = -0.030133;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_2_MC( double edet ){
+  double alpha = 1.48334;
+  double beta = 0.0139315;
+  double gamma = 1.19523;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_3_data( double edet ){
+  double alpha = 2.06841;
+  double beta = -0.0397735;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_3_MC( double edet ){
+  double alpha = -0.463008;
+  double beta = 0.292438;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_4_data( double edet ){
+  double alpha = 1.97696;
+  double beta = -0.0229512;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_4_MC( double edet ){
+  double alpha = 3.26419;
+  double beta = -0.24064;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_5_data( double edet ){
+  double alpha = 2.11946;
+  double beta = -0.0541492;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_5_MC( double edet ){
+  double alpha = -0.142179;
+  double beta = 0.242706;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_6_data( double edet ){
+  double alpha = 1.98185;
+  double beta = -0.0270479;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_6_MC( double edet ){
+  double alpha = 1.07117;
+  double beta = 0.0801561;
+  double gamma = 322.465;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_7_data( double edet ){
+  double alpha = 2.14426;
+  double beta = -0.0563712;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_7_MC( double edet ){
+  double alpha = 1.44197;
+  double beta = 0.0307562;
+  double gamma = 49.0312;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_8_data( double edet ){
+  double alpha = 1.83998;
+  double beta = -0.0167557;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_8_MC( double edet ){
+  double alpha = 1.26168;
+  double beta = 0.0452021;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_9_data( double edet ){
+  double alpha = 1.8079;
+  double beta = -0.0207205;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_9_MC( double edet ){
+  double alpha = 1.33758;
+  double beta = 0.0198716;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_10_data( double edet ){
+  double alpha = 1.40656;
+  double beta = 0.0640937;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_10_MC( double edet ){
+  double alpha = 0.952537;
+  double beta = 0.0852845;
+  double gamma = 134.658;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_11_data( double edet ){
+  double alpha = 1.23198;
+  double beta = 0.10933;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_11_MC( double edet ){
+  double alpha = 1.13365;
+  double beta = 0.0716389;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_12_data( double edet ){
+  double alpha = -12.6301;
+  double beta = 2.11066;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_12_MC( double edet ){
+  double alpha = -15.5165;
+  double beta = 2.4626;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_13_data( double edet ){
+  double alpha = -6.96895;
+  double beta = 1.39218;
+  double gamma = 597.859;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_13_MC( double edet ){
+  double alpha = -14.7953;
+  double beta = 2.35331;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_14_data( double edet ){
+  double alpha = 0.636662;
+  double beta = 0.156859;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_14_MC( double edet ){
+  double alpha = 0.29437;
+  double beta = 0.167491;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_15_data( double edet ){
+  double alpha = 1.7902;
+  double beta = -0.014548;
+  double gamma = 1;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
+}
+
+double Energy_sector_15_MC( double edet ){
+  double alpha = -2.95463;
+  double beta = 0.622507;
+  double gamma = 1000;
+return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 
-double Energy_sector_1( double edet ){
-  double c0 =	-0.000148123;
-  double c1 =	1.83708;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_2( double edet ){
-  double c0 =	-5.19146e-05;
-  double c1 =	1.84886;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_3( double edet ){
-  double c0 =	-7.31308e-06;
-  double c1 =	1.86661;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_4( double edet ){
-  double c0 =	-3.334e-05;
-  double c1 =	1.86928;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_5( double edet ){
-  double c0 =	-8.32903e-05;
-  double c1 =	1.86173;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_6( double edet ){
-  double c0 =	-5.9192e-05;
-  double c1 =	1.85206;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_7( double edet ){
-  double c0 =	-3.68647e-05;
-  double c1 =	1.85755;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_8( double edet ){
-  double c0 =	9.97017e-05;
-  double c1 =	1.72774;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_9( double edet ){
-  double c0 =	0.00017974;
-  double c1 =	1.65343;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_10( double edet ){
-  double c0 =	0.000196613;
-  double c1 =	1.67777;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_11( double edet ){
-  double c0 =	0.000205888;
-  double c1 =	1.73616;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_12( double edet ){
-  double c0 =	0.00203501;
-  double c1 =	1.91968;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_13( double edet ){
-  double c0 =	0.00141191;
-  double c1 =	2.02273;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_14( double edet ){
-  double c0 =	0.000260428;
-  double c1 =	1.69821;
-  return edet * ( c0 * edet + c1);
-}
-
-
-double Energy_sector_15( double edet ){
-  double c0 =	0.000240651;
-  double c1 =	1.65632;
-  return edet * ( c0 * edet + c1);
-}
-
-
-
-double CalibratedDet( double Edet, int sector){
+double CalibratedDet( double Edet, int sector, TString fileLabel_){
 
  // -- Loop over energies until we found the bin within which our energy lies.
 
  double Ecal = 0.;
  
- if( sector == 0 ){             Ecal = Edet * Energy_sector_0( Edet );         }
- else if( sector == 1 ){        Ecal = Edet * Energy_sector_1( Edet );         }
- else if( sector == 2 ){        Ecal = Edet * Energy_sector_2( Edet );         }
- else if( sector == 3 ){        Ecal = Edet * Energy_sector_3( Edet );         }
- else if( sector == 4 ){        Ecal = Edet * Energy_sector_4( Edet );         }
- else if( sector == 5 ){        Ecal = Edet * Energy_sector_5( Edet );         }
- else if( sector == 6 ){        Ecal = Edet * Energy_sector_6( Edet );         }
- else if( sector == 7 ){        Ecal = Edet * Energy_sector_7( Edet );         }
- else if( sector == 8 ){        Ecal = Edet * Energy_sector_8( Edet );         }
- else if( sector == 9 ){        Ecal = Edet * Energy_sector_9( Edet );         }
- else if( sector == 10 ){       Ecal = Edet * Energy_sector_10( Edet );        }
- else if( sector == 11 ){       Ecal = Edet * Energy_sector_11( Edet );        }
- else if( sector == 12 ){       Ecal = Edet * Energy_sector_12( Edet );        }
- else if( sector == 13 ){       Ecal = Edet * Energy_sector_13( Edet );        }
- else if( sector == 14 ){       Ecal = Edet * Energy_sector_14( Edet );        }
- else if( sector == 15 ){       Ecal = Edet * Energy_sector_15( Edet );        }
+ // Calibrate Data.
+ if( fileLabel_ == "data" || fileLabel_ == "Pythia6Z2star" ){ 
+   if( sector == 0 ){             Ecal = Energy_sector_0_data( Edet );         }
+   else if( sector == 1 ){        Ecal = Energy_sector_1_data( Edet );         }
+   else if( sector == 2 ){        Ecal = Energy_sector_2_data( Edet );         }
+   else if( sector == 3 ){        Ecal = Energy_sector_3_data( Edet );         }
+   else if( sector == 4 ){        Ecal = Energy_sector_4_data( Edet );         }
+   else if( sector == 5 ){        Ecal = Energy_sector_5_data( Edet );         }
+   else if( sector == 6 ){        Ecal = Energy_sector_6_data( Edet );         }
+   else if( sector == 7 ){        Ecal = Energy_sector_7_data( Edet );         }
+   else if( sector == 8 ){        Ecal = Energy_sector_8_data( Edet );         }
+   else if( sector == 9 ){        Ecal = Energy_sector_9_data( Edet );         }
+   else if( sector == 10 ){       Ecal = Energy_sector_10_data( Edet );        }
+   else if( sector == 11 ){       Ecal = Energy_sector_11_data( Edet );        }
+   else if( sector == 12 ){       Ecal = Energy_sector_12_data( Edet );        }
+   else if( sector == 13 ){       Ecal = Energy_sector_13_data( Edet );        }
+   else if( sector == 14 ){       Ecal = Energy_sector_14_data( Edet );        }
+   else if( sector == 15 ){       Ecal = Energy_sector_15_data( Edet );        }
+ }
+
+ // Calibrate MC.
+ else{
+   if( sector == 0 ){             Ecal = Energy_sector_0_MC( Edet );         }
+   else if( sector == 1 ){        Ecal = Energy_sector_1_MC( Edet );         }
+   else if( sector == 2 ){        Ecal = Energy_sector_2_MC( Edet );         }
+   else if( sector == 3 ){        Ecal = Energy_sector_3_MC( Edet );         }
+   else if( sector == 4 ){        Ecal = Energy_sector_4_MC( Edet );         }
+   else if( sector == 5 ){        Ecal = Energy_sector_5_MC( Edet );         }
+   else if( sector == 6 ){        Ecal = Energy_sector_6_MC( Edet );         }
+   else if( sector == 7 ){        Ecal = Energy_sector_7_MC( Edet );         }
+   else if( sector == 8 ){        Ecal = Energy_sector_8_MC( Edet );         }
+   else if( sector == 9 ){        Ecal = Energy_sector_9_MC( Edet );         }
+   else if( sector == 10 ){       Ecal = Energy_sector_10_MC( Edet );        }
+   else if( sector == 11 ){       Ecal = Energy_sector_11_MC( Edet );        }
+   else if( sector == 12 ){       Ecal = Energy_sector_12_MC( Edet );        }
+   else if( sector == 13 ){       Ecal = Energy_sector_13_MC( Edet );        }
+   else if( sector == 14 ){       Ecal = Energy_sector_14_MC( Edet );        }
+   else if( sector == 15 ){       Ecal = Energy_sector_15_MC( Edet );        }
+ }
+
+// std::cout << "***\tEdet to Ecal\t" << Edet << "\t" << Ecal << "\tin sector\t" << sector << endl;
 
  return Ecal;
 

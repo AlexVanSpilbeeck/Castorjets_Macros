@@ -638,229 +638,226 @@ double CalibratedDet_function( std::map<int, std::vector<double> >& lowedge_map,
 * Here are the calibration functions per sector. * 
 *************************************************/
 
-
-
-
 double Energy_sector_0_data( double edet ){
-  double alpha = 1.92318;
-  double beta = -0.0259161;
-  double gamma = 1;
+  double alpha = 3.33381;
+  double beta = -0.21675;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_0_MC( double edet ){
-  double alpha = -0.730796;
-  double beta = 0.317797;
-  double gamma = 1000;
+  double alpha = 1.3117;
+  double beta = 0.0513503;
+  double gamma = -135.795;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_1_data( double edet ){
-  double alpha = 2.00819;
-  double beta = -0.0380573;
-  double gamma = 1;
+  double alpha = 2.4401;
+  double beta = -0.0960558;
+  double gamma = 462.468;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_1_MC( double edet ){
-  double alpha = -1.3294;
-  double beta = 0.416306;
-  double gamma = 834.454;
+  double alpha = 1.49311;
+  double beta = 0.0223115;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_2_data( double edet ){
-  double alpha = 1.98646;
-  double beta = -0.0303458;
-  double gamma = 1;
+  double alpha = 1.86306;
+  double beta = -0.00689278;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_2_MC( double edet ){
-  double alpha = 1.4676;
-  double beta = 0.0180652;
-  double gamma = 1;
+  double alpha = 6.44598;
+  double beta = -0.69526;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_3_data( double edet ){
-  double alpha = 2.06167;
-  double beta = -0.0384663;
-  double gamma = 1;
+  double alpha = 2.57384;
+  double beta = -0.099085;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_3_MC( double edet ){
-  double alpha = 0.488304;
-  double beta = 0.156357;
-  double gamma = 1000;
+  double alpha = 1.27835;
+  double beta = 0.0860718;
+  double gamma = -146.597;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_4_data( double edet ){
-  double alpha = 2.00697;
-  double beta = -0.029759;
-  double gamma = 1;
+  double alpha = 2.30363;
+  double beta = -0.0609511;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_4_MC( double edet ){
-  double alpha = 4.30995;
-  double beta = -0.390484;
-  double gamma = 1000;
+  double alpha = 1.65794;
+  double beta = -0.0265372;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_5_data( double edet ){
-  double alpha = 2.09649;
-  double beta = -0.0484309;
-  double gamma = 1;
+  double alpha = 1.8892;
+  double beta = -0.00856925;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_5_MC( double edet ){
-  double alpha = 0.382766;
-  double beta = 0.167727;
-  double gamma = 1000;
+  double alpha = 1.3039;
+  double beta = 0.074386;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_6_data( double edet ){
-  double alpha = 1.99214;
-  double beta = -0.029911;
-  double gamma = 1;
+  double alpha = 2.50709;
+  double beta = -0.0919485;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_6_MC( double edet ){
-  double alpha = 0.625638;
-  double beta = 0.145404;
-  double gamma = 503.573;
+  double alpha = 2.09381;
+  double beta = -0.075838;
+  double gamma = 999.94;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_7_data( double edet ){
-  double alpha = 2.15417;
-  double beta = -0.0583808;
-  double gamma = 1;
+  double alpha = 2.8995;
+  double beta = -0.145498;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_7_MC( double edet ){
-  double alpha = 1.55196;
-  double beta = 0.00868576;
-  double gamma = 11.4749;
+  double alpha = 7.87802;
+  double beta = -0.885372;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_8_data( double edet ){
-  double alpha = 1.83836;
-  double beta = -0.0167452;
-  double gamma = 1;
+  double alpha = 2.146;
+  double beta = -0.0554186;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_8_MC( double edet ){
-  double alpha = 1.24978;
-  double beta = 0.0478111;
-  double gamma = 1;
+  double alpha = 1.51814;
+  double beta = -0.0093327;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_9_data( double edet ){
-  double alpha = 1.81336;
-  double beta = -0.0213583;
-  double gamma = 1;
+  double alpha = 0.744816;
+  double beta = 0.134036;
+  double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_9_MC( double edet ){
-  double alpha = 1.32046;
-  double beta = 0.0235222;
-  double gamma = 1;
+  double alpha = 1.31492;
+  double beta = 0.0305184;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_10_data( double edet ){
-  double alpha = 1.49217;
-  double beta = 0.046574;
-  double gamma = 1;
+  double alpha = 1.34621;
+  double beta = 0.0730863;
+  double gamma = -48.2154;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_10_MC( double edet ){
-  double alpha = 1.27641;
-  double beta = 0.0301812;
-  double gamma = 18.0054;
+  double alpha = 1.28456;
+  double beta = 0.0385405;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_11_data( double edet ){
-  double alpha = 1.27364;
-  double beta = 0.100972;
-  double gamma = 1;
+  double alpha = 1.68625;
+  double beta = 0.0225201;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_11_MC( double edet ){
-  double alpha = 1.0685;
-  double beta = 0.0853667;
-  double gamma = 1;
+  double alpha = 1.47187;
+  double beta = 0.0102384;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_12_data( double edet ){
-  double alpha = -1.46688;
-  double beta = 0.621275;
-  double gamma = 240.224;
+  double alpha = 1.34951;
+  double beta = 0.233206;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_12_MC( double edet ){
-  double alpha = -8.51345;
-  double beta = 1.51411;
-  double gamma = 762.692;
+  double alpha = 0.90146;
+  double beta = 0.253139;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_13_data( double edet ){
-  double alpha = -6.39539;
-  double beta = 1.31186;
-  double gamma = 573.552;
+  double alpha = 1.43492;
+  double beta = 0.214868;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_13_MC( double edet ){
-  double alpha = -14.9799;
-  double beta = 2.37971;
-  double gamma = 1000;
+  double alpha = -5.80292;
+  double beta = 1.31249;
+  double gamma = 144.004;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_14_data( double edet ){
-  double alpha = 0.741088;
-  double beta = 0.14242;
-  double gamma = 1000;
+  double alpha = 1.62625;
+  double beta = 0.0284726;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_14_MC( double edet ){
-  double alpha = 1.41726;
-  double beta = 0.0110958;
-  double gamma = 1;
+  double alpha = 1.57924;
+  double beta = -0.0256388;
+  double gamma = -149;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_15_data( double edet ){
-  double alpha = 1.83028;
-  double beta = -0.0233138;
-  double gamma = 1;
+  double alpha = 0.992968;
+  double beta = 0.117341;
+  double gamma = 217.136;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }
 
 double Energy_sector_15_MC( double edet ){
-  double alpha = -2.18384;
-  double beta = 0.512559;
+  double alpha = -1.29666;
+  double beta = 0.383205;
   double gamma = 1000;
 return edet * ( (alpha + beta * log( edet + gamma ) ) ) ; 
 }

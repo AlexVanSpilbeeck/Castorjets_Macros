@@ -88,11 +88,16 @@ int main(){
 
    TString setup;  
    TString Ethresh;
+   double Eplotmin;
  
    std::map<TString, TString> axis_of_interest;
    std::map<TString, TString> legends;
    std::map<TString, TString> printLabel;
    std::map<TString, TString> xtitle, ytitle, htitle;
+
+   std::map<TString, std::map<TString, TString> > set_of_tags;
+   std::map<TString, TString> calibration_tag;
+  
 
    bool vary_eta 	= false;
    bool vary_eI 	= false;
@@ -110,29 +115,46 @@ int main(){
      cin >> setup;
      cout << "What is energy threshold?\t";
      cin >> Ethresh;
+     cout << "Plot from which Edet value?\t";
+     cin >> Eplotmin;
 
    /********
    * DATA. * 
    ********/ 
 
-   TString datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
+//   TString datafile = "/user/avanspil/Castor_Analysis/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
+   TString datafile = "/user/avanspil/Castor_Analysis/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
 
    if( systematics_ ){
 
-     datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
-     legends["Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root"] = "Data";
+//     datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
+     legends[datafile] = "Data";
+     printLabel[datafile] = "data";
 
-     TString MCfile = "Histograms/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root";
-     
-     filenames.push_back( MCfile );
+    TString MCfile;
+
+    MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root";
+    filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5)");
        colours.push_back(getColor(color_index++));
        linestyle.push_back( style_of_line++);
        fileLabel.push_back("Actual");    
        printLabel[MCfile] = "Pythia6Z2star";
        legends[MCfile] = "Pythia6 Z2*";
- 
-     MCfile = "Histograms/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000.root";
+      calibration_tag[ MCfile ] = "data";		// This tag will be appended to the file containing the calibration factors for data.       
+   
+     MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root"; 
+     filenames.push_back( MCfile );
+       legendEntries.push_back("(ak5, ak5) - Displaced");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line++);
+       fileLabel.push_back("Displaced");    
+       printLabel[MCfile] = "Displaced";
+       legends[MCfile] = "Displaced";
+       calibration_tag[MCfile] = "MC";	
+
+
+     MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000.root";
      filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5) - Full Simulation");
        colours.push_back(getColor(color_index++));
@@ -140,17 +162,23 @@ int main(){
        fileLabel.push_back("Full simulation");    
        printLabel[MCfile] = "FullSimulation";
        legends[MCfile] = "Full simulation";
+       calibration_tag[MCfile] = "MC";       
 
-     MCfile = "Histograms/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root"; 
+		// This tag will be appended to the file containing the calibation factors for MC.
+
+     MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_displaced_down_" + setup + "_Emin_" + Ethresh + ".000000.root"; 
      filenames.push_back( MCfile );
-       legendEntries.push_back("(ak5, ak5) - Nominal");
+       legendEntries.push_back("(ak5, ak5) - Disp. (down)");
        colours.push_back(getColor(color_index++));
        linestyle.push_back( style_of_line++);
-       fileLabel.push_back("(0,0)");    
-       printLabel[MCfile] = "Nominal";
-       legends[MCfile] = "(0,0)";
+       fileLabel.push_back("Displaced_down");    
+       printLabel[MCfile] = "Displaced_down";
+       legends[MCfile] = "Disp. (down)";
+       calibration_tag[MCfile] = "down";
 
-     MCfile = "Histograms/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000.root";
+
+
+     MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000.root";
      filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5) - Pythia8 (4C)");
        colours.push_back(getColor(color_index++));
@@ -160,6 +188,10 @@ int main(){
        legends[MCfile] = "Pythia8 (4C)";
 
    }
+
+   set_of_tags["calibration_tag"] = calibration_tag;
+
+
 
    if( after_all ){ 
 /*     
@@ -578,14 +610,14 @@ int main(){
      yTitle["Unfold_data_BinByBin"] = "#frac{dN}{dE}";
      labels["Unfold_data_BinByBin"] = datafile;
      save["Unfold_data_BinByBin"] = "Unfolded_data_BinByBin";     
-*/   
+
    Plot_list.push_back("Compare_unfolded_data");
      xTitle["Compare_unfolded_data"] = "E (GeV)";
      yTitle["Compare_unfolded_data"] = "#frac{dN}{dE}";
      labels["Compare_unfolded_data"] = datafile;
      save["Compare_unfolded_data"] = "Comparison";      
 
-/*
+
    Plot_list.push_back("Compare_unfolded_data_all");
      xTitle["Compare_unfolded_data_all"] = "E (GeV)";
      yTitle["Compare_unfolded_data_all"] = "#frac{dN}{dE}";
@@ -811,64 +843,119 @@ int main(){
    ytitle["hCastorJet_energy"] = "#frac{1}{N}.#frac{dN}{dE_{Det}}";
    htitle["hCastorJet_energy"] = "Detector level jet energy (all)";
 
-
-
-
-   Unfolder my_first_unfolder(filenames, datafile, "20150529", 0);
+   Unfolder my_first_unfolder(filenames, datafile, set_of_tags, Eplotmin, atof(Ethresh ), "20150709", 0);
    my_first_unfolder.LabelPlots( setup + "_Emin_" + Ethresh );
    my_first_unfolder.PrepareLegend( legends, printLabel );
    my_first_unfolder.PrepareTitles( xtitle, ytitle, htitle );
 
-//   my_first_unfolder.Hist_DetLevel();
-//   my_first_unfolder.Hist_DetLevel_lead();
-//   my_first_unfolder.Hist_GenLevel();
-//   my_first_unfolder.Hist_getTruth();
-//   my_first_unfolder.Plot_Unfolded();
-//   my_first_unfolder.Plot_Unfolded_Ratio();
-//   if( setup == "unfold" )   my_first_unfolder.DoublePaddedComparison("all");
-//   if( setup == "unfold" )   my_first_unfolder.DoublePaddedComparison("lead");
+   for(int file_ = 0; file_ < filenames.size(); file_++){
+     my_first_unfolder.PlotResponseMatrix( file_ );
+   }
 
-//   if( setup == "unfold")    my_first_unfolder.DoublePaddedComparison_unfolding("all", 6);
-
-//   cout << "--- DoublePaddedComparison - hCastorJet_energy" << endl;
-//   my_first_unfolder.DoublePaddedComparison("hCastorJet_energy_lead");
-
-//   my_first_unfolder.Hist_DetLevel_DataWithSmear();
-//   my_first_unfolder.Hist_DetLevel_MCWithSmear();
-//   my_first_unfolder.Systematics_CompareDetLevel();
-//   my_first_unfolder.Systematics_CompareGenLevel();
-//   my_first_unfolder.CompareGenLevel();
-   cout << "--- Systematics" << endl;
-
+/*   
+   my_first_unfolder.Hist_DetLevel();
+   my_first_unfolder.Hist_DetLevel_lead();
+   my_first_unfolder.Hist_GenLevel();
+   my_first_unfolder.Hist_getTruth();
+   my_first_unfolder.Plot_Unfolded();
+   my_first_unfolder.Plot_Unfolded_Ratio();
+   my_first_unfolder.DoublePaddedComparison("hCastorJet_energy_lead");
+*/
    if( setup == "isolated"){ 
-//     my_first_unfolder.CalculateSystematics("all"); 
+
+//     my_first_unfolder.CalculateSystematics("20150729_test", 1, 16);
+//     my_first_unfolder.CalibrationFactors_oneCanvas(true);
+//     my_first_unfolder.CalibrationFactors_oneCanvas(false);
+/*
+     my_first_unfolder.CalculateSystematics("all"); 
+
      my_first_unfolder.CalculateSystematics("one", 12);
      my_first_unfolder.CalculateSystematics("one", 13);
      my_first_unfolder.CalculateSystematics("one", 14);
      my_first_unfolder.CalculateSystematics("one", 15);
+*/
+//     my_first_unfolder.Plot_Calibrated_functions();
+     // --  Creates a canvas with the calibration functions in absolute and ratio format.
+     my_first_unfolder.CalculateSystematics("good_sectors",1,1);
+     my_first_unfolder.CalculateSystematics("all_sectors",1,1);
+     my_first_unfolder.CalculateSystematics("separate_sectors",1,16);
+
+     TGraphErrors* gre;
+//     my_first_unfolder.CalibrationFunction_sectors(1, 16, -1, gre);   
+//     my_first_unfolder.CalibrationFunction(1, 1, gre);   
    }
 
-//   if( setup == "isolated"){ my_first_unfolder.CalculateSystematics_comparison(); }
+   
+   if( setup == "unfold" ){
+/*
+     for(int file_ = 0; file_ < filenames.size(); file_++){ 
+	// -- Response matrix
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Edet", "Egen"); 
+	// -- Edet vs. fakes
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Edet", "nFake"); 
+	// -- Edet vs. misses
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Edet", "nMiss"); 
+	// -- Egen vs. fakes
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Egen", "nFake"); 
+	// -- Egen vs. misses.
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Egen", "nMiss"); 
+	// -- Misses vs. fakes.
+	my_first_unfolder.PlotFromResponseMatrix(file_, "nMiss", "nFake"); 
+	// -- nDet vs. fakes.
+	my_first_unfolder.PlotFromResponseMatrix(file_, "nDet", "nFake"); 
+	// -- nGen vs. misses.
+	my_first_unfolder.PlotFromResponseMatrix(file_, "nGen", "nMiss"); 
 
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Egen", "nMatch"); 
 
-/*	
-   if( setup == "unfold" )   my_first_unfolder.ClosureTest_data("lead");
-   if( setup == "unfold" )   my_first_unfolder.ClosureTest_data("all");
-   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_data("lead");
-   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_data("all");
-   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_MC("lead");
-   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_MC("all");
-   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_MC_det("lead");
-   if( setup == "unfold" )   my_first_unfolder.Chi2_comparison_MC_det("all");
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Edet", "nMatch"); 
 
-   if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC("lead");
-   if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC("all");
-   if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC_detLevel("lead");
-   if( setup == "unfold" )   my_first_unfolder.ClosureTest_MC_detLevel("all");
-   if( setup == "unfold" )   cout << "--- ClosureTest" << endl;
-*/ 
-//   if( setup == "isolated" ) my_first_unfolder.GetCalibration();
-      
+	my_first_unfolder.PlotFromResponseMatrix(file_, "nMiss", "nMatch"); 
+
+	my_first_unfolder.PlotFromResponseMatrix(file_, "nFake", "nMatch"); 
+
+	my_first_unfolder.PlotFromResponseMatrix(file_, "nFake");
+
+	my_first_unfolder.PlotFromResponseMatrix(file_, "nMiss");
+
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Edet");
+
+	my_first_unfolder.PlotFromResponseMatrix(file_, "Egen");
+	
+    }
+*/
+
+/*
+     my_first_unfolder.DoublePaddedComparison("all");
+     my_first_unfolder.DoublePaddedComparison("lead");
+     my_first_unfolder.DoublePaddedComparison_unfolding("all", 6);
+     my_first_unfolder.DoublePaddedComparison_unfolding("lead", 6);
+     my_first_unfolder.Unfolding_data("lead", 15);
+     my_first_unfolder.Unfolding_data("all", 15);
+*/
+
+     // -- Closure test on data and MC.	
+     my_first_unfolder.ClosureTest_data("lead", "Displaced");
+     my_first_unfolder.ClosureTest_data("all", "Displaced");
+
+     my_first_unfolder.Dissect_ResponseObject();
+
+/*
+     my_first_unfolder.ClosureTest_MC("lead");
+     my_first_unfolder.ClosureTest_MC("all");
+     my_first_unfolder.ClosureTest_MC_detLevel("lead");
+     my_first_unfolder.ClosureTest_MC_detLevel("all");
+
+     // -- CHI2 tests.
+     my_first_unfolder.Chi2_comparison_data("lead");
+     my_first_unfolder.Chi2_comparison_data("all");
+     my_first_unfolder.Chi2_comparison_MC("lead");
+     my_first_unfolder.Chi2_comparison_MC("all");
+     my_first_unfolder.Chi2_comparison_MC_det("lead");
+     my_first_unfolder.Chi2_comparison_MC_det("all");
+*/
+   }
+
   return(0); 
 
 }

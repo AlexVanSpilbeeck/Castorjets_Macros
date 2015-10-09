@@ -1767,7 +1767,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   TString htitle;
   TLegend *leg = new TLegend(0.65, 0.45, 0.95, 0.95);
     leg->SetFillColor(0);
-  int iterations_ = 40;
+  int iterations_ = 5;
   int actual_iterations = 0;
 
 
@@ -1830,10 +1830,10 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
     //--------------------------------------------------//
 
     int increase_iterations = 3;
-    for(int iterations = 40; iterations <= iterations_; iterations+=increase_iterations){
+    for(int iterations = 1; iterations <= iterations_; iterations+=increase_iterations){
       // Determine the inrease in Bayesian iterations.
       if(iterations >= 10 ){ increase_iterations = 5; }
-      if(iterations >= 50 ){ increase_iterations = 15; }
+      if(iterations >= 20 ){ increase_iterations = 15; }
       if(iterations >= 100 ){ increase_iterations = 20; }
 
       hist_result = (TH1D*)hist_original->Clone(TString::Format("Closure_%i_iterations", iterations) );
@@ -4290,7 +4290,7 @@ void Unfolder::CovarianceMatrix( TH1D* hUnfold, TH1D* hSmeared, TMatrixD& cov_){
 double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfold, RooUnfoldResponse* response, int iterations){
 
   cout << "Unfolder::Calculate_smearedBackError_covariance" << endl;
-  int nPoisson = 10000;
+  int nPoisson = 100;
   int file_ = -1;
   int MC_ = 0;
 
@@ -4391,6 +4391,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     if( n_spread%100 == 0){  cout << "Iterations\t" << iterations << "\tIteration\t" << n_spread << endl; }
 
     hFake_new->Reset();
+    hMiss_new->Reset();
     hTruth_new->Reset();
     hMeasured_new->Reset();
     hResponse_new->Reset(); 
@@ -4400,9 +4401,10 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     //-- MC distributions.
 
     FillAnew_1D( hFake, hFake_new, rand);
+    FillAnew_1D( hMiss, hMiss_new, rand);
     FillAnew_2D( hResponse, hResponse_new, rand);
-    FillAnew_1D( hMeasured, hResponse_new->ProjectionX(), hMeasured_new, rand);
-    FillAnew_1D( hTruth, hResponse_new->ProjectionY(), hTruth_new, rand);
+//    FillAnew_1D( hMeasured, hResponse_new->ProjectionX(), hMeasured_new, rand);
+//    FillAnew_1D( hTruth, hResponse_new->ProjectionY(), hTruth_new, rand);
 
     //-- The code below draws the varied distributions and compares them to the actual fakes/measured/truth distributions.
     if( n_spread < 10 ){
@@ -4432,12 +4434,25 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     // (4) Unfold-and-smear. //
     //-----------------------//
 
-    //-- Create a new RooUnfold response object.
-    RooUnfoldResponse *response_new = new RooUnfoldResponse( hMeasured_new, hTruth_new, hResponse_new );
     //-- Determine the number of fakes as: fakes = measured - matched(det)
     TH1D* hRes_X = (TH1D*)hResponse_new->ProjectionX();
-    hFake_new = (TH1D*)hMeasured_new->Clone("hFake_new");
-    hFake_new->Add( hRes_X, -1.); 
+    hMeasured_new = (TH1D*)hFake_new->Clone("hMeasured_new");
+    hMeasured_new->Add( hRes_X, 1.); 
+
+    TH1D* hRes_Y = (TH1D*)hResponse_new->ProjectionY();
+    hTruth_new = (TH1D*)hMiss_new->Clone("hTruth_new");
+    hTruth_new->Add( hRes_Y, 1.); 
+
+    testing_covariance << "Variation\tMiss\tFake\tMeasured\tTruth\tResponse\t" <<
+	n_spread << "\t" << 
+	hMiss_new->Integral() << "\t" <<
+	hFake_new->Integral() << "\t" <<
+	hMeasured_new->Integral() << "\t" <<
+	hTruth_new->Integral() << "\t" <<
+	hResponse_new->Integral() << endl;
+
+    //-- Create a new RooUnfold response object.
+    RooUnfoldResponse *response_new = new RooUnfoldResponse( hMeasured_new, hTruth_new, hResponse_new );
 
     //-- Make sure that the unfolded distribution has only real, possible numbers.
     if( !BadNumerals(hUnfold) ){ cout << "This is not good\t" << n_spread << endl; n_spread--; continue; }
@@ -4855,3 +4870,4 @@ bool Unfolder::BadNumerals( TH1D* hist ){
 void Unfolder::SetAddLabel( TString label ){
   addLabel_ = "_" + label + "_";
 }
+

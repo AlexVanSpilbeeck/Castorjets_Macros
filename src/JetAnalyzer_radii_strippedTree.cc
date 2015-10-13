@@ -637,7 +637,7 @@ cout << "Variable bins done" << endl;
 	    }
 	    if( comments_ ){ cout << "Type is\t" << GetJetType( castor_jet ) << "\tfor\t" << counter_events << "\t" << det_jet << "\t" << det_energy << endl; }
 */
-	    if( jettype_ != GetJetType( castor_jet ) ){ 
+	    if(  det_energy < threshold_ ){ 
 	      CastorJets->erase( CastorJets->begin() + det_jet ); 
 	      if( comments_ ){ cout << "Type is\t" << GetJetType( castor_jet ) << "\tfor\t" << counter_events << "\t" << det_jet << "\t" << det_energy << endl; }
 	    }
@@ -749,7 +749,7 @@ cout << "Variable bins done" << endl;
 		det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
 
 		// CUT: cut jet if energy is below threshold.
-		if( det_energy < threshold_ || GetJetType(castor_det) != jettype_ ){ 
+		if( det_energy < threshold_ ){ 
                   if( comments_ ){ cout << "\t\t\t\t\t\t\t\tLow Det E\t" << det_jet << "\t" << det_energy << endl; }
 		  continue; 
 		} 

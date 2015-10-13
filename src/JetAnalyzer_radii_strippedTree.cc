@@ -91,7 +91,8 @@
 
 //#define cut_EI false
 
-#define comments_ true
+#define comments_ false
+#define manualUnfold_ true
 #define do_calibration_discrete false
 //#define do_calibration_function true
 #define sector_dependence true
@@ -154,7 +155,17 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
     currentTFile_ = new TFile();
 	
     std::cout << "all initialisations done, class constructed!" << std::endl;
-    
+
+
+    if( LoopOutputFile_.Contains( "data" ) ){ fileLabel_ = "data"; }
+    else if( LoopOutputFile_.Contains( "displaced_down" )) { fileLabel_ = "displaced_down"; }
+    else if( LoopOutputFile_.Contains( "displaced_up" )){ fileLabel_ = "displaced_up"; }
+    else if( LoopOutputFile_.Contains( "displaced" )){ fileLabel_ = "displaced"; }
+    else if( LoopOutputFile_.Contains( "FullSimulation" )){ fileLabel_ = "FullSimulation"; }
+    else if( LoopOutputFile_.Contains( "Pythia84C" )){ fileLabel_ = "Pythia84C"; }
+    else{ fileLabel_ = "Pythia6Z2star"; }
+
+    cout << "@@@ Filelabel is\t" << fileLabel_ << endl;
 }
 
 JetAnalyzer_radii_strippedTree::~JetAnalyzer_radii_strippedTree() { }
@@ -207,8 +218,13 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 //	int Ebins = static_cast<int> ( (Emax - Emin)/EbinWidth );
 //	double Emin = 0., Emax = 3000.;
 //	int Ebins = 50;
-        double Emin = threshold_, Emax = 2100.;
-        int Ebins = 26;
+        double Emin, Emax = 2100.;
+        int Ebins;
+
+        if( threshold_ == 0. ){ Emin = threshold_; Ebins = 28; }
+	if( threshold_ == 150.){ Emin = threshold_; Ebins = 26;}
+
+         
 
         if( comments_ ){ cout << Ebins << " bins from " << Emin << " GeV to " << Emax << " GeV" << endl; }
 
@@ -272,9 +288,9 @@ cout << "Variable bins done" << endl;
 	}
 	
 	// Castor jet histograms
-        TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",	Ebins, Emin, Emax);
-        TH1D *hCastorJet_energy_lead = new TH1D("hCastorJet_energy_lead","CastorJet energy distribution", Ebins, Emin, Emax);
-        TH1D *hCastorJet_energy_fine = new TH1D("hCastorJet_energy_fine","CastorJet energy distribution", Ebins*10, Emin, Emax);
+        TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",	Ebins, Emin, Emax);		hCastorJet_energy->Sumw2();
+        TH1D *hCastorJet_energy_lead = new TH1D("hCastorJet_energy_lead","CastorJet energy distribution", Ebins, Emin, Emax);	hCastorJet_energy_lead->Sumw2();
+        TH1D *hCastorJet_energy_fine = new TH1D("hCastorJet_energy_fine","CastorJet energy distribution", Ebins*10, Emin, Emax);hCastorJet_energy_fine->Sumw2();
 
 
         TH1D *hGenJet_energy = new TH1D("hGenJet_energy","GenJet energy distribution",		Ebins, Emin, Emax);
@@ -293,19 +309,27 @@ cout << "Variable bins done" << endl;
 	TH1D *hCastorJet_multi = new TH1D("hCastorJet_multi","CastorJet multiplicity distribution",17,0,17);
 
 		// All Casto jets response matrix.
-		TH2D *hCastorJet_energy_response = new TH2D("hCastorJet_energy_response","CastorJet energy distribution - Response", 	Ebins, Emin, Emax, Ebins, Emin, Emax);	// ,Ebins+10,Emin-10*EbinWidth,Emax,Ebins+10,Emin-10*EbinWidth,Emax);
-		TH2D *hCastorJet_energy_response_fine = new TH2D("hCastorJet_energy_response_fine","CastorJet energy distribution - Response", 	Ebins*10, Emin, Emax, Ebins*10, Emin, Emax);
+		TH2D *hCastorJet_energy_response = new TH2D("hCastorJet_energy_response","CastorJet energy distribution - Response;E_{det};E_{gen};", 	Ebins, Emin, Emax, Ebins, Emin, Emax);	// ,Ebins+10,Emin-10*EbinWidth,Emax,Ebins+10,Emin-10*EbinWidth,Emax);
+		TH2D *hCastorJet_energy_response_lead = new TH2D("hCastorJet_energy_response_lead","CastorJet energy distribution - Response;E_{det};E_{gen};", 	Ebins, Emin, Emax, Ebins, Emin, Emax);	// ,Ebins+10,Emin-10*EbinWidth,Emax,Ebin
+		TH2D *hCastorJet_energy_response_fine = new TH2D("hCastorJet_energy_response_fine","CastorJet energy distribution - Response;E_{det};E_{gen};", 	Ebins*10, Emin, Emax, Ebins*10, Emin, Emax);
 
 		TH2D *hCastorJet_energy_fakes 	 = new TH2D("hCastorJet_energy_fakes",	 "CastorJet energy distribution - Fakes", 	Ebins, Emin, Emax, Ebins, Emin, Emax);	// ,Ebins+10,Emin-10*EbinWidth,Emax);
 		TH2D *hCastorJet_energy_misses	 = new TH2D("hCastorJet_energy_misses",	 "CastorJet energy distribution - Misses", 	Ebins, Emin, Emax, Ebins, Emin, Emax);	// ,Ebins+10,Emin-10*EbinWidth,Emax);
+
+		TH1D *hCastorJet_miss_all   = new TH1D("hCastorJet_miss_all", "Misses", Ebins, Emin, Emax);
+                TH1D *hCastorJet_fake_all   = new TH1D("hCastorJet_fake_all", "Fakes", Ebins, Emin, Emax);
+                TH1D *hCastorJet_miss_lead   = new TH1D("hCastorJet_miss_lead", "Misses", Ebins, Emin, Emax);
+                TH1D *hCastorJet_fake_lead   = new TH1D("hCastorJet_fake_lead", "Fakes", Ebins, Emin, Emax);
+
+		TH1D *hCastorJet_matchedGen_all   = new TH1D("hCastorJet_matchedGen_all", "MatchedGen", Ebins, Emin, Emax);
 		
 		TH2D *hCastorJet_energy_complete_response = new TH2D("hCastorJet_energy_complete_response","CastorJet energy distribution - Complete Response", Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
 
-		int Bins_response_matrix[5]	= {Ebins*10, Ebins*10, 16, 16, 16};
-		double Min_response_matrix[5]	= {Emin, Emin, 0., 0., 0.};
-		double Max_response_matrix[5]	= {Emax, Emax, 0., 16., 16.};
+		int Bins_response_matrix[7]	= {Ebins*10, 	Ebins*10, 16,  16,  32,  16,  32};
+		double Min_response_matrix[7]	= {Emin, 	Emin, 	  0.,  0.,  0.,  0.,  0.};
+		double Max_response_matrix[7]	= {Emax, 	Emax, 	  16., 16., 32., 16., 32.};
 
-		THnSparseD *hResponse_leading 	= new THnSparseD("hResponse_leading", 	"E_{det};E_{gen};N_{match};N_{fake};N_{miss}",	4, Bins_response_matrix, Min_response_matrix, Max_response_matrix); hResponse_leading->Sumw2();
+		THnSparseD *hResponse_leading 	= new THnSparseD("hResponse_leading", 	"Multidimensional Response Matrix;E_{det};E_{gen};N_{match};N_{fake};N_{miss};N_{det};N_{gen};",	7, Bins_response_matrix, Min_response_matrix, Max_response_matrix); hResponse_leading->Sumw2();
 //		THnSparseD *hResponse_inclusive = new THnSparseD("hResponse_inclusive", "E_{det};E_{gen};N_{fake};N_{miss}",    4, Bins_response_matrix, Min_response_matrix, Max_response_matrix); hResponse_inclusive->Sumw2();		
 
 		// Response with variable binning.
@@ -402,6 +426,8 @@ cout << "Variable bins done" << endl;
 		RooUnfoldResponse response_fine 	(hCastorJet_energy_fine, hCastorJet_energy_fine, "response_fine");
 		RooUnfoldResponse response_lead_fine	(hCastorJet_energy_fine, hCastorJet_energy_fine, "response_lead_fine");
 
+		RooUnfoldResponse response_match	(hCastorJet_energy, hCastorJet_energy, "response_match");
+
 		// Jet distance distribution.
 		TH1D *hDistance 	= new TH1D("hJetDistance",	"Distance between matched jets;#DeltaR;dN/d#DeltaR", 200, 0., 2.);
 		TH1D *hPhiDiff 		= new TH1D("hPhiDiff", 		"Distance in #varphi;#Delta#varphi;dN/d#Delta#varphi", 200, 0., 3.15);
@@ -489,6 +515,8 @@ cout << "Variable bins done" << endl;
 	// -- First vector contains our energy values, second vector our calibration values.
 	//vector<double> lowedge;
 	//vector<double> muval;
+        if( comments_ ){ cout << "// -- Filelabel is\t" << fileLabel_ << endl; }
+
 	if( comments_ ) cout << "// -- Prepare calibration" << endl;
 	std::map<int, vector<double> > lowedge;
 	std::map<int, vector<double> > muval;
@@ -576,9 +604,6 @@ cout << "Variable bins done" << endl;
 	  /////////////////////////////////////////
 	
    	  if( !isData_) { b_CastorGenJets->GetEntry( counter_events ); }
-
-
-
 	  b_CastorJets->GetEntry( counter_events );			
 				
 	  /////////////////////////////////////////
@@ -598,20 +623,21 @@ cout << "Variable bins done" << endl;
 	  /////////////////////////////////////////////////////////////////////////////////////////////////////
 	  // A first look into the jets: prepare the matching by removing too soft jets and wrong-type jets. //
 	  /////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
+
 	  if( comments_) cout << "\n\n\n\t" << counter_events << endl;
+
 	  for(int det_jet = CastorJets->size()-1; det_jet >= 0; det_jet-- ){
 	    MyCastorJet castor_jet = (*CastorJets)[ det_jet ];
 	    double det_energy = castor_jet.energy;
-
+/*
 	    if( do_calibration_function){
 	      double det_phi = castor_jet.phi;
 	      int sector = CastorSector( det_phi ) ; 
- 	      det_energy = CalibratedDet( det_energy, sector, isData_ );
+ 	      det_energy = CalibratedDet( det_energy, sector, fileLabel_ );
 	    }
 	    if( comments_ ){ cout << "Type is\t" << GetJetType( castor_jet ) << "\tfor\t" << counter_events << "\t" << det_jet << "\t" << det_energy << endl; }
-
-	    if( jettype_ != GetJetType( castor_jet ) || det_energy < threshold_){ 
+*/
+	    if( jettype_ != GetJetType( castor_jet ) ){ 
 	      CastorJets->erase( CastorJets->begin() + det_jet ); 
 	      if( comments_ ){ cout << "Type is\t" << GetJetType( castor_jet ) << "\tfor\t" << counter_events << "\t" << det_jet << "\t" << det_energy << endl; }
 	    }
@@ -627,27 +653,33 @@ cout << "Variable bins done" << endl;
 	    }
           }
 	  if( comments_ && !isData_){ cout << "\n\n\n$$$\tEvent\t" << counter_events << "\tdet size\t" << CastorJets->size() << "\tgen size\t" << CastorGenJets->size() << endl;}
-*/
-  	  while( matched_pairs == 0 && CastorJets->size() > 0 ){	
+
+
+  	  while( matched_pairs == 0 && CastorJets->size() > 0 ){
+	    if( comments_ ){ cout << "First pair to match" << endl; }	
 
 	    ////////////////////////////////////////////////////
 	    // Get information on leading jet (type, energy). //
 	    ////////////////////////////////////////////////////
 
 	    if( !prepare_unfolding_ ){
+	      if( comments_ ){ cout << "time to not prepare unfolding" << endl; }
 	      MyCastorJet castorjet = (*CastorJets)[ 0 ];
 	      double castor_sectors = castorjet.ntower;
 
   	      TString detjettype = GetJetType( castorjet );
+	      if( comments_ ){ cout << "Jettype is\t" << detjettype << "\tfor required\t" << jettype_ << "\tsector number is\t" << castor_sectors << endl; }
 	      if( jettype_ != "all"){ 			// We wish to differentiate jet types.
  	        if( detjettype == "other"){ break; }	// Not had or em.
 	        if( detjettype != jettype_ ){ break; }	// Not our jettype.
 	      }
+	      if( comments_ ){ cout << "Survived type cut" << endl; }
 
 	      if( sectors_ != 0 ){
 	        if( (sectors_ != 1 && castor_sectors == 1) ){ break; }
 	        if( (sectors_ == 1 && castor_sectors != 1) ){ break; }
 	      }
+	      if( comments_ ){ cout << "Survived sectors cut" << endl; } 
 	    } // Get type and Nsectors of leading jet.
 
 	    ////////////////////////////////////////////////////////
@@ -657,16 +689,18 @@ cout << "Variable bins done" << endl;
 	    for(int det_jet = 0; det_jet < CastorJets->size(); det_jet++){
 
 	      MyCastorJet castor_det = (*CastorJets)[det_jet];
+	      TString detjettype = GetJetType(castor_det);
 	      double det_energy = castor_det.energy;	
 
 	      if( do_calibration_function ){
 	        double det_phi = castor_det.phi;
 	        int sector = CastorSector( det_phi ) ; 
- 	        det_energy = CalibratedDet( det_energy, sector, isData_ );
+ 	        det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
 	      }
-
-	      hCastorJet_energy->Fill( det_energy );
-	      if( det_jet == 0)  hCastorJet_energy_lead->Fill( det_energy ); 
+	      if( det_energy > threshold_ ){ //&& detjettype == jettype_) {
+ 	       hCastorJet_energy->Fill( det_energy );
+	       if( det_jet == 0)  hCastorJet_energy_lead->Fill( det_energy ); 
+	      }
 	    } // End detector level jet energy distribution.
 	
     	    /////////////////////////////////////////////////
@@ -678,12 +712,26 @@ cout << "Variable bins done" << endl;
 	    MyGenJet leading_gen;
 	    int leading_gen_ = -1;
 
+	    //-------------------------------------//
+	    //-------------------------------------//
+	    // Will we be unfolding? Yes, we will! //
+	    //-------------------------------------//
+	    //-------------------------------------//
+
 	    if( prepare_unfolding_ ){				
               if( comments_ ){ cout << "\n\n\t\tUnfolding" << endl; }	
 
 	      double nFake = 0;
  	      double nMiss = 0;
 	      double nMatch = 0;
+	      double nGen = 0;
+	      double nDet = 0;
+
+	      for(int gen_jet = 0; gen_jet < CastorGenJets->size(); gen_jet++){ 
+		MyGenJet castor_gen = (*CastorGenJets)[gen_jet];
+		if( castor_gen.Energy() > threshold_ ){ nGen++; }
+	      }
+
 	      double leading_det_E, leading_gen_E;
 	      bool isLeadingPair = true;
 
@@ -697,16 +745,15 @@ cout << "Variable bins done" << endl;
 	        int sector = CastorSector( det_phi ) ;
 
 		if( comments_ ){ cout << counter_events << "\t" << det_jet << " of\t" << CastorJets->size() << "\t" << det_energy << "\t" << det_phi << "\t" << GetJetType(castor_det) << endl; }
-	
-		// COMMENT: a test of the calibration.
- 		// if( comments_ ){ cout << "\t\t\t\t\t" << det_jet << "\tDet before\t" << det_energy << "\tdet after\t" << CalibratedDet( det_energy, sector ) << endl; }	
-		det_energy = CalibratedDet( det_energy, sector, isData_ );
+
+		det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
 
 		// CUT: cut jet if energy is below threshold.
-		if( det_energy < threshold_ ){ 
-                  if( comments_ ){ cout << "\t\t\t\t\t\t\t\tLow E\t" << det_energy << endl; }
+		if( det_energy < threshold_ || GetJetType(castor_det) != jettype_ ){ 
+                  if( comments_ ){ cout << "\t\t\t\t\t\t\t\tLow Det E\t" << det_jet << "\t" << det_energy << endl; }
 		  continue; 
 		} 
+		nDet++;
 		
     	        // MATCHING: Match closest in phi by looping over all jets and find one with lowest delta phi.
     	        double min_delta_phi = 0.2;
@@ -750,19 +797,21 @@ cout << "Variable bins done" << endl;
 		    leading_gen_ = match_gen;
 		    response_lead.Fill( det_energy, gen_energy );
 		    response_lead_fine.Fill( det_energy, gen_energy );
+		    hCastorJet_energy_response_lead->Fill( det_energy, gen_energy );
+		    leading_gen_E = gen_energy; 
+		    leading_det_E = det_energy;
+		    isLeadingPair = false;
 		  }
 
 		  // Feed information to response matrix and histograms.	  
 
     	          response.Fill( det_energy, gen_energy );
+    	          response_match.Fill( det_energy, gen_energy );
 		  response_fine.Fill( det_energy, gen_energy );
-		  hGenJet_energy->Fill(gen_energy);
-
-		  if( isLeadingPair ){ 
-		    leading_gen_E = gen_energy; 
-		    leading_det_E = det_energy;
-		    isLeadingPair = false;
-		  }		
+		  // TH2D!
+		  hCastorJet_energy_response->Fill( det_energy, gen_energy );
+		  hGenJet_energy->Fill(gen_energy);	
+                  hCastorJet_matchedGen_all->Fill( gen_energy );	
  
 		  nMatch++;
 
@@ -772,43 +821,61 @@ cout << "Variable bins done" << endl;
     	          CastorGenJets->erase( CastorGenJets->begin() + match_gen );
     	        } // Matching gen jet.
 
-    	        // FAKES: We don't have a matching gen. jet. This is a fake.
+		//-----------------------------------------------------------//
+    	        // FAKES: We don't have a matching gen. jet. This is a fake. //
+		//-----------------------------------------------------------//
+
     	        else{
     	          response.Fake( det_energy );
-		  response_fine.Fake( det_energy );
+		  if( det_jet == 0 ){ hCastorJet_fake_lead->Fill( det_energy ); }
+		  hCastorJet_fake_all->Fill( det_energy );
+		  if( !manualUnfold_ ){ response_fine.Fake( det_energy ); }
 		  if( det_jet == 0){ response_lead.Fake( det_energy ); response_lead_fine.Fake( det_energy ); }
 		  if( comments_ ){ cout << "\t\t\t\t\tFake" << endl << endl; }
 		  nFake++;
     	        } // FAKES.
     	      }
  
-              // MISSES: We had all det. jets, time for the remaining gen. jets which are misses.
+	      //----------------------------------------------------------------------------------//
+              // MISSES: We had all det. jets, time for the remaining gen. jets which are misses. //
+	      //----------------------------------------------------------------------------------//
+
     	      if(  CastorGenJets->size() > 0 ){
 
     	        for(int gen_jet = 0; gen_jet < CastorGenJets->size(); gen_jet++){
 
     	          MyGenJet castor_gen = (*CastorGenJets)[gen_jet];
     	          double gen_energy = castor_gen.Energy();
-		  if( gen_energy < threshold_ ){ continue; }
-		  response.Miss( gen_energy );
-		  response_fine.Miss( gen_energy );
+		  if( gen_energy < threshold_ ){ 
+		    continue; 
+		  }
+		  if( !manualUnfold_ ){ 
+		    response.Miss(gen_energy ); 
+	 	    response_fine.Miss( gen_energy ); 
+		  }
 	 	  hGenJet_energy->Fill( gen_energy );	
+		  hCastorJet_miss_all->Fill( gen_energy );
 		  nMiss++;
 
 	          if( comments_ ){ cout << "\t\t\t\t\t\t\t" << gen_jet << " of\t" << CastorGenJets->size() << "\t" << gen_energy << "\t" << "Miss" <<  endl; }
     	        }
     	      } // MISSES.
-	      double response_input[5] = {leading_det_E, leading_gen_E, nMatch, nFake, nMiss};
+	      double response_input[7] = {leading_det_E, leading_gen_E, nMatch, nFake, nMiss, nDet, nGen};
 	      hResponse_leading->Fill( response_input );
 	    } // prepare_unfolding_					
 			  
+	    //----------------------------//
+	    //----------------------------//
+ 	    // We done 'folding? We done. //
+	    //----------------------------//
+	    //----------------------------//
 
-
-	    ////////////////////////////////////////////////////
+	    //------------------------------------------------//
 	    // -- Match jets without filling response matrix. //
-	    ////////////////////////////////////////////////////
+	    //------------------------------------------------//
 
 	    if( !prepare_unfolding_ && !isData_ ){
+	      if( comments_ ){ cout << "Time to look at jets" << endl; }
 
 	      // -- Leading detector level jet.
 	      MyCastorJet castor_det = (*CastorJets)[0];
@@ -822,6 +889,9 @@ cout << "Variable bins done" << endl;
 	      for(int gen_jet = 0; gen_jet < CastorGenJets->size(); gen_jet++){
 
 		MyGenJet current_gen = (*CastorGenJets)[gen_jet];
+		double e_gen = current_gen.Energy();
+		if( e_gen < threshold_ ) { continue; }	// Do not continue if E is below threshold.
+
 		double phi_gen = current_gen.Phi();
 
 		double delta_phi = fabs(phi_det - phi_gen);	if( delta_phi > 2.*PI ){ delta_phi = delta_phi - 2.*PI; }
@@ -895,6 +965,7 @@ cout << "Variable bins done" << endl;
                 hIsolationEnergy_Edet->Fill( E_gen_cut / det_energy_lead );				  
               } // Cut on EI.
 
+	      if( E_gen_cut > 0 && cut_EI ){ break; }
 
 	      //////////////////////
 	      // Fill histograms. //
@@ -904,13 +975,14 @@ cout << "Variable bins done" << endl;
 
 	      if( 	do_calibration_discrete ){ 			det_energy_lead = CalibratedDet(lowedge, muval, det_energy_lead, sector);       	}
 	      else if( 	do_calibration_function && !sector_dependence){	det_energy_lead = CalibratedDet( det_energy_lead ); 				}
-              else if( 	do_calibration_function && sector_dependence){ 	det_energy_lead = CalibratedDet( det_energy_lead, sector, isData_ ); 			}					  
-		
-		    
-	      if( ((cut_EI && E_gen_cut == 0) || !cut_EI) && matched_pairs == 0){
-		if( comments_ ){ cout << "\tFilling response matrix\t" << det_energy_lead << "\t" << gen_energy << endl; }
+              else if( 	do_calibration_function && sector_dependence){ 	det_energy_lead = CalibratedDet( det_energy_lead, sector, fileLabel_, threshold_ ); 			}					  
+				  
+	     if( comments_ ){  	cout << "\tFilling response matrix\t" << det_energy_lead << "\t" << gen_energy << "\tsector\t" << sector << endl; }
+
 		hCastorJet_energy_response->Fill( det_energy_lead, gen_energy);
 		hCastorJet_energy_response_fine->Fill( det_energy_lead, gen_energy);	
+
+		if( comments_){ cout << "\tIntegrals\t" << hCastorJet_energy_response->Integral() << "\t" << hCastorJet_energy_response_fine->Integral() << endl; }
 
   		hGenJet_energy->Fill( gen_energy );
 	      
@@ -993,7 +1065,7 @@ cout << "Variable bins done" << endl;
 	            }
                   }
 		} // No matched pairs yet.
-	      } // Cut on EI, if applied already.
+	     // } // Cut on EI, if applied already.
 	      break; // End loop over det jets.
     	    } // For loop over det jets.
 				
@@ -1100,8 +1172,16 @@ cout << "Variable bins done" << endl;
 
         hCastorJet_energy_response->Write();
         hCastorJet_energy_response_fine->Write();
+	hCastorJet_energy_response_lead->Write();
         hCastorJet_energy_fakes->Write();
         hCastorJet_energy_misses->Write();
+
+	hCastorJet_miss_all->Write();
+	hCastorJet_fake_all->Write();
+	hCastorJet_fake_lead->Write();
+
+        hCastorJet_matchedGen_all->Write();
+
         hCastorJet_energy_complete_response->Write();
 	hResponse_leading->Write();
 
@@ -1220,6 +1300,7 @@ cout << "Variable bins done" << endl;
 	response.Write();
 	response_lead.Write();
         response_fine.Write();
+	response_match.Write();
 	response_lead_fine.Write();
 
 	output->Close();

@@ -1767,7 +1767,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   TString htitle;
   TLegend *leg = new TLegend(0.65, 0.45, 0.95, 0.95);
     leg->SetFillColor(0);
-  int iterations_ = 5;
+  int iterations_ = 20;
   int actual_iterations = 0;
 
 
@@ -1790,7 +1790,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   SetCastorJetEnergy_norm( static_cast<double>(547922)/ static_cast<double>(4661641) ); 
 
   // Hist_reference is the same as the original, but with modified lower edge.
-  GetSubHistogram( hist_original, hist_reference, Eplotmin_, 2000.);
+  GetSubHistogram( hist_original, hist_reference, Eplotmin_, 2100.);
 
 
   hError_hist = new TH2D("hError_hist", "hError_hist;E;iteration", hist_reference->GetNbinsX(), hist_reference->GetBinLowEdge( 1 ), hist_reference->GetXaxis()->GetBinUpEdge(  hist_reference->GetNbinsX() ), iterations_, 0., iterations_ );
@@ -1834,7 +1834,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
       // Determine the inrease in Bayesian iterations.
       if(iterations >= 10 ){ increase_iterations = 5; }
       if(iterations >= 20 ){ increase_iterations = 15; }
-      if(iterations >= 100 ){ increase_iterations = 20; }
+      if(iterations >= 100 ){ increase_iterations = 100; }
 
       hist_result = (TH1D*)hist_original->Clone(TString::Format("Closure_%i_iterations", iterations) );
       hist_result->SetName( TString::Format("Closure_%i_iterations", iterations) );
@@ -1848,7 +1848,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
       hist_result->SetLineStyle( 5 );
       hist_result->DrawCopy("histsame");
 
-      GetSubHistogram( hist_result, hist_result, Eplotmin_, 2000.);
+      GetSubHistogram( hist_result, hist_result, Eplotmin_, 2100.);
 
       hist_result->SetLineColor( getColor( current_color ) );
       hist_result->SetLineStyle( iterations + 1 );
@@ -1959,7 +1959,7 @@ cout << "++++++++++++++++++++++++++++++++++++++This is the function+++++++++++++
   SetCastorJetEnergy_norm( 1. ); 
  
   // Hist_reference is the same as the original, but with modified lower edge.
-  GetSubHistogram( hist_original, hist_reference, Eplotmin_, 2000.);
+  GetSubHistogram( hist_original, hist_reference, Eplotmin_, 2100.);
 
   TCanvas* can_ = new TCanvas("can_", "can_", 1.);
   hist_original->Draw("hist");
@@ -2004,7 +2004,7 @@ cout << "++++++++++++++++++++++++++++++++++++++This is the function+++++++++++++
       hist_result->SetLineStyle( 5 );
       hist_result->DrawCopy("histsame");
 
-      GetSubHistogram( hist_result, hist_result, Eplotmin_, 2000.);
+      GetSubHistogram( hist_result, hist_result, Eplotmin_, 2100.);
 
       iterations_and_errors << "Unfolder::ClosureTest_MC_detLevel\titeration\t" << iterations << "\t" << hist_result->GetBinLowEdge( 1 ) << endl;
 
@@ -4290,7 +4290,7 @@ void Unfolder::CovarianceMatrix( TH1D* hUnfold, TH1D* hSmeared, TMatrixD& cov_){
 double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfold, RooUnfoldResponse* response, int iterations){
 
   cout << "Unfolder::Calculate_smearedBackError_covariance" << endl;
-  int nPoisson = 100;
+  int nPoisson = 10000;
   int file_ = -1;
   int MC_ = 0;
 
@@ -4309,12 +4309,15 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   // (1) Extract the histograms.
   // cout << "Unfolder::Calculate_smearedBackError (1)" << endl;
 
-  TH1D* hMiss 		= (TH1D*)_file_unfold->Get("hCastorJet_miss_all");	hMiss->Scale( 1./renorm_ );	//GetSubHistogram( hMiss, hMiss, Ecut_, 2000);
-  TH1D* hFake 		= (TH1D*)_file_unfold->Get("hCastorJet_fake_all");	hFake->Scale( 1./renorm_ );	//GetSubHistogram( hFake, hFake, Ecut_, 2000);
-  TH2D* hResponse_proj 	= (TH2D*)response->Hresponse(); 			hResponse_proj->Scale( 1./renorm_ );	//GetSubHistogram( hResponse, hResponse, Ecut_, 2000);
-  TH1D* hTruth 		= (TH1D*)response->Htruth();				hTruth->Scale( 1./renorm_ );	//GetSubHistogram( hTruth, hTruth, Ecut_, 2000);
-  TH1D* hMeasured	= (TH1D*)response->Hmeasured();				hMeasured->Scale( 1./renorm_ );	//GetSubHistogram( hMeasured, hMeasured, Ecut_, 2000);
+  TH1D* hMiss 		= (TH1D*)_file_unfold->Get("hCastorJet_miss_all");	hMiss->Scale( 1./renorm_ );	GetSubHistogram( hMiss, hMiss, Ethresh_, 2100.);
+  TH1D* hFake 		= (TH1D*)_file_unfold->Get("hCastorJet_fake_all");	hFake->Scale( 1./renorm_ );	GetSubHistogram( hFake, hFake, Ethresh_, 2100.);
+  TH2D* hResponse_proj 	= (TH2D*)response->Hresponse(); 			hResponse_proj->Scale( 1./renorm_ );	GetSubHistogram( hResponse_proj, hResponse_proj, Ethresh_, 2100.);
+  TH1D* hTruth 		= (TH1D*)response->Htruth();				hTruth->Scale( 1./renorm_ );	GetSubHistogram( hTruth, hTruth, Ethresh_, 2100.);
+  TH1D* hMeasured	= (TH1D*)response->Hmeasured();				hMeasured->Scale( 1./renorm_ );	GetSubHistogram( hMeasured, hMeasured, Ethresh_, 2100.);
 
+  //-- Cut off the unneeded parts of vectors and matrices.
+  TH1D* hLengthVectorsEmin = (TH1D*)hData->Clone("LengthEmin");
+  GetSubHistogram( hData, hData, Ethresh_, 2100.);
 
   TCanvas *can_resp; 
   PrepareCanvas_2D(can_resp, "Response");
@@ -4372,6 +4375,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   TRandom3* rand = new TRandom3();
     rand->SetSeed( iterations  );
 
+/*
     //-- Get a time dependent seed.
     time_t timer;
     struct tm y2k = {0};
@@ -4382,13 +4386,14 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     seconds = difftime(timer,mktime(&y2k));
 
     rand->SetSeed( seconds );
-
+*/
   //----------------------------------------------//
   // -- Repeat the following algorithm N times. --//
   //----------------------------------------------//
 
   for(int n_spread = 0; n_spread < nPoisson; n_spread++){
     if( n_spread%100 == 0){  cout << "Iterations\t" << iterations << "\tIteration\t" << n_spread << endl; }
+//    if( n_spread%100 == 0){  testing_covariance << "Iterations\t" << iterations << "\tIteration\t" << n_spread << endl; }
 
     hFake_new->Reset();
     hMiss_new->Reset();
@@ -4400,11 +4405,54 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     // (3) Fill with Poissonian distribution.
     //-- MC distributions.
 
+    FillAnew_2D( hResponse, hResponse_new, rand);
+
+//    testing_covariance << "new/old\t" << hFake_new->Integral()/hFake->Integral() << "\t" << hMiss_new->Integral()/hMiss->Integral() << "\t" << hResponse_new->Integral()/hResponse->Integral() << "\n\n";
+
+    //--------------------------------------------------------------------------------------//
+    // OPTION - Vary the fake distribution, calculate the measured and truth distributions. //
+    //--------------------------------------------------------------------------------------//
+/*
     FillAnew_1D( hFake, hFake_new, rand);
     FillAnew_1D( hMiss, hMiss_new, rand);
-    FillAnew_2D( hResponse, hResponse_new, rand);
-//    FillAnew_1D( hMeasured, hResponse_new->ProjectionX(), hMeasured_new, rand);
-//    FillAnew_1D( hTruth, hResponse_new->ProjectionY(), hTruth_new, rand);
+    //-- Determine the number of fakes as: fakes = measured - matched(det)
+    TH1D* hRes_X = (TH1D*)hResponse_new->ProjectionX();
+    hMeasured_new = (TH1D*)hFake_new->Clone("hMeasured_new");
+    hMeasured_new->Add( hRes_X, 1.); 
+
+    TH1D* hRes_Y = (TH1D*)hResponse_new->ProjectionY();
+//    hTruth_new = (TH1D*)hMiss_new->Clone("hTruth_new");
+//    hTruth_new->Add( hRes_Y, 1.); 
+    hTruth_new = (TH1D*)hRes_Y->Clone("hTruth_new");
+*/
+    //--------------------------------------------------------------------------//
+    // OPTION - Vary the measured and truth distributions, calculate the fakes. //
+    //--------------------------------------------------------------------------//
+
+    
+    FillAnew_1D( hMeasured, hResponse_new->ProjectionX(), hMeasured_new, rand);
+    FillAnew_1D( hTruth, hResponse_new->ProjectionY(), hTruth_new, rand);
+
+    //-- Determine the number of fakes as: fakes = measured - matched(det)
+    TH1D* hRes_X = (TH1D*)hResponse_new->ProjectionX();
+    hFake_new = (TH1D*)hMeasured_new->Clone("hFake_new");
+    hFake_new->Add( hRes_X, -1. );
+    
+
+    //-----------------------//
+    // (4) Unfold-and-smear. //
+    //-----------------------//
+/*
+    //testing_covariance << "Variation\tMiss\tTruth\tFake\tMeasured\tResponse\t\n" <<
+    	n_spread << "\t" << 
+	hMiss_new->Integral() << "\t" <<
+	hTruth_new->Integral() << "\t" <<
+	( hTruth_new->Integral() - hResponse_new->Integral() - hMiss_new->Integral() ) << "\t" << 
+	hFake_new->Integral() << "\t" <<
+	hMeasured_new->Integral() << "\t" <<
+	( hMeasured_new->Integral() - hResponse_new->Integral() -  hFake_new->Integral() ) << "\t" << 
+	hResponse_new->Integral() << endl;
+*/
 
     //-- The code below draws the varied distributions and compares them to the actual fakes/measured/truth distributions.
     if( n_spread < 10 ){
@@ -4430,27 +4478,6 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
       hTruth_new->DrawClone("histsame");
     }
 
-    //-----------------------//
-    // (4) Unfold-and-smear. //
-    //-----------------------//
-
-    //-- Determine the number of fakes as: fakes = measured - matched(det)
-    TH1D* hRes_X = (TH1D*)hResponse_new->ProjectionX();
-    hMeasured_new = (TH1D*)hFake_new->Clone("hMeasured_new");
-    hMeasured_new->Add( hRes_X, 1.); 
-
-    TH1D* hRes_Y = (TH1D*)hResponse_new->ProjectionY();
-    hTruth_new = (TH1D*)hMiss_new->Clone("hTruth_new");
-    hTruth_new->Add( hRes_Y, 1.); 
-
-    testing_covariance << "Variation\tMiss\tFake\tMeasured\tTruth\tResponse\t" <<
-	n_spread << "\t" << 
-	hMiss_new->Integral() << "\t" <<
-	hFake_new->Integral() << "\t" <<
-	hMeasured_new->Integral() << "\t" <<
-	hTruth_new->Integral() << "\t" <<
-	hResponse_new->Integral() << endl;
-
     //-- Create a new RooUnfold response object.
     RooUnfoldResponse *response_new = new RooUnfoldResponse( hMeasured_new, hTruth_new, hResponse_new );
 
@@ -4461,10 +4488,17 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     //-- S = R * U + F //
     //-----------------//
     hSmear = (TH1D*) response_new->ApplyToTruth( hUnfold );
+  
+/*
+    //testing_covariance << "\nSmear\tfake\tdata\t\n" << 
+	hSmear->Integral() << "\t" <<
+	hFake_new->Integral() << "\t" << 
+	hData->Integral() << endl << endl << endl;
+*/
     hSmear->Add( hFake_new );
 
     //-- Draw the smeared distribution.
-    if( n_spread < 10){
+    if( n_spread <= 10){
       canData->cd();
       hSmear->SetLineColor( getColor( n_spread ) );
       hSmear->SetLineStyle( n_spread );
@@ -4472,6 +4506,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     }
 
     //-- Store histogram in THnSparse, bin-by-bin.
+//    if( n_spread <= 10 ){ testing_covariance << "n_spread\t" << n_spread << endl; }
     for(int bin_smear = 1; bin_smear <= hSmear->GetNbinsX(); bin_smear++){
       //-- THnSparse for the original distribution.
       double smear_value = hSmear->GetBinContent( bin_smear );
@@ -4482,9 +4517,11 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
       //smear_value -= data_value;
 
       sparseSmear.SetBinContent( sparse_entry_smear, smear_value );
-      if( n_spread < 10){
-	//testing_covariance << setprecision(8) <<  smear_value << endl;
+/*
+      if( n_spread <= 10){
+	testing_covariance << setprecision(8) <<  smear_value << endl;
       }
+*/
     }
   } // Loop over algorithm.
 
@@ -4548,6 +4585,9 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
       average_e_minus_mu2 += content_smear*content_smear;
       average_e_minus_mu += fabs(content_smear);	// This serves only as a check, not as a true quantity to measure.
+
+      
+//      testing_covariance << "i\t" << i << "\t" << bin_smear << "\t" << content_smear << "\t" << content_smear * content_smear << endl;
     }
 
     //-- Calculate <(E-mu)> and <(E-mu)²>
@@ -4572,7 +4612,12 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   //-- Calculate denominator for correlation matrix. //
   //-------------------------------------------------//
 
-  TH2D* hCorrelation_denom = new TH2D("hCorrelation_denom", "hCorrelation_denom", hAverage_smear_sq->GetNbinsX(), 0, 26, hAverage_smear_sq->GetNbinsX(), 0, 26 );
+  TH2D* hCorrelation_denom = new TH2D("hCorrelation_denom", "hCorrelation_denom", 
+		hAverage_smear_sq->GetNbinsX(), hAverage_smear_sq->GetXaxis()->GetBinLowEdge( 1 ), hAverage_smear_sq->GetXaxis()->GetBinUpEdge( hAverage_smear_sq->GetNbinsX() ),
+		hAverage_smear_sq->GetNbinsX(), hAverage_smear_sq->GetXaxis()->GetBinLowEdge( 1 ), hAverage_smear_sq->GetXaxis()->GetBinUpEdge( hAverage_smear_sq->GetNbinsX() ) );
+
+//  testing_covariance << "Correlation denominator\t" <<  hAverage_smear_sq->GetNbinsX() << "\t" <<  hAverage_smear_sq->GetXaxis()->GetBinLowEdge( 1 ) << "\t" << hAverage_smear_sq->GetXaxis()->GetBinUpEdge( hAverage_smear_sq->GetNbinsX() ) << endl;
+
   for(int row = 1; row <= hAverage_smear_sq->GetNbinsX(); row++){
     double nrow = hAverage_smear_sq->GetBinContent( row );
 
@@ -4582,7 +4627,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
       hCorrelation_denom->SetBinContent( row, col, sqrt( ncol*nrow ) );
       if( sqrt(ncol*nrow) < 1. ){ cout << "Small corr.\t" << col << "\t" << row << "\t" << sqrt( ncol*nrow )<< "\t" << ncol << "\t" << nrow << endl; }
 
-//      //testing_covariance <<"correlation\t(row, col)\t" << row << "\t" << col << "\t" << sqrt( ncol*nrow ) << endl; 
+//      testing_covariance <<"correlation\t(row, col)\t" << row << "\t" << col << "\t" << sqrt( ncol*nrow ) << endl; 
     }
   }
 
@@ -4599,7 +4644,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   //-- (7) Loop over all iterations and multiply the different (E-mu_E)_DAT x (E-mu_E)_SM with each other. --//
   //---------------------------------------------------------------------------------------------------------//
 
-  //testing_covariance <<"Unfolder::Calculate_smearedBackError_covariance - (7): Multiply bin-per-bin" << endl;
+//  testing_covariance <<"Unfolder::Calculate_smearedBackError_covariance - (7): Multiply bin-per-bin" << endl;
   //-- We need a THnSparse with nPoisson TH2 matrices in it.
   int bins_3D[3] = {nPoisson, hAverage_smear->GetNbinsX(), hAverage_smear->GetNbinsX() };
 
@@ -4666,7 +4711,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
       
         //-- Calculate value of "covariance".
         double covariance_value = e_muE_smear_row * e_muE_smear_col;
-        testing_covariance <<"nPoisson\t" << i << "\t(row, col)\t(" << bin_smear_row << " ,\t" << bin_smear_col << ")\t" << covariance_value << endl;
+//        testing_covariance <<"nPoisson\t" << i << "\t(row, col)\t(" << bin_smear_row << " ,\t" << bin_smear_col << ")\t" << covariance_value << endl;
         //-- Bin.
         int bin_3D[3] = { i, bin_smear_row, bin_smear_col };
         covariance_3D.SetBinContent( bin_3D, covariance_value );
@@ -4702,7 +4747,10 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
   //-- Cut off the unneeded parts of vectors and matrices.
   TH1D* hGaugeLengthVectors = (TH1D*)hData->Clone("GaugeLength");
-  GetSubHistogram( hData, hGaugeLengthVectors, Ecut_, 2000.);
+
+//  testing_covariance << "(8) Before averaging\thData\t" << hData->GetNbinsX() << "\t" << hData->GetXaxis()->GetBinLowEdge(1) << "\t" << hData->GetXaxis()->GetBinUpEdge( hData->GetNbinsX() ) << endl;
+
+  GetSubHistogram( hData, hGaugeLengthVectors, Ecut_, 2100.);
   int nbins_newlength = hGaugeLengthVectors->GetNbinsX();
 
   //cout << "***\t" << nbins_newlength << endl;
@@ -4750,15 +4798,21 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
 
   TCanvas *can_corr;
-  PrepareCanvas_2D( can_corr, TString::Format("canvas_correlation_%i", iterations) );
+  PrepareCanvas_2D( can_corr, TString::Format("canvas_correlation_%i_%i", iterations, static_cast<int>( Ethresh_) ) );
 //  hCorrelation_matrix->Draw("colz");
   TMatrixD *mCorrelation = RooUnfoldResponse::H2M( hCorrelation_matrix, hCorrelation_matrix->GetNbinsX(),hCorrelation_matrix->GetNbinsY()  );
+
+  mCorrelation->Draw("colz");
+  can_corr->SetLogz();
+  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_%i_uncut.C", iterations, static_cast<int>( Ethresh_)) );
+  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_%i_uncut.pdf", iterations, static_cast<int>( Ethresh_) ) );
+
   mCorrelation->ResizeTo( hCovariance_matrix->GetNbinsX() - nbins_newlength, hCovariance_matrix->GetNbinsX()-1, hCovariance_matrix->GetNbinsY() - nbins_newlength, hCovariance_matrix->GetNbinsY()-1 );
 
   mCorrelation->Draw("colz");
   can_corr->SetLogz();
-  can_corr->SaveAs(folder_ + TString::Format("mCor_%i.C", iterations) );
-  can_corr->SaveAs(folder_ + TString::Format("mCor_%i.pdf", iterations) );
+  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_%i.C", iterations, static_cast<int>( Ethresh_)) );
+  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_%i.pdf", iterations, static_cast<int>( Ethresh_) ) );
 
   TH1D* hDiff = (TH1D*)hData->Clone("hDiff");
 
@@ -4768,7 +4822,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   hDiff->Add( hSmear, -1.);	
 
   for(int bin_data = 1; bin_data <= hDiff->GetNbinsX(); bin_data++){
-    //testing_covariance << iterations << "\t" << bin_data << "\t"  << hData->GetBinContent( bin_data ) << "\t" << hSmear->GetBinContent( bin_data ) << "\t"  << hDiff->GetBinContent( bin_data ) << endl;
+    ////testing_covariance << iterations << "\t" << bin_data << "\t"  << hData->GetBinContent( bin_data ) << "\t" << hSmear->GetBinContent( bin_data ) << "\t"  << hDiff->GetBinContent( bin_data ) << endl;
   }
 
   TMatrixD *mCovariance = RooUnfoldResponse::H2M( hCovariance_matrix, hCovariance_matrix->GetNbinsX(), hCovariance_matrix->GetNbinsY() );
@@ -4798,13 +4852,26 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   can_cov->SaveAs( folder_ + TString::Format("mCov_%i_Data" + addLabel_ + ".C", iterations) );  
   can_cov->SaveAs( folder_ + TString::Format("mCov_%i_Data" + addLabel_ + ".pdf", iterations) );  
 
-  TVectorD *vDiff = RooUnfoldResponse::H2V( hDiff, hDiff->GetNbinsX());
 
+  TVectorD *vDiff = RooUnfoldResponse::H2V( hDiff, hDiff->GetNbinsX());
+    hDiff->SetLineColor(kRed);
+  TVectorD *vDiff_2 = RooUnfoldResponse::H2V( hDiff, hDiff->GetNbinsX());
+
+  vDiff_2->Draw("hist");
   cout << vDiff->GetNoElements() << "\t" << hDiff->GetNbinsX() - nbins_newlength << endl;
     vDiff->ResizeTo( hDiff->GetNbinsX() - nbins_newlength, hDiff->GetNbinsX()-1 );
 
+//  testing_covariance << "\tCutting up a histogram\t" << hDiff->GetNbinsX() << "\tto\t" << nbins_newlength << "\n\t\t\tvDiff has length\t" << vDiff->GetNoElements() <<  endl;
+
+  for(int ele = 1; ele <= vDiff_2->GetNoElements(); ele++){
+
+//    testing_covariance << "Comparing vectors\telement\t" << ele << "\t" << (*vDiff)[ele] << "\t" << (*vDiff_2)[ele] << endl;
+  }
+
+//  testing_covariance << endl << endl << endl;
+
   //-- Save a copy of the difference between measured and smeared data.
-  vDiff->Draw("hist");
+  vDiff->Draw("histsame");
   can_cov->SaveAs(folder_ + TString::Format("/vDiff_%i.C", iterations ));
   can_cov->SaveAs(folder_ + TString::Format("/vDiff_%i.pdf", iterations ));
 
@@ -4815,14 +4882,23 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   mInvertCovariance.SetTol(1.e-23);
   mInvertCovariance.Invert();
 
-  mInvertCovariance.ResizeTo(hCovariance_matrix->GetNbinsX() - nbins_newlength, hCovariance_matrix->GetNbinsX()-1, hCovariance_matrix->GetNbinsY() - nbins_newlength, hCovariance_matrix->GetNbinsY()-1 );
-
   TCanvas *can_inv;
   PrepareCanvas_2D( can_inv, "Canvas_inverseMatrices" );
   mInvertCovariance.Draw("colz");
   can_inv->SetLogz();
+  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i" + addLabel_ + "_uncut.C", iterations));
+  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i" + addLabel_ + "_uncut.pdf", iterations));
+
+  mInvertCovariance.ResizeTo(
+	hCovariance_matrix->GetNbinsX() - nbins_newlength, hCovariance_matrix->GetNbinsX()-1, 
+	hCovariance_matrix->GetNbinsY() - nbins_newlength, hCovariance_matrix->GetNbinsY()-1 );
+
+  mInvertCovariance.Draw("colz");
+  can_inv->SetLogz();
   can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i" + addLabel_ + ".C", iterations));
   can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i" + addLabel_ + ".pdf", iterations));
+
+
 
   TVectorD vTemp = (*vDiff);
   vTemp *= mInvertCovariance;

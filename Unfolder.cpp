@@ -1176,7 +1176,7 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
     hFake->Scale( 1./renorm_ );   
  
     hSmear = (TH1D*) response->ApplyToTruth( hUnfold );
-    hSmear->Add( hFake );    
+//    hSmear->Add( hFake );    
 
 //  Calculate_smearedBackError(-1, 0, iterations, hSmear, hUnfold);
     chi2 = Calculate_smearedBackError_covariance( theHist, hUnfold, response, iterations );
@@ -1830,7 +1830,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
     //--------------------------------------------------//
 
     int increase_iterations = 3;
-    for(int iterations = 1; iterations <= iterations_; iterations+=increase_iterations){
+    for(int iterations = 20; iterations <= iterations_; iterations+=increase_iterations){
       // Determine the inrease in Bayesian iterations.
       if(iterations >= 10 ){ increase_iterations = 5; }
       if(iterations >= 20 ){ increase_iterations = 15; }
@@ -4412,7 +4412,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     //--------------------------------------------------------------------------------------//
     // OPTION - Vary the fake distribution, calculate the measured and truth distributions. //
     //--------------------------------------------------------------------------------------//
-/*
+
     FillAnew_1D( hFake, hFake_new, rand);
     FillAnew_1D( hMiss, hMiss_new, rand);
     //-- Determine the number of fakes as: fakes = measured - matched(det)
@@ -4424,12 +4424,12 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 //    hTruth_new = (TH1D*)hMiss_new->Clone("hTruth_new");
 //    hTruth_new->Add( hRes_Y, 1.); 
     hTruth_new = (TH1D*)hRes_Y->Clone("hTruth_new");
-*/
+
     //--------------------------------------------------------------------------//
     // OPTION - Vary the measured and truth distributions, calculate the fakes. //
     //--------------------------------------------------------------------------//
 
-    
+/*    
     FillAnew_1D( hMeasured, hResponse_new->ProjectionX(), hMeasured_new, rand);
     FillAnew_1D( hTruth, hResponse_new->ProjectionY(), hTruth_new, rand);
 
@@ -4437,7 +4437,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     TH1D* hRes_X = (TH1D*)hResponse_new->ProjectionX();
     hFake_new = (TH1D*)hMeasured_new->Clone("hFake_new");
     hFake_new->Add( hRes_X, -1. );
-    
+*/  
 
     //-----------------------//
     // (4) Unfold-and-smear. //

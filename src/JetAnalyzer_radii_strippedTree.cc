@@ -623,20 +623,20 @@ cout << "Variable bins done" << endl;
 	  /////////////////////////////////////////////////////////////////////////////////////////////////////
 	  // A first look into the jets: prepare the matching by removing too soft jets and wrong-type jets. //
 	  /////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/*
 	  if( comments_) cout << "\n\n\n\t" << counter_events << endl;
 
 	  for(int det_jet = CastorJets->size()-1; det_jet >= 0; det_jet-- ){
 	    MyCastorJet castor_jet = (*CastorJets)[ det_jet ];
 	    double det_energy = castor_jet.energy;
-/*
+
 	    if( do_calibration_function){
 	      double det_phi = castor_jet.phi;
 	      int sector = CastorSector( det_phi ) ; 
  	      det_energy = CalibratedDet( det_energy, sector, fileLabel_ );
 	    }
 	    if( comments_ ){ cout << "Type is\t" << GetJetType( castor_jet ) << "\tfor\t" << counter_events << "\t" << det_jet << "\t" << det_energy << endl; }
-*/
+
 	    if(  det_energy < threshold_ ){ 
 	      CastorJets->erase( CastorJets->begin() + det_jet ); 
 	      if( comments_ ){ cout << "Type is\t" << GetJetType( castor_jet ) << "\tfor\t" << counter_events << "\t" << det_jet << "\t" << det_energy << endl; }
@@ -653,7 +653,7 @@ cout << "Variable bins done" << endl;
 	    }
           }
 	  if( comments_ && !isData_){ cout << "\n\n\n$$$\tEvent\t" << counter_events << "\tdet size\t" << CastorJets->size() << "\tgen size\t" << CastorGenJets->size() << endl;}
-
+*/
 
   	  while( matched_pairs == 0 && CastorJets->size() > 0 ){
 	    if( comments_ ){ cout << "First pair to match" << endl; }	
@@ -826,13 +826,14 @@ cout << "Variable bins done" << endl;
 		//-----------------------------------------------------------//
 
     	        else{
-    	          response.Fake( det_energy );
-		  if( det_jet == 0 ){ hCastorJet_fake_lead->Fill( det_energy ); }
-		  hCastorJet_fake_all->Fill( det_energy );
-		  if( !manualUnfold_ ){ response_fine.Fake( det_energy ); }
-		  if( det_jet == 0){ response_lead.Fake( det_energy ); response_lead_fine.Fake( det_energy ); }
-		  if( comments_ ){ cout << "\t\t\t\t\tFake" << endl << endl; }
-		  nFake++;
+    	            response.Fake( det_energy );
+		    if( det_jet == 0 ){ hCastorJet_fake_lead->Fill( det_energy ); }
+		    hCastorJet_fake_all->Fill( det_energy );
+		    if( !manualUnfold_ ){ response_fine.Fake( det_energy ); }
+		    if( det_jet == 0){ response_lead.Fake( det_energy ); response_lead_fine.Fake( det_energy ); }
+		    if( comments_ ){ cout << "\t\t\t\t\tFake" << endl << endl; }
+		    nFake++;
+
     	        } // FAKES.
     	      }
  

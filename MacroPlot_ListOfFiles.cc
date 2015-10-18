@@ -97,6 +97,7 @@ int main(){
 
    std::map<TString, std::map<TString, TString> > set_of_tags;
    std::map<TString, TString> calibration_tag;
+   std::map<TString, TString> scalefactors;
   
 
    bool vary_eta 	= false;
@@ -110,7 +111,7 @@ int main(){
    bool systematics_ 	= true;
 
    cout << "Files" << endl;
-
+ 
      cout << "What is the setup?\t";
      cin >> setup;
      cout << "What is energy threshold?\t";
@@ -127,22 +128,13 @@ int main(){
 
    if( systematics_ ){
 
-//     datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
+     //datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
      legends[datafile] = "Data";
      printLabel[datafile] = "data";
+     scalefactors[datafile] = "4661641";
 
     TString MCfile;
 
-    MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root";
-    filenames.push_back( MCfile );
-       legendEntries.push_back("(ak5, ak5)");
-       colours.push_back(getColor(color_index++));
-       linestyle.push_back( style_of_line++);
-       fileLabel.push_back("Actual");    
-       printLabel[MCfile] = "Pythia6Z2star";
-       legends[MCfile] = "Pythia6 Z2*";
-      calibration_tag[ MCfile ] = "data";		// This tag will be appended to the file containing the calibration factors for data.       
-   
      MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root"; 
      filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5) - Displaced");
@@ -152,7 +144,20 @@ int main(){
        printLabel[MCfile] = "Displaced";
        legends[MCfile] = "Displaced";
        calibration_tag[MCfile] = "MC";	
+       scalefactors[MCfile] = "547922";
+/*
+    MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000.root";
+    filenames.push_back( MCfile );
+       legendEntries.push_back("(ak5, ak5)");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line++);
+       fileLabel.push_back("Actual");    
+       printLabel[MCfile] = "Pythia6Z2star";
+       legends[MCfile] = "Pythia6 Z2*";
+      calibration_tag[ MCfile ] = "data";		// This tag will be appended to the file containing the calibration factors for data.       
+       scalefactors[MCfile] = "12140281";
 
+/*
 
      MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000.root";
      filenames.push_back( MCfile );
@@ -162,7 +167,10 @@ int main(){
        fileLabel.push_back("Full simulation");    
        printLabel[MCfile] = "FullSimulation";
        legends[MCfile] = "Full simulation";
-       calibration_tag[MCfile] = "MC";       
+       calibration_tag[MCfile] = "MC";     
+
+
+  
 
 		// This tag will be appended to the file containing the calibation factors for MC.
 
@@ -176,7 +184,15 @@ int main(){
        legends[MCfile] = "Disp. (down)";
        calibration_tag[MCfile] = "down";
 
-
+     MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_displaced_up_" + setup + "_Emin_" + Ethresh + ".000000.root"; 
+     filenames.push_back( MCfile );
+       legendEntries.push_back("(ak5, ak5) - Disp. (down)");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line++);
+       fileLabel.push_back("Displaced_up");    
+       printLabel[MCfile] = "Displaced_up";
+       legends[MCfile] = "Disp. (up)";
+       calibration_tag[MCfile] = "up";
 
      MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000.root";
      filenames.push_back( MCfile );
@@ -187,9 +203,19 @@ int main(){
        printLabel[MCfile] = "Pythia84C";
        legends[MCfile] = "Pythia8 (4C)";
 
+     MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root";
+     filenames.push_back( MCfile );
+       legendEntries.push_back("(ak5, ak5) - Pythia8 (4C) - Disp.");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line++);
+       fileLabel.push_back("Pythia8 (4C) - Disp.");
+       printLabel[MCfile] = "Pythia84C_Displaced";
+       legends[MCfile] = "Pythia8 (4C) - Disp.";
+*/
    }
 
    set_of_tags["calibration_tag"] = calibration_tag;
+   set_of_tags["scalefactors"] = scalefactors;
 
 
 
@@ -843,7 +869,7 @@ int main(){
    ytitle["hCastorJet_energy"] = "#frac{1}{N}.#frac{dN}{dE_{Det}}";
    htitle["hCastorJet_energy"] = "Detector level jet energy (all)";
 
-   Unfolder my_first_unfolder(filenames, datafile, set_of_tags, Eplotmin, atof(Ethresh ), "20150709", 0);
+   Unfolder my_first_unfolder(filenames, datafile, set_of_tags, Eplotmin, atof(Ethresh ), TString::Format("20151016_testing_fakes_" + Ethresh + "_%i", static_cast<int>(Eplotmin) ) , 0);
    my_first_unfolder.LabelPlots( setup + "_Emin_" + Ethresh );
    my_first_unfolder.PrepareLegend( legends, printLabel );
    my_first_unfolder.PrepareTitles( xtitle, ytitle, htitle );
@@ -876,17 +902,33 @@ int main(){
 */
 //     my_first_unfolder.Plot_Calibrated_functions();
      // --  Creates a canvas with the calibration functions in absolute and ratio format.
-     my_first_unfolder.CalculateSystematics("good_sectors",1,1);
-     my_first_unfolder.CalculateSystematics("all_sectors",1,1);
-     my_first_unfolder.CalculateSystematics("separate_sectors",1,16);
 
-     TGraphErrors* gre;
-//     my_first_unfolder.CalibrationFunction_sectors(1, 16, -1, gre);   
-//     my_first_unfolder.CalibrationFunction(1, 1, gre);   
+/*
+     my_first_unfolder.CalculateSystematics("all_sectors",1,1);
+*/
+//     my_first_unfolder.CalculateSystematics("good_sectors",1,1);
+//     my_first_unfolder.CalculateSystematics("separate_sectors", 13, 14);
+
+
+
+/*     TGraphErrors* gre;
+
+     my_first_unfolder.SetFitDraw( true );
+     my_first_unfolder.CalibrationFunction(1, 1, gre); 
+
+     my_first_unfolder.CalibrationFunction_sectors(13, 14, -1, gre);   
+*/
    }
 
    
    if( setup == "unfold" ){
+
+//     my_first_unfolder.SetCastorJetEnergy_norm( static_cast<double>(547922)/ static_cast<double>(4661641) );
+
+//     my_first_unfolder.Hist_GenLevel("lead");
+     my_first_unfolder.Hist_GenLevel("all");
+     my_first_unfolder.Hist_DetLevel();
+
 /*
      for(int file_ = 0; file_ < filenames.size(); file_++){ 
 	// -- Response matrix
@@ -930,15 +972,34 @@ int main(){
      my_first_unfolder.DoublePaddedComparison("lead");
      my_first_unfolder.DoublePaddedComparison_unfolding("all", 6);
      my_first_unfolder.DoublePaddedComparison_unfolding("lead", 6);
-     my_first_unfolder.Unfolding_data("lead", 15);
-     my_first_unfolder.Unfolding_data("all", 15);
 */
 
-     // -- Closure test on data and MC.	
-     my_first_unfolder.ClosureTest_data("lead", "Displaced");
-     my_first_unfolder.ClosureTest_data("all", "Displaced");
+//     my_first_unfolder.Unfolding_data("all", 20);
 
+
+     // -- Closure test on data and MC.	
+
+//     my_first_unfolder.ClosureTest_data("lead", "Displaced");
+
+     // Closure Test - method 1.
+     my_first_unfolder.SetSubhistogram_cut( Eplotmin );
+
+     my_first_unfolder.PlotStartingDistributions();
+
+     my_first_unfolder.Smear_gen(0);
+
+     //my_first_unfolder.SetAddLabel( "findingSolutions" );
+//     my_first_unfolder.ClosureTest_data("all", "Displaced", 1);
+//     my_first_unfolder.ClosureTest_MC_detLevel("all");
+
+     // Closure Test - method 2.
+//     my_first_unfolder.ClosureTest_data("all", "Displaced", 2);
+
+/*
      my_first_unfolder.Dissect_ResponseObject();
+
+
+//     my_first_unfolder.Calculate_smearedBackError(-1, 0);
 
 /*
      my_first_unfolder.ClosureTest_MC("lead");

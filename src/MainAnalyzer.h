@@ -10,8 +10,13 @@
 #include "HistoRetriever.h"
 #include "JetAnalyzer.h"
 #include "RadiusAnalyzer.h"
-#include "SystematicsMin.h"
-#include "SystematicsMax.h"
+//#include "SystematicsMin.h"
+//#include "SystematicsMax.h"
+#include "JetAnalyzer_radii.h"
+#include "JetAnalyzer_stripTheTree.h"
+#include "JetAnalyzer_radii_strippedTree.h"
+
+
 #include "TreeOutputCombiner.h"
 #include "HadronAnalyzer.h"
 
@@ -24,11 +29,14 @@ public:
     void makeHadronHistos(TString inputdir, TString regexpstr, double cmenergy, const char* outputname);
 	
 	void makeJetHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);
-    void makeJetAfterLoopHistos(TString inputfile, bool isData, const char* outputname);
+      void makeJetAfterLoopHistos(TString inputfile, bool isData, const char* outputname);
 
 	void makeRadiusHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);	
         void makeSysMinHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);
         void makeSysMaxHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);
+        void makeJetHistos_radii(TString inputdir, TString regexpstr, bool isData, const char* outputname, TString gen_radius, TString det_radius, int totalEvents, TString date);
+        void makeJetHistos_stripTheTree(TString inputdir, TString regexpstr, bool isData, const char* outputname, TString gen_radius, TString det_radius, int totalEvents, TString date, int startFile);
+        void makeJetHistos_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup);
 
 	void plotSingleHistos(TString outputfile, TString selectname);
 	

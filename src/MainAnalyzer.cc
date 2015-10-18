@@ -67,7 +67,7 @@ void MainAnalyzer::makeRadiusHistos(TString inputdir, TString regexpstr, bool is
 //    if (input == "") std::cout << "empty input file for AfterLoopCalculations given" << std::endl;
 
 }
-
+/*
 void MainAnalyzer::makeSysMinHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname) {
 
         TObjArray *files = reader_.getFileList(inputdir,regexpstr);
@@ -84,6 +84,38 @@ void MainAnalyzer::makeSysMaxHistos(TString inputdir, TString regexpstr, bool is
         TString input = sysmaxanalyzer.getOutputFile();
 
 }
+*/
+void MainAnalyzer::makeJetHistos_radii(TString inputdir, TString regexpstr, bool isData, const char* outputname, TString gen_radius, TString det_radius, int totalEvents, TString date) {
+
+        TObjArray *files = reader_.getFileList(inputdir,regexpstr);
+	JetAnalyzer_radii jetanalyzer_radii(inputdir,files, isData, outputname, gen_radius, det_radius, totalEvents, date);
+        jetanalyzer_radii.Loop();
+    	TString input = jetanalyzer_radii.getOutputFile();
+//    if (input != "") jetanalyzer_radii.AfterLoopCalculations(input);
+    if (input == "") std::cout << "empty input file for AfterLoopCalculations given" << std::endl;
+}
+void MainAnalyzer::makeJetHistos_stripTheTree(TString inputdir, TString regexpstr, bool isData, const char* outputname, TString gen_radius, TString det_radius, int totalEvents, TString date, int startFile) {
+cout << "Tadaah" << endl;	
+        TObjArray *files = reader_.getFileList(inputdir,regexpstr);
+cout << "Objarray" << endl;
+        JetAnalyzer_stripTheTree jetanalyzer_stripTheTree(inputdir,files, isData, outputname, gen_radius, det_radius, totalEvents, date, startFile);
+cout << "object made" << endl;
+        jetanalyzer_stripTheTree.Loop();
+cout << "loop" << endl;
+        TString input = jetanalyzer_stripTheTree.getOutputFile();
+//    if (input != "") jetanalyzer_stripTheTree.AfterLoopCalculations(input);
+        if (input == "") std::cout << "empty input file for AfterLoopCalculations given" << std::endl;
+}
+
+void MainAnalyzer::makeJetHistos_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup) {
+
+        JetAnalyzer_radii_strippedTree jetanalyzer_radii_strippedTree(inputdir, isData, outputname, totalEvents, date, filename, jettype, threshold, setup);
+        jetanalyzer_radii_strippedTree.Loop();
+        TString input = jetanalyzer_radii_strippedTree.getOutputFile();
+//    if (input != "") jetanalyzer_radii_strippedTree.AfterLoopCalculations(input);
+        if (input == "") std::cout << "empty input file for AfterLoopCalculations given" << std::endl;
+}
+
 
 
 // End AVS.

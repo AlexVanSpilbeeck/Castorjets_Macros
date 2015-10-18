@@ -593,7 +593,17 @@ cout << "Variable bins done" << endl;
 	cout << "counter_events\t" << counter_events << "\ttotalEvents_\t" << totalEvents_ << "\tNevents\t" << Nevents << "\ttreesize\t" << treesize << endl;
 	
 	// start event loop
-	for( counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {		
+
+	int absurdFake = 0;
+	for( counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {
+/*
+	if( 	counter_events != 10360 && 
+		counter_events != 22760 &&
+		counter_events != 34676 &&
+		counter_events != 45338 &&
+		counter_events != 49909 &&
+		counter_events != 52584 ){ continue; }
+*/		
 //	for( counter_events = 0; counter_events < treesize; counter_events++ ) {
 	       
 	  if( comments_ ){ cout << "******************************************" << endl; }
@@ -751,9 +761,9 @@ cout << "Variable bins done" << endl;
 		double det_phi = castor_det.phi; 
 	        int sector = CastorSector( det_phi ) ;
 
-		if( comments_ ){ cout << counter_events << "\t" << det_jet << " of\t" << CastorJets->size() << "\t" << det_energy << "\t" << det_phi << "\t" << GetJetType(castor_det) << endl; }
-
 		det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
+
+		if( comments_ ){ cout << counter_events << "\tDet\t" << det_jet << " of\t" << CastorJets->size() << "\t" << det_energy << "\t" << det_phi << "\t" << GetJetType(castor_det) << endl; }
 
 		// CUT: cut jet if energy is below threshold.
 		if( det_energy < threshold_ ){ 
@@ -782,11 +792,11 @@ cout << "Variable bins done" << endl;
     	          double gen_phi = castor_gen.Phi();
     	          double delta_phi = fabs( det_phi - gen_phi ); if( delta_phi > PI ){ delta_phi = 2.*PI - delta_phi; }
 
-		  if( comments_ ){ cout << "\t\t\t\t\t\t\t" << gen_jet << " of\t" << CastorGenJets->size() << "\t" << gen_energy << "\t" << gen_phi << endl; }
+		  if( comments_ ){ cout << "\t\t\t\t\tGen\t" << gen_jet << " of\t" << CastorGenJets->size() << "\t" << gen_energy << "\t" << gen_phi << endl; }
 			
 		  // Jet lies closest: save Delta Phi and index of the jet.		
     	          if( delta_phi < min_delta_phi ){
-		    if( comments_ ){ cout << "\t\t\t\t\t\t\t\t\t\t\t\t\tNew delta phi minimum" << endl; }
+		    if( comments_  ){ cout << "\t\t\t\t\t\t\t\t\t\t\t\t\tNew delta phi minimum" << endl; }
     	            min_delta_phi = delta_phi;
     	            match_gen = gen_jet;
     	          } // New minimum.
@@ -842,9 +852,10 @@ cout << "Variable bins done" << endl;
 		      response_lead.Fake( det_energy ); 
 		     response_lead_fine.Fake( det_energy ); 
 		    }
-		    if( comments_ ){ cout << "\t\t\t\t\tFake" << endl << endl; }
+		    if( comments_ ){ cout << counter_events << "\t\t\t\t\tFake" << endl << endl; }
 		    nFake++;
 
+		    if( det_energy > 1400. ){ cout << "Absurd fake at\t" << counter_events << endl; }
     	        } // FAKES.
     	      }
  
@@ -872,6 +883,7 @@ cout << "Variable bins done" << endl;
     	      } // MISSES.
 	      double response_input[7] = {leading_det_E, leading_gen_E, nMatch, nFake, nMiss, nDet, nGen};
 	      hResponse_leading->Fill( response_input );
+
 	    } // prepare_unfolding_					
 			  
 	    //----------------------------//
@@ -1142,6 +1154,8 @@ cout << "Variable bins done" << endl;
 	cout << "Save as\t" << LoopOutputFile_ << endl;	
 	output->cd();
 		
+	cout << "Absurd fakes:\t" << absurdFake << endl;
+
 	//////////////////////////////////////////
 	// Save all your histograms in a root file
 	//////////////////////////////////////////

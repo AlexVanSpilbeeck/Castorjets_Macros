@@ -52,7 +52,8 @@ int main(int argc, char *argv[])
                                                           argv[7],      // had or em
                                                           //atoi(argv[8]),// Castor sectors. 1 (one only) - 2 (2 or 3) - 0 (any number)
                                                           atof( argv[8]), // Energy threshold.
-                                                          argv[9] );      // setup
+                                                          argv[9],	// setup
+							  0. );      
                         }
 
 		}	
@@ -210,8 +211,7 @@ int main(int argc, char *argv[])
 			  }
 			  else{
                                 std::cout << "We'll process the Pythia6 Z2star 7TeV MC tree now with the JetAnalyzer" << std::endl;
-                                m->makeJetHistos_radii_strippedTree("/user/avanspil/Castor_Analysis/CMSSW_4_2_10_patch2/src/UACastor/CastorTree/Analysis/LoopRootFiles/",
-//                                m->makeJetHistos_radii_strippedTree("/user/avanspil/public/temp/MinBias_TuneZ2star_HFshowerLibrary_7TeV_pythia6/",                                
+                                m->makeJetHistos_radii_strippedTree("/user/avanspil/Castor_Analysis/CMSSW_4_2_10_patch2/src/UACastor/CastorTree/Analysis/LoopRootFiles/",                              
                                                           false,"",
                                                           atoi(argv[4]),// N events
                                                           argv[5],	// label/date
@@ -219,7 +219,8 @@ int main(int argc, char *argv[])
 							  argv[7], 	// had or em
 							  // atoi(argv[8]),// Castor sectors. 1 (one only) - 2 (2 or 3) - 0 (any number)
 							  atof(argv[8]), // Energy threshold 
-							  argv[9]);   // Setup
+							  argv[9],	 // Setup
+							  atof(argv[10]) );   // Maximum delta phi for matched jet pairs.
 			  }
                         }
                 }

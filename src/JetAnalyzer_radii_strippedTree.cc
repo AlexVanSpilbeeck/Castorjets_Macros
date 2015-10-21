@@ -109,7 +109,7 @@
 
 TFile *JetAnalyzer_radii_strippedTree::currentStaticTFile_ = new TFile();
 
-JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup) {
+JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax) {
 
     
 	std::cout << "constructing JetAnalyzer_radii_strippedTree class..." << std::endl;
@@ -124,6 +124,7 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
     sectors_ = 0;
     threshold_ = threshold;
     setup_ = setup;
+    deltaphimax_ = deltaphimax;
     prepare_unfolding = false;
   
     etaband_ = 0.4;
@@ -148,6 +149,7 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
       LoopOutputFile_.ReplaceAll( "STRIPPED_TREE.root", "");
       LoopOutputFile_ += setup;    
       LoopOutputFile_ += TString::Format("_Emin_%f", threshold_);
+      LoopOutputFile_ += TString::Format("_deltaPhiMax_%f", deltaphimax_ );
       LoopOutputFile_ += ".root"; 
     }
     cout << "Output name\t" << LoopOutputFile_ << "\tfrom\t" << date << endl;
@@ -773,7 +775,7 @@ cout << "Variable bins done" << endl;
 		nDet++;
 		
     	        // MATCHING: Match closest in phi by looping over all jets and find one with lowest delta phi.
-    	        double min_delta_phi = 0.2;
+    	        double min_delta_phi = deltaphimax_ ;
 		if( sectors_ == 1 ){ min_delta_phi = 0.1; }
 
     	        int match_gen = -1;					  

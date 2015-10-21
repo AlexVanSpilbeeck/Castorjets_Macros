@@ -89,6 +89,7 @@ int main(){
    TString setup;  
    TString Ethresh;
    double Eplotmin;
+   double deltaPhiMax;
  
    std::map<TString, TString> axis_of_interest;
    std::map<TString, TString> legends;
@@ -118,6 +119,8 @@ int main(){
      cin >> Ethresh;
      cout << "Plot from which Edet value?\t";
      cin >> Eplotmin;
+     cout << "Use what delta phi max?\t";
+     cin >> deltaPhiMax;
 
    /********
    * DATA. * 
@@ -135,7 +138,7 @@ int main(){
 
     TString MCfile;
 
-     MCfile = "/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000.root"; 
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f.root", deltaPhiMax ); 
      filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5) - Displaced");
        colours.push_back(getColor(color_index++));
@@ -869,8 +872,8 @@ int main(){
    ytitle["hCastorJet_energy"] = "#frac{1}{N}.#frac{dN}{dE_{Det}}";
    htitle["hCastorJet_energy"] = "Detector level jet energy (all)";
 
-   Unfolder my_first_unfolder(filenames, datafile, set_of_tags, Eplotmin, atof(Ethresh ), TString::Format("20151016_testing_fakes_" + Ethresh + "_%i", static_cast<int>(Eplotmin) ) , 0);
-   my_first_unfolder.LabelPlots( setup + "_Emin_" + Ethresh );
+   Unfolder my_first_unfolder(filenames, datafile, set_of_tags, Eplotmin, atof(Ethresh ), deltaPhiMax, TString::Format("20151020_chi2evolution_" + Ethresh + "_%i_deltaPhiMax_0%i", static_cast<int>(Eplotmin), static_cast<int>(10. * deltaPhiMax) ) , 0);
+   my_first_unfolder.LabelPlots( TString::Format( setup + "_" + Ethresh + "_GeV_deltaPhiMax_%i", static_cast<int>(10.*deltaPhiMax) ) );
    my_first_unfolder.PrepareLegend( legends, printLabel );
    my_first_unfolder.PrepareTitles( xtitle, ytitle, htitle );
 
@@ -985,6 +988,15 @@ int main(){
      my_first_unfolder.SetSubhistogram_cut( Eplotmin );
 
      my_first_unfolder.PlotStartingDistributions();
+/*
+     my_first_unfolder.PlotStartingDistributions("fake");
+     my_first_unfolder.PlotStartingDistributions("detector");
+     my_first_unfolder.PlotStartingDistributions("generator");
+*/
+     my_first_unfolder.PlotStartingDistributions_comparingEmin("fake");
+     my_first_unfolder.PlotStartingDistributions_comparingEmin("miss");
+//     my_first_unfolder.PlotStartingDistributions_comparingEmin("detector");
+//     my_first_unfolder.PlotStartingDistributions_comparingEmin("generator");
 
      my_first_unfolder.Smear_gen(0);
 

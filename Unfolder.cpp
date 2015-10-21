@@ -64,7 +64,7 @@
 // Define the plotter class.
 class Unfolder{
   public:
-   Unfolder(vector<TString> MC_files, TString datafile, std::map< TString, std::map<TString, TString> >, double Eplotmin, double Ethresh, TString folder, int normalise); // list of MC files - datafile - map to store histograms.
+   Unfolder(vector<TString> MC_files, TString datafile, std::map< TString, std::map<TString, TString> >, double Eplotmin, double Ethresh, double deltaPhiMax_, TString folder, int normalise); // list of MC files - datafile - map to store histograms.
    ~Unfolder();
 
    // Get histograms from files.
@@ -126,7 +126,8 @@ class Unfolder{
 
    void Unfolding_data(TString variable = "lead", int iterations_ = 10);
    void PlotStartingDistributions();
-
+   void PlotStartingDistributions(TString distribution);
+   void PlotStartingDistributions_comparingEmin(TString distribution);
 
    void CalibrationFunction(int phi_first, int phi_last, TGraphErrors* &gre);
    void CalibrationFunction_workingsectors(int first_sector, int last_sector, TGraphErrors* &gre);
@@ -168,6 +169,7 @@ class Unfolder{
    double Eplotmin_;
    double Ethresh_; 
    double fitting_threshold_;
+   double deltaPhiMax_;
 
    TH2D* hError_hist;
 
@@ -210,7 +212,7 @@ class Unfolder{
 
 };
 
-Unfolder::Unfolder( vector<TString> MC_files, TString datafile, std::map< TString, std::map<TString, TString> > set_of_tags, double Eplotmin, double Ethresh, TString folder, int normalise )
+Unfolder::Unfolder( vector<TString> MC_files, TString datafile, std::map< TString, std::map<TString, TString> > set_of_tags, double Eplotmin, double Ethresh, double deltaPhiMax, TString folder, int normalise )
 {
   gStyle->SetStatStyle(0);
   gStyle->SetTitleStyle(0);
@@ -222,6 +224,7 @@ Unfolder::Unfolder( vector<TString> MC_files, TString datafile, std::map< TStrin
   set_of_tags_ = set_of_tags;
   Eplotmin_ = Eplotmin;
   Ethresh_ = Ethresh;
+  deltaPhiMax_ = deltaPhiMax;
   addLabel_ = "";  
 
   int  new_dir = mkdir( ("Plots/" + folder).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
@@ -1144,12 +1147,12 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
   RooUnfoldResponse* response;
   
   if( method == 1 ){
-    if( variable == "all"){ response = (RooUnfoldResponse*)_file0->Get("response"); }
-    else if( variable == "lead"){ response = (RooUnfoldResponse*)_file0->Get("response_lead"); }
+    if( variable == "all"){ 		response = (RooUnfoldResponse*)_file0->Get("response"); }
+    else if( variable == "lead"){ 	response = (RooUnfoldResponse*)_file0->Get("response_lead"); }
  }
  else if( method == 2 ){
-    if( variable == "all"){ response = (RooUnfoldResponse*)_file0->Get("response_match"); }
-    else if( variable == "lead"){ response = (RooUnfoldResponse*)_file0->Get("response_lead"); }
+    if( variable == "all"){ 		response = (RooUnfoldResponse*)_file0->Get("response_match"); }
+    else if( variable == "lead"){ 	response = (RooUnfoldResponse*)_file0->Get("response_lead"); }
  }
 
   //-- Extract histograms.
@@ -1166,21 +1169,23 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
   if( method == 1 ){  
     // -- Construct the RooUnfolfBayes object to obtain the covariance matrix and the unfolded distribution.
     RooUnfoldBayes unfold_bayes(response, theHist, iterations); 
-    
+   
     unfold_bayes.SetVerbose(0);
     TH1D* hUnfold = (TH1D*) unfold_bayes.Hreco( RooUnfold::kCovariance ); 
 
+    /*// Crappy test canvas.
     TCanvas *can___ = new TCanvas("can___", "can___", 1.);
-    hUnfold->Draw("hist");
+    theHist->Draw("hist");
+    hUnfold->Draw("histsame");
     TH1D* hGen = (TH1D*)response->Htruth();
     hGen->SetLineColor( kRed );
     hGen->Draw("histsame");
     can___->SaveAs("tessssssst.C");
+    */
 
     hFake->Scale( 1./renorm_ );   
     hSmear = (TH1D*) response->ApplyToTruth( hUnfold );
     hSmear->Add( hFake );    
-
     chi2 = Calculate_smearedBackError_covariance( theHist, hUnfold, response, iterations );
   }
 
@@ -1207,14 +1212,8 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
 
     hSmear->Add( hFake );  
   }
-
-
   hist_ = hSmear;
-
-
-
   cout << "Done smearing" << endl;
-  cout << "\t\thTruth\t" << hTruth->GetXaxis()->GetTitle() << endl;
 }
 
 
@@ -1769,11 +1768,10 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   TString htitle;
   TLegend *leg = new TLegend(0.65, 0.45, 0.95, 0.95);
     leg->SetFillColor(0);
-  int iterations_ = 50;
+  int iterations_ = 60, iterations_start = 40;
   int actual_iterations = 0;
 
-
-  double xaxisgraph[iterations_], yaxisgraph[iterations_];
+  double xaxisgraph[iterations_], yaxisgraph[iterations_], chi2diff[iterations_];
 
   TString norm = "notNorm";
 
@@ -1786,16 +1784,18 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   if( variable == "lead"){	Get_DetEnergy_lead(-1, hist_original );	htitle = "E_{det} spectrum (leading)";}
   else{				Get_DetEnergy(-1, hist_original );	htitle = "E_{det} spectrum (all)";	}
 
-  if( variable == "lead"){	Get_DetEnergy_lead(0, hist_MCdet );	htitle = "E_{det} spectrum (leading)";}
-  else{				Get_DetEnergy(0, hist_MCdet );		htitle = "E_{det} spectrum (all)";	}  
  
   SetCastorJetEnergy_norm( static_cast<double>(547922)/ static_cast<double>(4661641) ); 
 
   // Hist_reference is the same as the original, but with modified lower edge.
   GetSubHistogram( hist_original, hist_reference, Eplotmin_, 2100.);
 
+  cout << "File for MC sample\t" << MC_files_[0] << endl;
+  cout << "Datafile\t" << datafile_ << endl;
 
-  hError_hist = new TH2D("hError_hist", "hError_hist;E;iteration", hist_reference->GetNbinsX(), hist_reference->GetBinLowEdge( 1 ), hist_reference->GetXaxis()->GetBinUpEdge(  hist_reference->GetNbinsX() ), iterations_, 0., iterations_ );
+  hError_hist = new TH2D("hError_hist", 	"hError_hist;E;iteration", 
+		hist_reference->GetNbinsX(), hist_reference->GetBinLowEdge( 1 ), hist_reference->GetXaxis()->GetBinUpEdge(  hist_reference->GetNbinsX() ), 
+		iterations_, 0., iterations_ );
 
    TCanvas* can_ = new TCanvas("can_", "can_", 1.);
    hist_original->Draw("hist");
@@ -1831,16 +1831,19 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
     //-- Loop over the number of Bayesian iterations. --//
     //--------------------------------------------------//
 
-    int increase_iterations = 9;
-    for(int iterations = 50; iterations <= iterations_; iterations+=increase_iterations){
+    int increase_iterations = 1;
+    for(int iterations = iterations_start; iterations <= iterations_; iterations+=increase_iterations){
       // Determine the inrease in Bayesian iterations.
-      if(iterations >= 10 ){ increase_iterations = 10; }
-      if(iterations >= 20 ){ increase_iterations = 10; }
-      if(iterations >= 100 ){ increase_iterations = 100; }
+      if(iterations >= 10 ){ increase_iterations = 1; }
+      if(iterations >= 20 ){ increase_iterations = 1; }
+      if(iterations >= 100 ){ increase_iterations = 1; }
 
-      hist_result = (TH1D*)hist_original->Clone(TString::Format("Closure_%i_iterations", iterations) );
-      hist_result->SetName( TString::Format("Closure_%i_iterations", iterations) );
-      hist_result->SetTitle( TString::Format("Closure_%i_iterations", iterations) );
+      hist_result = (TH1D*)hist_original->Clone(
+	TString::Format("Closure_%i_iterations_pihdiff_0%i", iterations, static_cast<int>(10.* deltaPhiMax_ ) ) );
+      hist_result->SetName( 
+	TString::Format("Closure_%i_iterations_pihdiff_0%i", iterations, static_cast<int>(10.* deltaPhiMax_ ) ) );
+      hist_result->SetTitle( 				
+	TString::Format("Closure_%i_iterations_pihdiff_0%i", iterations, static_cast<int>(10.* deltaPhiMax_ ) ) );
 
       double chi2;
       Unfold_and_smear( -1, hist_result, file_, iterations, variable, method, chi2 );
@@ -1863,20 +1866,17 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
       can_->SaveAs("compare_2.C");
 
       for(int binx = 0; binx <= hist_result->GetNbinsX(); binx++){
-
         double bin_err = hist_result->GetBinContent( binx );
         hError_hist->SetBinContent( binx, iterations, bin_err );
-
       }
 
-      leg->AddEntry( hist_result, TString::Format("Treated data, %i it.", iterations) , "l");
+      leg->AddEntry( hist_result, TString::Format("Treated data, %i it., #Delta#varphi = 0.%i", iterations, static_cast<int>(10. * deltaPhiMax_) ), "l");
       histos.push_back( hist_result );
 
       //-- Chi2 test.
-//      chi2 = Chi2_test( hist_reference, hist_result);
-//      chi2 = hist_reference->Chi2Test( hist_result, "CHI2/NDF");
       xaxisgraph[actual_iterations] = iterations;
       yaxisgraph[actual_iterations] = chi2;    
+      chi2diff[iterations] = chi2 - chi2_prev;
       chi2_prev = chi2;
 
       current_color++;
@@ -1892,8 +1892,8 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
     TCanvas *can;
     PrepareCanvas( can, "ClosureTest_data" + variable);
     MakeDoublePaddedComparison(can, histos, leg );
-    can->SaveAs( TString::Format(folder_ + "ClosureTest_data_method_%i_" + variable + label_ + "_%i_iterations_" + norm + ".C", method, iterations_) );
-    can->SaveAs( TString::Format(folder_ + "ClosureTest_data_method_%i_" + variable + label_ + "_%i_iterations" + norm + ".pdf", method, iterations_) );
+    can->SaveAs( TString::Format(folder_ + "ClosureTest_data_" + variable + "_%i_iterations_%i_GeV_deltaPhiMax_0%i_" + norm + ".C", iterations_, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
+    can->SaveAs( TString::Format(folder_ + "ClosureTest_data_" + variable + "_%i_iterations_%i_GeV_deltaPhiMax_0%i_" + norm + ".pdf", iterations_, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
 
     // Finish chi2 study.
     TCanvas *can_chi2;
@@ -1902,8 +1902,18 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
     chi2_evolution->GetXaxis()->SetTitle("N_{it.}");
     chi2_evolution->GetYaxis()->SetTitle("#chi^{2}/NDF");
     chi2_evolution->Draw("A*");
-    can_chi2->SaveAs( TString::Format(folder_ + "Chi2_Test_data_method_%i_" + variable + label_ + "_%i_iterations_" + norm + ".C", method, iterations_) );
-    can_chi2->SaveAs( TString::Format(folder_ + "Chi2_Test_data_method_%i_" + variable + label_ + "_%i_iterations" + norm + ".pdf", method, iterations_) );
+    can_chi2->SaveAs( TString::Format(folder_ + "Chi2_Test_data_" + variable + "_%i_iterations_deltaPhiMax_0%i_" + norm + ".C", method, iterations_, static_cast<int>(10. * deltaPhiMax_)) );
+    can_chi2->SaveAs( TString::Format(folder_ + "Chi2_Test_data_" + variable + "_%i_iterations_deltaPhiMax_0%i_" + norm + ".pdf", method, iterations_, static_cast<int>(10. * deltaPhiMax_)) );
+
+    TCanvas *can_chi2diff;
+    PrepareCanvas( can_chi2diff, "CHI2_Diff_" + variable);
+    TGraph* chi2_diff = new TGraph(actual_iterations, chi2diff, yaxisgraph);
+    chi2_diff->GetXaxis()->SetTitle("N_{it.}");
+    chi2_diff->GetYaxis()->SetTitle("#Delta#chi^{2}/NDF");
+    chi2_diff->Draw("A*");
+    can_chi2diff->SaveAs( TString::Format(folder_ + "Chi2_diff_data_" + variable + "_%i_iterations_deltaPhiMax_0%i_" + norm + ".C", method, iterations_, static_cast<int>(10. * deltaPhiMax_)) );
+    can_chi2diff->SaveAs( TString::Format(folder_ + "Chi2_diff_data_" + variable + "_%i_iterations_deltaPhiMax_0%i_" + norm + ".pdf", method, iterations_, static_cast<int>(10. * deltaPhiMax_)) );
+
 
     iterations_and_errors << "€€€ We plot from\t" << Eplotmin_ << "\tto\t" << hist_original->GetBinLowEdge( hist_original->GetNbinsX()+1 ) << "\toriginal hist has\t" << hist_original->GetNbinsX() << "\t bins" << "\nFrom file\t" << datafile_ << endl;
   }
@@ -4331,8 +4341,8 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   TH2D* hResponse = (TH2D*)hResponse_proj->Clone("Response_2D");
   hResponse->SetName("Response_2D");
   hResponse->Draw("colz");
-  can_resp->SaveAs(folder_ + "Response.pdf");
-  can_resp->SaveAs(folder_ + "Response.C");
+  can_resp->SaveAs( TString::Format( folder_ + "Response_%i_GeV_deltaPhiMax_0%i.pdf", static_cast<int>( Ethresh_) , static_cast<int>(10 * deltaPhiMax_) ) );
+  can_resp->SaveAs( TString::Format( folder_ + "Response_%i_GeV_deltaPhiMax_0%i.C", static_cast<int>( Ethresh_) , static_cast<int>(10 * deltaPhiMax_) ) );
 
 
   cout << "$$$$Mis\t" << hMiss->Integral() << endl;
@@ -4447,17 +4457,6 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     //-----------------------//
     // (4) Unfold-and-smear. //
     //-----------------------//
-/*
-    //testing_covariance << "Variation\tMiss\tTruth\tFake\tMeasured\tResponse\t\n" <<
-    	n_spread << "\t" << 
-	hMiss_new->Integral() << "\t" <<
-	hTruth_new->Integral() << "\t" <<
-	( hTruth_new->Integral() - hResponse_new->Integral() - hMiss_new->Integral() ) << "\t" << 
-	hFake_new->Integral() << "\t" <<
-	hMeasured_new->Integral() << "\t" <<
-	( hMeasured_new->Integral() - hResponse_new->Integral() -  hFake_new->Integral() ) << "\t" << 
-	hResponse_new->Integral() << endl;
-*/
 
     //-- The code below draws the varied distributions and compares them to the actual fakes/measured/truth distributions.
     if( n_spread < 10 ){
@@ -4494,14 +4493,6 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     //-----------------//
     hSmear = (TH1D*) response_new->ApplyToTruth( hUnfold );
     hSmear->Add( hFake_new );
-  
-/*
-    //testing_covariance << "\nSmear\tfake\tdata\t\n" << 
-	hSmear->Integral() << "\t" <<
-	hFake_new->Integral() << "\t" << 
-	hData->Integral() << endl << endl << endl;
-*/
-
 
     //-- Draw the smeared distribution.
     if( n_spread <= 10){
@@ -4517,7 +4508,6 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     }
 
     //-- Store histogram in THnSparse, bin-by-bin.
-//    if( n_spread <= 10 ){ testing_covariance << "n_spread\t" << n_spread << endl; }
     for(int bin_smear = 1; bin_smear <= hSmear->GetNbinsX(); bin_smear++){
       //-- THnSparse for the original distribution.
       double smear_value = hSmear->GetBinContent( bin_smear );
@@ -4540,14 +4530,14 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   //-- (CHECK) Save canvasses with varied distributions. //
   //-----------------------------------------------------//
 
-  canData->SaveAs( TString::Format( folder_ + "canData_%i.C", iterations) );  
-  canData->SaveAs( TString::Format( folder_ + "canData_%i.pdf", iterations) );  
-  canFake->SaveAs( TString::Format( folder_ + "canFake_%i.C", iterations) );
-  canFake->SaveAs( TString::Format( folder_ + "canFake_%i.pdf", iterations) );
-  canTruth->SaveAs( TString::Format( folder_ + "canTruth_%i.C", iterations) );
-  canTruth->SaveAs( TString::Format( folder_ + "canTruth_%i.pdf", iterations) );
-  canMeasured->SaveAs( TString::Format( folder_ + "canMeasured_%i.C", iterations) );
-  canMeasured->SaveAs( TString::Format( folder_ + "canMeasured_%i.pdf", iterations) );
+  canData->SaveAs( TString::Format( folder_ + "canData_%i_iterations_deltaPhiMax_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_) ) );  
+  canData->SaveAs( TString::Format( folder_ + "canData_%i_iterations_deltaPhiMax_0%i.pdf", iterations, static_cast<int>( 10. * deltaPhiMax_) ) );  
+  canFake->SaveAs( TString::Format( folder_ + "canFake_%i_iterations_deltaPhiMax_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_) ) );
+  canFake->SaveAs( TString::Format( folder_ + "canFake_%i_iterations_deltaPhiMax_0%i.pdf", iterations, static_cast<int>( 10. * deltaPhiMax_) ) );
+  canTruth->SaveAs( TString::Format( folder_ + "canTruth_%i_iterations_deltaPhiMax_0%i.C", iterations, static_cast<int>( 10. * deltaPhiMax_) ) );
+  canTruth->SaveAs( TString::Format( folder_ + "canTruth_%i_iterations_deltaPhiMax_0%i.pdf", iterations, static_cast<int>( 10. * deltaPhiMax_) ) );
+  canMeasured->SaveAs( TString::Format( folder_ + "canMeasured_%i_iterations_deltaPhiMax_0%i.C", iterations, static_cast<int>( 10. * deltaPhiMax_) ) );
+  canMeasured->SaveAs( TString::Format( folder_ + "canMeasured_%i_iterations_deltaPhiMax_0%i.pdf", iterations, static_cast<int>( 10. * deltaPhiMax_) ) );
 
   //-------------------------------------------------//
   // (5) Extract the average from the distributions. //
@@ -4600,8 +4590,6 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
       average_e_minus_mu2 += content_smear*content_smear;
       average_e_minus_mu += fabs(content_smear);	// This serves only as a check, not as a true quantity to measure.
-
-      
 //      testing_covariance << "i\t" << i << "\t" << bin_smear << "\t" << content_smear << "\t" << content_smear * content_smear << endl;
     }
 
@@ -4627,9 +4615,14 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   //-- Calculate denominator for correlation matrix. //
   //-------------------------------------------------//
 
+  //-- A rather unelegant but temporary-variable-less way to create TH2D.
   TH2D* hCorrelation_denom = new TH2D("hCorrelation_denom", "hCorrelation_denom", 
-		hAverage_smear_sq->GetNbinsX(), hAverage_smear_sq->GetXaxis()->GetBinLowEdge( 1 ), hAverage_smear_sq->GetXaxis()->GetBinUpEdge( hAverage_smear_sq->GetNbinsX() ),
-		hAverage_smear_sq->GetNbinsX(), hAverage_smear_sq->GetXaxis()->GetBinLowEdge( 1 ), hAverage_smear_sq->GetXaxis()->GetBinUpEdge( hAverage_smear_sq->GetNbinsX() ) );
+		hAverage_smear_sq->GetNbinsX(), 
+		hAverage_smear_sq->GetXaxis()->GetBinLowEdge( 1 ), 
+		hAverage_smear_sq->GetXaxis()->GetBinUpEdge( hAverage_smear_sq->GetNbinsX() ),
+		hAverage_smear_sq->GetNbinsX(), 
+		hAverage_smear_sq->GetXaxis()->GetBinLowEdge( 1 ), 
+		hAverage_smear_sq->GetXaxis()->GetBinUpEdge( hAverage_smear_sq->GetNbinsX() ) );
 
 //  testing_covariance << "Correlation denominator\t" <<  hAverage_smear_sq->GetNbinsX() << "\t" <<  hAverage_smear_sq->GetXaxis()->GetBinLowEdge( 1 ) << "\t" << hAverage_smear_sq->GetXaxis()->GetBinUpEdge( hAverage_smear_sq->GetNbinsX() ) << endl;
 
@@ -4652,8 +4645,10 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   PrepareCanvas(can_currentCov, "can_2D");
 
   hCorrelation_denom->Draw("colz");
-  can_currentCov->SaveAs(folder_ +  TString::Format("mCorrelationDenom_%i.C", iterations) );
-  can_currentCov->SaveAs(folder_ +  TString::Format("mCorrelationDenom_%i.pdf", iterations) );
+  can_currentCov->SaveAs(folder_ +  TString::Format("mCorrelationDenom_%i_iterations_%i_GeV_deltaPhiMax_0%i.C", 
+	iterations, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
+  can_currentCov->SaveAs(folder_ +  TString::Format("mCorrelationDenom_%i_iterations_%i_GeV_deltaPhiMax_0%i.pdf", 
+	iterations, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
 
   //---------------------------------------------------------------------------------------------------------//
   //-- (7) Loop over all iterations and multiply the different (E-mu_E)_DAT x (E-mu_E)_SM with each other. --//
@@ -4809,13 +4804,16 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   }
 
   TCanvas *can_corr;
-  PrepareCanvas_2D( can_corr, TString::Format("canvas_correlation_%i_%i", iterations, static_cast<int>( Ethresh_) ) );
+  PrepareCanvas_2D( can_corr, TString::Format("canvas_correlation_%i_iterations_%i_GeV_deltaPhiMax_0%i", 
+	iterations, static_cast<int>( Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
   TMatrixD *mCorrelation = RooUnfoldResponse::H2M( hCorrelation_matrix, hCorrelation_matrix->GetNbinsX(),hCorrelation_matrix->GetNbinsY()  );
 
   mCorrelation->Draw("colz");
   can_corr->SetLogz();
-  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_%i_uncut.C", iterations, static_cast<int>( Ethresh_)) );
-  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_%i_uncut.pdf", iterations, static_cast<int>( Ethresh_) ) );
+  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_iterations_%i_GeV_deltaPhiMax_0%i_uncut.C", 
+	iterations, static_cast<int>( Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
+  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_iterations_%i_GeV_deltaPhiMax_0%i_uncut.pdf", 
+	iterations, static_cast<int>( Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
 
   mCorrelation->ResizeTo( 
 	hCovariance_matrix->GetNbinsX() - nbins_newlength, hCovariance_matrix->GetNbinsX()-1, 
@@ -4823,8 +4821,10 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
   mCorrelation->Draw("colz");
   can_corr->SetLogz();
-  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_%i.C", iterations, static_cast<int>( Ethresh_)) );
-  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_%i.pdf", iterations, static_cast<int>( Ethresh_) ) );
+  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_iterations_%i_GeV_deltaPhiMax_0%i.C", 
+	iterations, static_cast<int>( Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
+  can_corr->SaveAs(folder_ + TString::Format("mCor_%i_iterations_%i_GeV_deltaPhiMax_0%i.pdf", 
+	iterations, static_cast<int>( Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
 
   TH1D* hDiff = (TH1D*)hData->Clone("hDiff");
 
@@ -4841,43 +4841,20 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
   hCovariance_matrix->Draw("colz");
   can_cov->SetLogz();
-  can_cov->SaveAs(folder_ + TString::Format("hCov_%i.C", iterations) );
-  can_cov->SaveAs(folder_ + TString::Format("hCov_%i.pdf", iterations) );
+  can_cov->SaveAs(folder_ + TString::Format("hCov_%i_iterations_%i_GeV_deltaPhiMax_0%i.pdf", 
+	iterations, static_cast<int>( Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
+  can_cov->SaveAs(folder_ + TString::Format("hCov_%i_iterations_%i_GeV_deltaPhiMax_0%i.C", 
+	iterations, static_cast<int>( Ethresh_), static_cast<int>(10. * deltaPhiMax_) ) );
 
-  mCovariance->Draw("colz");
-  can_cov->SetLogz(),
-  can_cov->SaveAs(folder_ +  TString::Format("mCov_%i_Data" + addLabel_ + ".C", iterations) );  
-  can_cov->SaveAs(folder_ +  TString::Format("mCov_%i_Data" + addLabel_ + ".pdf", iterations) );  
-
-  //-- Save a copy of the covariance matrix.
-  TMatrixD *mCov_cut = (TMatrixD*)mCovariance->Clone("cutting");
-  mCov_cut->ResizeTo(
-	hCovariance_matrix->GetNbinsX() - nbins_newlength, hCovariance_matrix->GetNbinsX() -1, 
-	hCovariance_matrix->GetNbinsY() - nbins_newlength, hCovariance_matrix->GetNbinsY() -1);  
-  mCov_cut->Draw("colz");
-  can_cov->SetLogz(),
-  can_cov->SaveAs(folder_ +  TString::Format("mCov_%i_cut" + addLabel_ + ".C", iterations) );  
-  can_cov->SaveAs(folder_ +  TString::Format("mCov_%i_cut" + addLabel_ + ".pdf", iterations) );  
- 
+  //-- Measured - smeared difference.
+  hDiff->Draw("hist");
   TVectorD *vDiff = RooUnfoldResponse::H2V( hDiff, hDiff->GetNbinsX());
-    vDiff->ResizeTo( 
-	hDiff->GetNbinsX() - nbins_newlength , hDiff->GetNbinsX() - 1);
+  vDiff->ResizeTo( hDiff->GetNbinsX() - nbins_newlength , hDiff->GetNbinsX() - 1);
 
-  //-- Save a copy of the difference between measured and smeared data.
-  vDiff->Draw("hist");
-
-  GetSubHistogram( hDiff, hDiff, Ecut_, 2100.);
-  hDiff->SetLineColor( kRed );
-  hDiff->SetLineStyle( 2 ); 
-  TVectorD *vDiff_3 = RooUnfoldResponse::H2V( hDiff, hDiff->GetNbinsX());
-
-  hDiff->DrawClone("histsame");
-  vDiff_3->Draw("histsame");
-
-  can_cov->SaveAs(folder_ + TString::Format("/vDiff_%i.C", iterations ));
-  can_cov->SaveAs(folder_ + TString::Format("/vDiff_%i.pdf", iterations ));
-
-  cout << "\n\n\n" << folder_ + TString::Format("/vDiff_%i.C", iterations ) << endl << endl << endl;
+  can_cov->SaveAs(folder_ + TString::Format("/vDiff_%i_iterations_%i_GeV_deltaPhiMax_0%i.C", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ) ));
+  can_cov->SaveAs(folder_ + TString::Format("/vDiff_%i_iterations_%i_GeV_deltaPhiMax_0%i.pdf", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ) ));
 
   //-- Invert the matrix.
   TMatrixD mInvertCovariance = (*mCovariance);
@@ -4888,15 +4865,19 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   PrepareCanvas_2D( can_inv, "Canvas_inverseMatrices" );
   mInvertCovariance.Draw("colz");
   can_inv->SetLogz();
-  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i" + addLabel_ + "_uncut.C", iterations));
-  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i" + addLabel_ + "_uncut.pdf", iterations));
+  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i_iterations_%i_GeV_deltaPhiMax_0%i_" + addLabel_ + "_uncut.C", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ) ));
+  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i_iterations_%i_GeV_deltaPhiMax_0%i_" + addLabel_ + "_uncut.pdf", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ) ));
 
   TMatrixD mUnity = mInvertCovariance;
   mUnity *= (*mCovariance); //mCovariance_unmodded;
   TCanvas *can_unity = new TCanvas("Unity", "Unity", 1.);
   mUnity.Draw("colz");
-  can_unity->SaveAs(folder_ + TString::Format("Unity_%i" + addLabel_ + ".C", iterations));
-  can_unity->SaveAs(folder_ + TString::Format("Unity_%i" + addLabel_ + ".pdf", iterations));
+  can_unity->SaveAs(folder_ + TString::Format("Unity_%i_iterations_%i_GeV_deltaPhiMax_0%i_" + addLabel_ + ".C", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ) ) );
+  can_unity->SaveAs(folder_ + TString::Format("Unity_%i_iterations_%i_GeV_deltaPhiMax_0%i_" + addLabel_ + ".pdf", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ) ) );
 
   mInvertCovariance.ResizeTo(
 	hCovariance_matrix->GetNbinsX() - nbins_newlength, hCovariance_matrix->GetNbinsX() -1, 
@@ -4904,8 +4885,10 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
   mInvertCovariance.Draw("colz");
   can_inv->SetLogz();
-  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i" + addLabel_ + ".C", iterations));
-  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i" + addLabel_ + ".pdf", iterations));
+  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i_iterations_%i_GeV_deltaPhiMax_0%i_" + addLabel_ + ".C", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ) ));
+  can_inv->SaveAs(folder_ + TString::Format("Inverted_C_%i_iterations_%i_GeV_deltaPhiMax_0%i_" + addLabel_ + ".pdf", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ) ));
 
   TVectorD vTemp = (*vDiff);
   vTemp *= mInvertCovariance;
@@ -4913,7 +4896,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
   can_cov->SetLogz();
 
-  cout << "CHI2 for " << iterations << " iterations is " << chi2 << "�\t" << MC_files_[0] << endl;
+  cout << "CHI2/NDF for " << iterations << " iterations is " << chi2 << "/" << vDiff->GetNoElements() << " = " <<  chi2/vDiff->GetNoElements() << "\t" << MC_files_[0] << endl;
 
   for(int idata = 1; idata <= hData->GetNbinsX(); idata++){
     cout << idata << "\tdata\t" << hData->GetBinContent( idata ) << endl;
@@ -4933,7 +4916,7 @@ bool Unfolder::BadNumerals( TH1D* hist ){
   bool goodNumerals= true;
   for(int bin = 0; bin <= hist->GetNbinsX(); bin++){
     if( hist->GetBinContent(bin) != hist->GetBinContent(bin) ){ 
-      cout << "Shiiit\t" <<  hist->GetBinContent(bin) << endl;
+      cout << "Shiiit\t" <<  bin << "\t" << hist->GetBinContent(bin) << endl;
       goodNumerals = false; 
       break; 
     }
@@ -4947,6 +4930,11 @@ void Unfolder::SetAddLabel( TString label ){
 }
 
 
+//----------------------------------------------------------------------------------------------------//
+//-- The following two functions plot the distributions extracted from the MC sample and plot them. --//
+//-- They are compared with distributions from MC sample(s) with other Emin or delta phi maxes.	    --//
+//----------------------------------------------------------------------------------------------------//
+
 
 void Unfolder::PlotStartingDistributions(){
 
@@ -4959,8 +4947,8 @@ void Unfolder::PlotStartingDistributions(){
     TFile* _file0;
     TString energy;
     int color = 1;
-    if( file == 1 ){ _file0 	= new TFile( "/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000.root", "read"); energy = "0 GeV";}
-    if( file == 2 ){ _file0	= new TFile( "/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000.root", "read"); energy = "150 GeV"; }
+    if( file == 1 ){ _file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_%f.root", deltaPhiMax_ ), "read"); energy = "0 GeV";}
+    if( file == 2 ){ _file0	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_%f.root", deltaPhiMax_ ), "read"); energy = "150 GeV"; }
 
     //-- Handle first file.
     TH1D* hDet = (TH1D*)_file0->Get("hCastorJet_energy");
@@ -5018,10 +5006,147 @@ void Unfolder::PlotStartingDistributions(){
   legend->Draw();
   can_startingDistributions->SetLogy();
   
-  can_startingDistributions->SaveAs( "Plots/can_startingDistributions.C" );
-  can_startingDistributions->SaveAs( "Plots/can_startingDistributions.pdf" );
+  can_startingDistributions->SaveAs( TString::Format("Plots/can_startingDistributions_deltaPhiMax_0%i.C", static_cast<int>( 10. * deltaPhiMax_) ) );
+  can_startingDistributions->SaveAs( TString::Format("Plots/can_startingDistributions_deltaPhiMax_0%i.pdf", static_cast<int>( 10. * deltaPhiMax_) ) );
 
 }
+
+
+void Unfolder::PlotStartingDistributions(TString distribution){
+
+  TCanvas *can_startingDistributions;
+  PrepareCanvas(can_startingDistributions, "can_startingDistributions");
+  TLegend *legend = new TLegend( 0.7, 0.7, 0.95, 0.95);
+
+  TString distributionname;
+  if (distribution == "fake"){ 		distributionname = "hCastorJet_fake_all"; }
+  if (distribution == "detector"){ 	distributionname = "hCastorJet_energy"; }
+  if (distribution == "generator"){ 	distributionname = "hGenJet_energy"; }
+
+  TString drawoptions = "hist";
+
+  for(int file = 1; file <= 6; file++){
+    TFile* _file0;
+    TString phimax;
+    int color = 1;
+    if( file == 1 ){ _file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_%f_deltaPhiMax_0.000000.root", Ethresh_ ), "read"); phimax = "0.0";}
+    if( file == 2 ){ _file0	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_%f_deltaPhiMax_0.200000.root", Ethresh_ ), "read"); phimax = "0.2";}
+    if( file == 3 ){ _file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_%f_deltaPhiMax_0.300000.root", Ethresh_ ), "read"); phimax = "0.3";}
+    if( file == 4 ){ _file0	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_%f_deltaPhiMax_0.400000.root", Ethresh_ ), "read"); phimax = "0.4";}
+    if( file == 5 ){ _file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_%f_deltaPhiMax_0.500000.root", Ethresh_ ), "read"); phimax = "0.5";}
+
+    TH1D* hDistribution = (TH1D*)_file0->Get( distributionname );
+
+    hDistribution->SetLineWidth( 3 );
+    hDistribution->SetLineColor( getColor(file) );
+    hDistribution->SetLineStyle( file );
+    
+    hDistribution->Draw( drawoptions );
+    drawoptions = "histsame";
+    
+    legend->AddEntry( hDistribution, TString::Format( distribution + "#Delta #varphi_{max} = " +  phimax ) );
+ 
+  } 
+   
+  legend->Draw();
+
+  can_startingDistributions->SetLogy();
+  can_startingDistributions->SaveAs( TString::Format("Plots/can_startingDistribution_" + distribution + "_Emin_%i.C", static_cast<int>( Ethresh_ ) ) );
+  can_startingDistributions->SaveAs( TString::Format("Plots/can_startingDistribution_" + distribution + "_Emin_%i.pdf", static_cast<int>( Ethresh_) ) );
+}
+
+
+
+void Unfolder::PlotStartingDistributions_comparingEmin(TString distribution){
+
+  TCanvas *can_startingDistributions;
+  PrepareCanvas(can_startingDistributions, "can_startingDistributions");
+  TLegend *legend = new TLegend( 0.6, 0.6, 0.95, 0.95);
+
+  TString distributionname;
+  if (distribution == "fake"){ 		distributionname = "hCastorJet_fake_all"; }
+  if (distribution == "detector"){ 	distributionname = "hCastorJet_energy"; }
+  if (distribution == "generator"){ 	distributionname = "hGenJet_energy"; }
+  if (distribution == "miss"){ 	distributionname = "hCastorJet_miss_all"; }
+
+  TString drawoptions = "hist";
+
+  for(int file = 1; file <= 9; file++){
+    TFile* _file0;
+    TFile* _file150;
+    TString phimax;
+    int color = 1;
+    if( file == 1 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_0.000000.root" ), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_0.000000.root" ), "read"); 	
+	phimax = "0.0";
+    }
+    if( file == 2 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_0.200000.root"), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_0.200000.root" ), "read"); 	
+	phimax = "0.2";
+    }
+    if( file == 3 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_0.300000.root" ), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_0.300000.root" ), "read"); 	
+	phimax = "0.3";
+    }
+    if( file == 4 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_0.400000.root"), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_0.400000.root" ), "read"); 	
+	phimax = "0.4";
+    }
+    if( file == 5 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_0.500000.root"), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_0.500000.root" ), "read"); 	
+	phimax = "0.5";
+    }
+    if( file == 6 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_0.600000.root"), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_0.600000.root" ), "read"); 	
+	phimax = "0.5";
+    }
+    if( file == 7 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_0.800000.root"), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_0.800000.root" ), "read"); 	
+	phimax = "0.8";
+    }
+    if( file == 8 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_1.200000.root"), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_1.200000.root" ), "read"); 	
+	phimax = "1.2";
+    }
+
+    if( file == 9 ){ 
+	_file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_7.000000.root"), "read"); 
+	_file150= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_7.000000.root" ), "read"); 	
+	phimax = "7.0";
+    }
+
+    TH1D* hDistribution_0 = (TH1D*)_file0->Get( distributionname );
+    hDistribution_0->SetLineWidth( 3 );
+    hDistribution_0->SetLineColor( getColor(file) );   
+    if( file == 0 ){ hDistribution_0->GetYaxis()->SetRangeUser(0.9, hDistribution_0->GetMaximum()*1.1); }
+    hDistribution_0->Draw( drawoptions );
+    drawoptions = "histsame";
+    legend->AddEntry( hDistribution_0, TString::Format( distribution + "#Delta #varphi_{max} = " +  phimax + ", E_{min} = 0 GeV" ) );
+
+    TH1D* hDistribution_150 = (TH1D*)_file150->Get( distributionname );
+    hDistribution_150->SetLineWidth( 3 );
+    hDistribution_150->SetLineColor( getColor(file) ); 
+    hDistribution_150->SetLineStyle( 2 );  
+    hDistribution_150->Draw( drawoptions );
+    drawoptions = "histsame";
+    legend->AddEntry( hDistribution_150, TString::Format( distribution + "#Delta #varphi_{max} = " +  phimax + ", E_{min} = 150 GeV" ) );
+  } 
+   
+  legend->Draw();
+
+  can_startingDistributions->SetLogy();
+  can_startingDistributions->SaveAs( TString::Format("Plots/can_startingDistribution_" + distribution + "_Emin_%i.C", static_cast<int>( Ethresh_ ) ) );
+  can_startingDistributions->SaveAs( TString::Format("Plots/can_startingDistribution_" + distribution + "_Emin_%i.pdf", static_cast<int>( Ethresh_) ) );
+}
+
 
 
 

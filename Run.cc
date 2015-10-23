@@ -53,7 +53,8 @@ int main(int argc, char *argv[])
                                                           //atoi(argv[8]),// Castor sectors. 1 (one only) - 2 (2 or 3) - 0 (any number)
                                                           atof( argv[8]), // Energy threshold.
                                                           argv[9],	// setup
-							  0. );      
+							  0.,		// MC only variable.
+							  0. );      	// MC only variable.
                         }
 
 		}	
@@ -220,7 +221,8 @@ int main(int argc, char *argv[])
 							  // atoi(argv[8]),// Castor sectors. 1 (one only) - 2 (2 or 3) - 0 (any number)
 							  atof(argv[8]), // Energy threshold 
 							  argv[9],	 // Setup
-							  atof(argv[10]) );   // Maximum delta phi for matched jet pairs.
+							  atof(argv[10]),// Maximum delta phi for matched jet pairs.
+							  atof(argv[11]) );	// Width of eta band outside of Castor wherein gen jets may lie.
 			  }
                         }
                 }

@@ -90,6 +90,7 @@ int main(){
    TString Ethresh;
    double Eplotmin;
    double deltaPhiMax;
+   double etawidth;
  
    std::map<TString, TString> axis_of_interest;
    std::map<TString, TString> legends;
@@ -121,6 +122,8 @@ int main(){
      cin >> Eplotmin;
      cout << "Use what delta phi max?\t";
      cin >> deltaPhiMax;
+     cout << "Eta band outside of CASTOR?\t";
+     cin >> etawidth;
 
    /********
    * DATA. * 
@@ -138,7 +141,19 @@ int main(){
 
     TString MCfile;
 
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f.root", deltaPhiMax ); 
+    // MCfile for unfolding.
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth );
+	 
+    // MCfile for calibration of data.
+//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth );
+
+    // MC file for calibration of MC.
+//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth );
+
+
+
+cout << "MCfile\t" << MCfile << endl;
+
      filenames.push_back( MCfile );
        legendEntries.push_back("(ak5, ak5) - Displaced");
        colours.push_back(getColor(color_index++));
@@ -872,7 +887,14 @@ int main(){
    ytitle["hCastorJet_energy"] = "#frac{1}{N}.#frac{dN}{dE_{Det}}";
    htitle["hCastorJet_energy"] = "Detector level jet energy (all)";
 
-   Unfolder my_first_unfolder(filenames, datafile, set_of_tags, Eplotmin, atof(Ethresh ), deltaPhiMax, TString::Format("20151020_chi2evolution_" + Ethresh + "_%i_deltaPhiMax_0%i", static_cast<int>(Eplotmin), static_cast<int>(10. * deltaPhiMax) ) , 0);
+   Unfolder my_first_unfolder(	filenames, 
+				datafile, 
+				set_of_tags, 
+				Eplotmin, atof(Ethresh ), 
+				deltaPhiMax, 
+				etawidth, 
+				TString::Format("20151022_smallerEtaRange_" + Ethresh + "_%i_deltaPhiMax_0%i", static_cast<int>(Eplotmin), static_cast<int>(10. * deltaPhiMax) ) , 
+				0);
    my_first_unfolder.LabelPlots( TString::Format( setup + "_" + Ethresh + "_GeV_deltaPhiMax_%i", static_cast<int>(10.*deltaPhiMax) ) );
    my_first_unfolder.PrepareLegend( legends, printLabel );
    my_first_unfolder.PrepareTitles( xtitle, ytitle, htitle );
@@ -909,8 +931,8 @@ int main(){
 /*
      my_first_unfolder.CalculateSystematics("all_sectors",1,1);
 */
-//     my_first_unfolder.CalculateSystematics("good_sectors",1,1);
-//     my_first_unfolder.CalculateSystematics("separate_sectors", 13, 14);
+     my_first_unfolder.CalculateSystematics("good_sectors",1,1);
+     my_first_unfolder.CalculateSystematics("separate_sectors", 13, 14);
 
 
 
@@ -987,31 +1009,35 @@ int main(){
      // Closure Test - method 1.
      my_first_unfolder.SetSubhistogram_cut( Eplotmin );
 
-     my_first_unfolder.PlotStartingDistributions();
+//     my_first_unfolder.PlotStartingDistributions();
 /*
      my_first_unfolder.PlotStartingDistributions("fake");
      my_first_unfolder.PlotStartingDistributions("detector");
      my_first_unfolder.PlotStartingDistributions("generator");
 */
-     my_first_unfolder.PlotStartingDistributions_comparingEmin("fake");
-     my_first_unfolder.PlotStartingDistributions_comparingEmin("miss");
-//     my_first_unfolder.PlotStartingDistributions_comparingEmin("detector");
-//     my_first_unfolder.PlotStartingDistributions_comparingEmin("generator");
 
-     my_first_unfolder.Smear_gen(0);
 
-     //my_first_unfolder.SetAddLabel( "findingSolutions" );
-//     my_first_unfolder.ClosureTest_data("all", "Displaced", 1);
+//     my_first_unfolder.Smear_gen(0);
+
+     //my_first_unfolder.SetAddLabel( "findingSolutions" )
+     my_first_unfolder.ClosureTest_data("all", "Displaced", 1);
 //     my_first_unfolder.ClosureTest_MC_detLevel("all");
 
      // Closure Test - method 2.
 //     my_first_unfolder.ClosureTest_data("all", "Displaced", 2);
+
+     my_first_unfolder.PlotStartingDistributions_comparingEmin("fake");
+     my_first_unfolder.PlotStartingDistributions_comparingEmin("miss");
+//     my_first_unfolder.PlotStartingDistributions_comparingEmin("detector");
+//     my_first_unfolder.PlotStartingDistributions_comparingEmin("generator");
 
 /*
      my_first_unfolder.Dissect_ResponseObject();
 
 
 //     my_first_unfolder.Calculate_smearedBackError(-1, 0);
+
+
 
 /*
      my_first_unfolder.ClosureTest_MC("lead");

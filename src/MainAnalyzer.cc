@@ -107,9 +107,9 @@ cout << "loop" << endl;
         if (input == "") std::cout << "empty input file for AfterLoopCalculations given" << std::endl;
 }
 
-void MainAnalyzer::makeJetHistos_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax) {
+void MainAnalyzer::makeJetHistos_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax, double etawidth) {
 
-        JetAnalyzer_radii_strippedTree jetanalyzer_radii_strippedTree(inputdir, isData, outputname, totalEvents, date, filename, jettype, threshold, setup, deltaphimax);
+        JetAnalyzer_radii_strippedTree jetanalyzer_radii_strippedTree(inputdir, isData, outputname, totalEvents, date, filename, jettype, threshold, setup, deltaphimax, etawidth);
         jetanalyzer_radii_strippedTree.Loop();
         TString input = jetanalyzer_radii_strippedTree.getOutputFile();
 //    if (input != "") jetanalyzer_radii_strippedTree.AfterLoopCalculations(input);

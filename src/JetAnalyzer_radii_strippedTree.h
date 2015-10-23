@@ -16,7 +16,7 @@
 
 class JetAnalyzer_radii_strippedTree {
 public:
-	JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname,int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax);
+	JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname,int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax, double etawidth);
 	virtual ~JetAnalyzer_radii_strippedTree();
     
     // Basic functions
@@ -54,6 +54,8 @@ private:
     double threshold_;
     TString setup_;
     double deltaphimax_;
+    double genetamin_;
+    double genetamax_;
 
     bool do_calibration_function;
     bool cut_EI;

@@ -36,7 +36,7 @@ public:
         void makeSysMaxHistos(TString inputdir, TString regexpstr, bool isData, const char* outputname);
         void makeJetHistos_radii(TString inputdir, TString regexpstr, bool isData, const char* outputname, TString gen_radius, TString det_radius, int totalEvents, TString date);
         void makeJetHistos_stripTheTree(TString inputdir, TString regexpstr, bool isData, const char* outputname, TString gen_radius, TString det_radius, int totalEvents, TString date, int startFile);
-        void makeJetHistos_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax);
+        void makeJetHistos_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax, double etawidth);
 
 	void plotSingleHistos(TString outputfile, TString selectname);
 	

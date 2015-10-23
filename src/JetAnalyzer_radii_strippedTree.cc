@@ -109,7 +109,7 @@
 
 TFile *JetAnalyzer_radii_strippedTree::currentStaticTFile_ = new TFile();
 
-JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax) {
+JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax, double etawidth) {
 
     
 	std::cout << "constructing JetAnalyzer_radii_strippedTree class..." << std::endl;
@@ -125,6 +125,9 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
     threshold_ = threshold;
     setup_ = setup;
     deltaphimax_ = deltaphimax;
+    genetamin_ = -6.6 - etawidth;
+    genetamax_ = -5.2 + etawidth;
+
     prepare_unfolding = false;
   
     etaband_ = 0.4;
@@ -150,6 +153,7 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
       LoopOutputFile_ += setup;    
       LoopOutputFile_ += TString::Format("_Emin_%f", threshold_);
       LoopOutputFile_ += TString::Format("_deltaPhiMax_%f", deltaphimax_ );
+      LoopOutputFile_ += TString::Format("_etaband_%f", etawidth);
       LoopOutputFile_ += ".root"; 
     }
     cout << "Output name\t" << LoopOutputFile_ << "\tfrom\t" << date << endl;
@@ -181,12 +185,12 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	
 	std::cout << " JetAnalyzer_radii_strippedTree Loop function is started " << std::endl;
 	
-	TString tstring = outputname_;
-	std::cout << " TString outputname_ = " << tstring << std::endl;
+//	TString tstring = outputname_;
+//	std::cout << " TString outputname_ = " << tstring << std::endl;
 
 
  
-	
+/*	
     // reweight the MC in this case
     bool reweightMC = false;
     if (tstring.Contains("Reweighted")) {
@@ -194,7 +198,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
         reweightMC = true;
     }
     
-	//
+*/	//
 	// Unfolding can only happen if we have MC.
 	//
 
@@ -225,6 +229,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 
         if( threshold_ == 0. ){ Emin = threshold_; Ebins = 28; }
 	if( threshold_ == 150.){ Emin = threshold_; Ebins = 26;}
+	if( threshold_ == 300.){ Emin = threshold_; Ebins = 24;}
 
          
 
@@ -255,6 +260,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	  Ebins_var[i] = binEdges[i];
 	}
 
+/*
 	// We need an extended bin range for our matrix + hits & misses
 	// Let us take bins 0 - 50, 50 - 100
 	float *Ebins_ext = new float[Ebins+2];
@@ -263,10 +269,11 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	for(int i = 0; i < binEdges.size(); i++){
 	  Ebins_ext[i+2] = binEdges[i];
 	}
-
+        cout << "Variable bins done" << endl;
+*/
         /* End variable ebins. */
 
-cout << "Variable bins done" << endl;
+
 	// detector level histograms
 	
 	char name [100];
@@ -399,11 +406,16 @@ cout << "Variable bins done" << endl;
 		     TH2D *hJER_per_eGen_had_det_nsector = new TH2D("hJER_per_eGen_had_det_nsector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E", 	Ebins, Emin, Emax, 200, -5, 5);
 		     TH2D *hJER_per_eGen_em_det_nsector = new TH2D("hJER_per_eGen_em_det_nsector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
 
+		
+	        cout << "hJER 2D" << endl;
+
 		TH2D *hJER_per_distance = new TH2D("hJER_per_distance", "#DeltaE/E for distance;#DeltaR;#DeltaE/E", 	200, 0., 6.5, 
 																200, -5, 5);
 		TH2D *hJER_per_eta = new TH2D("hJER_per_eta", "#DeltaE/E for distance;#DeltaR;#DeltaE/E",               14,-6.6,-5.2,
 																200, -5, 5);
 		TH2D *hEnergy_per_eta = new TH2D("hEnergy_per_eta", "E_{gen} vs. #eta of leading jet", Ebins, Emin, Emax,  14,-6.6,-5.2);
+
+	        cout << "Matching histograms" << endl;
 
 		// Matches.
 		TH1D *hMatched = new TH1D("hMatched", "Castor and Gen jets match", 10, -0.5, 9.5);
@@ -419,8 +431,8 @@ cout << "Variable bins done" << endl;
 		TH1D *hIsolationEnergy_Egen = new TH1D("hIsolationEnergy_Egen", "Isolation energy;E_{s}/E_{gen}", 10000, 0., 100.);
 		TH1D *hIsolationEnergy_Edet = new TH1D("hIsolationEnergy_Edet", "Isolation energy;E_{s}/E_{det}", 10000, 0., 100.);
 
-
 		// RooUnfold.
+		cout << "RooUnfold" << endl;
 
 		RooUnfoldResponse response 		(hCastorJet_energy, hCastorJet_energy, "response");
 		RooUnfoldResponse response_lead		(hCastorJet_energy, hCastorJet_energy, "response_lead");
@@ -784,9 +796,10 @@ cout << "Variable bins done" << endl;
 
     	          MyGenJet castor_gen = (*CastorGenJets)[gen_jet];
 		  double gen_energy = castor_gen.Energy();
+		  double gen_eta = castor_gen.Eta();
 
 		  // Remove and skip gen jet if not hard enough.
-		  if( gen_energy < threshold_ ){ 
+		  if( gen_energy < threshold_ || gen_eta < genetamin_ || gen_eta > genetamax_ ){ 
 		    if( comments_ ){ cout << "\t\t\t\t\t\t\t\t\t\tgen_energy below threshold\t" << endl; }
 		    continue; 
 		  }
@@ -871,7 +884,8 @@ cout << "Variable bins done" << endl;
 
     	          MyGenJet castor_gen = (*CastorGenJets)[gen_jet];
     	          double gen_energy = castor_gen.Energy();
-		  if( gen_energy < threshold_ ){ 
+		  double gen_eta = castor_gen.Eta();
+		  if( gen_energy < threshold_ || gen_eta < genetamin_ || gen_eta > genetamax_ ){ 
 		    continue; 
 		  }
 		  response.Miss(gen_energy ); 
@@ -1141,7 +1155,7 @@ cout << "Variable bins done" << endl;
 	
 	// create output root file
 	Char_t filename[200];
-	std::string first(outputname_);
+	//std::string first(outputname_);
         float etamargin = etaband_;         
 	//TString datestring = date;
 

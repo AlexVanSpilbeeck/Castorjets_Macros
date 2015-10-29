@@ -91,6 +91,7 @@ int main(){
    double Eplotmin;
    double deltaPhiMax;
    double etawidth;
+   TString match;
  
    std::map<TString, TString> axis_of_interest;
    std::map<TString, TString> legends;
@@ -118,12 +119,7 @@ int main(){
      cin >> setup;
      cout << "What is energy threshold?\t";
      cin >> Ethresh;
-     cout << "Plot from which Edet value?\t";
-     cin >> Eplotmin;
-     cout << "Use what delta phi max?\t";
-     cin >> deltaPhiMax;
-     cout << "Eta band outside of CASTOR?\t";
-     cin >> etawidth;
+
 
    /********
    * DATA. * 
@@ -142,10 +138,38 @@ int main(){
     TString MCfile;
 
     // MCfile for unfolding.
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth );
+    if( setup == "unfold" ){ 
+     cout << "Plot from which Edet value?\t";
+     cin >> Eplotmin;
+     cout << "Use what delta phi max?\t";
+     cin >> deltaPhiMax;
+     cout << "Eta band outside of CASTOR?\t";
+     cin >> etawidth;
+     cout << "What matching method?\t";
+     cin >> match;
+
+      MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth ); 
+    }
 	 
     // MCfile for calibration of data.
-//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth );
+    else if( setup == "isolated"){ 
+      MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth );  
+    }
+
+
+    else if( setup == "unfoldp8"){ 
+      setup = "unfold";
+      MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_displaced" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f.root", deltaPhiMax ); 
+    }
+
+    else if( setup == "isolatedp8"){ 
+      setup = "isolated";
+      MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth ); 
+
+    }
+
+
+
 
     // MC file for calibration of MC.
 //     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_FullSimulation_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth );
@@ -887,13 +911,18 @@ cout << "MCfile\t" << MCfile << endl;
    ytitle["hCastorJet_energy"] = "#frac{1}{N}.#frac{dN}{dE_{Det}}";
    htitle["hCastorJet_energy"] = "Detector level jet energy (all)";
 
+   time_t theTime = time(NULL);
+   struct tm *currentTime = localtime(&theTime);
+
    Unfolder my_first_unfolder(	filenames, 
 				datafile, 
 				set_of_tags, 
 				Eplotmin, atof(Ethresh ), 
 				deltaPhiMax, 
 				etawidth, 
-				TString::Format("20151022_smallerEtaRange_" + Ethresh + "_%i_deltaPhiMax_0%i", static_cast<int>(Eplotmin), static_cast<int>(10. * deltaPhiMax) ) , 
+				TString::Format("%i%i%i_match_test_" + Ethresh + "_%i_deltaPhiMax_0%i_etaband_0%i_" + match, 
+				(currentTime->tm_year+1900), 	(currentTime->tm_mon + 1), 	currentTime->tm_mday,
+				static_cast<int>(Eplotmin), 	static_cast<int>(10. * deltaPhiMax), static_cast<int>(10. * etawidth) ) , 
 				0);
    my_first_unfolder.LabelPlots( TString::Format( setup + "_" + Ethresh + "_GeV_deltaPhiMax_%i", static_cast<int>(10.*deltaPhiMax) ) );
    my_first_unfolder.PrepareLegend( legends, printLabel );
@@ -931,8 +960,9 @@ cout << "MCfile\t" << MCfile << endl;
 /*
      my_first_unfolder.CalculateSystematics("all_sectors",1,1);
 */
+     my_first_unfolder.PlotResponseMatrix( 0 );
      my_first_unfolder.CalculateSystematics("good_sectors",1,1);
-     my_first_unfolder.CalculateSystematics("separate_sectors", 13, 14);
+//     my_first_unfolder.CalculateSystematics("separate_sectors", 13, 14);
 
 
 
@@ -1004,7 +1034,7 @@ cout << "MCfile\t" << MCfile << endl;
 
      // -- Closure test on data and MC.	
 
-//     my_first_unfolder.ClosureTest_data("lead", "Displaced");
+     my_first_unfolder.ClosureTest_data("lead", "Displaced");
 
      // Closure Test - method 1.
      my_first_unfolder.SetSubhistogram_cut( Eplotmin );
@@ -1020,14 +1050,14 @@ cout << "MCfile\t" << MCfile << endl;
 //     my_first_unfolder.Smear_gen(0);
 
      //my_first_unfolder.SetAddLabel( "findingSolutions" )
-     my_first_unfolder.ClosureTest_data("all", "Displaced", 1);
+//     my_first_unfolder.ClosureTest_data("all", "Displaced", 1);
 //     my_first_unfolder.ClosureTest_MC_detLevel("all");
 
      // Closure Test - method 2.
 //     my_first_unfolder.ClosureTest_data("all", "Displaced", 2);
 
-     my_first_unfolder.PlotStartingDistributions_comparingEmin("fake");
-     my_first_unfolder.PlotStartingDistributions_comparingEmin("miss");
+//     my_first_unfolder.PlotStartingDistributions_comparingEmin("fake");
+//     my_first_unfolder.PlotStartingDistributions_comparingEmin("miss");
 //     my_first_unfolder.PlotStartingDistributions_comparingEmin("detector");
 //     my_first_unfolder.PlotStartingDistributions_comparingEmin("generator");
 
@@ -1058,3 +1088,4 @@ cout << "MCfile\t" << MCfile << endl;
   return(0); 
 
 }
+

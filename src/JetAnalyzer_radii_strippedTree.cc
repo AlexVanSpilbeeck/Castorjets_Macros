@@ -109,7 +109,7 @@
 
 TFile *JetAnalyzer_radii_strippedTree::currentStaticTFile_ = new TFile();
 
-JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax, double etawidth) {
+JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname, int totalEvents, TString date, TString filename, TString jettype, double threshold, TString setup, double deltaphimax, double etawidth, TString match) {
 
     
 	std::cout << "constructing JetAnalyzer_radii_strippedTree class..." << std::endl;
@@ -127,6 +127,7 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
     deltaphimax_ = deltaphimax;
     genetamin_ = -6.6 - etawidth;
     genetamax_ = -5.2 + etawidth;
+    match_ = match;
 
     prepare_unfolding = false;
   
@@ -154,6 +155,7 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
       LoopOutputFile_ += TString::Format("_Emin_%f", threshold_);
       LoopOutputFile_ += TString::Format("_deltaPhiMax_%f", deltaphimax_ );
       LoopOutputFile_ += TString::Format("_etaband_%f", etawidth);
+      LoopOutputFile_ += "_" + match_;
       LoopOutputFile_ += ".root"; 
     }
     cout << "Output name\t" << LoopOutputFile_ << "\tfrom\t" << date << endl;
@@ -774,8 +776,9 @@ void JetAnalyzer_radii_strippedTree::Loop() {
                 double det_energy = castor_det.energy;
 		double det_phi = castor_det.phi; 
 	        int sector = CastorSector( det_phi ) ;
+		TString jettype = GetJetType( castor_det );
 
-		det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
+		det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ ); 
 
 		if( comments_ ){ cout << counter_events << "\tDet\t" << det_jet << " of\t" << CastorJets->size() << "\t" << det_energy << "\t" << det_phi << "\t" << GetJetType(castor_det) << endl; }
 
@@ -790,7 +793,8 @@ void JetAnalyzer_radii_strippedTree::Loop() {
     	        double min_delta_phi = deltaphimax_ ;
 		if( sectors_ == 1 ){ min_delta_phi = 0.1; }
 
-    	        int match_gen = -1;					  
+    	        int match_gen = -1;		
+		double max_energy = 0.;			  
 
     	        for(int gen_jet =  CastorGenJets->size()-1; gen_jet >=0; gen_jet--){
 
@@ -809,14 +813,31 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 
 		  if( comments_ ){ cout << "\t\t\t\t\tGen\t" << gen_jet << " of\t" << CastorGenJets->size() << "\t" << gen_energy << "\t" << gen_phi << endl; }
 			
-		  // Jet lies closest: save Delta Phi and index of the jet.		
-    	          if( delta_phi < min_delta_phi ){
-		    if( comments_  ){ cout << "\t\t\t\t\t\t\t\t\t\t\t\t\tNew delta phi minimum" << endl; }
-    	            min_delta_phi = delta_phi;
-    	            match_gen = gen_jet;
-    	          } // New minimum.
-		  if( comments_ ){ cout << "\t\t\t\t\t\t\t\t\t\t\t" << delta_phi << "\t" << min_delta_phi << endl; }
-    	        } // Loop over possible match candidates (gen).
+		  // Jet lies closest: save Delta Phi and index of the jet.
+		  if( match_ == "matchPhi" ){		
+    	            if( delta_phi < min_delta_phi ){
+		      if( comments_  ){ cout << "\t\t\t\t\t\t\t\t\t\t\t\t\tNew delta phi minimum" << endl; }
+    	              min_delta_phi = delta_phi;
+    	              match_gen = gen_jet;
+    	            } // New minimum.
+		    if( comments_ ){ cout << "\t\t\t\t\t\t\t\t\t\t\t" << delta_phi << "\t" << min_delta_phi << endl; }
+    	          } //Match E.
+
+
+		  // Hardest jet close to det. jet: save Delta Phi, energy and index of the jet.
+		  if( match_ == "matchE" ){		
+    	            if( gen_energy > max_energy && delta_phi < deltaphimax_ ){
+		      if( comments_  ){ cout << "\t\t\t\t\t\t\t\t\t\t\t\t\tNew delta phi minimum" << endl; }
+    	              max_energy = gen_energy;
+    	              match_gen = gen_jet;
+    	            } // New minimum.
+		    if( comments_ ){ cout << "\t\t\t\t\t\t\t\t\t\t\t" << delta_phi << "\t" << min_delta_phi << endl; }
+    	          } //Match E.
+
+		}// Loop over possible match candidates (gen).
+
+
+
 
     	        // We have a matching gen. jet
     	        if( match_gen != -1 ){
@@ -1459,5 +1480,6 @@ int JetAnalyzer_radii_strippedTree::posLeadingTrackJet(std::vector<MyTrackJet> J
 	
 	return posLeadingTrackJetresult;
 }
+
 
 

@@ -54,7 +54,8 @@ int main(int argc, char *argv[])
                                                           atof( argv[8]), // Energy threshold.
                                                           argv[9],	// setup
 							  0.,		// MC only variable.
-							  0. );      	// MC only variable.
+							  0.,      	// MC only variable.
+							  "0.");	// MC only variable.
                         }
 
 		}	
@@ -222,7 +223,8 @@ int main(int argc, char *argv[])
 							  atof(argv[8]), // Energy threshold 
 							  argv[9],	 // Setup
 							  atof(argv[10]),// Maximum delta phi for matched jet pairs.
-							  atof(argv[11]) );	// Width of eta band outside of Castor wherein gen jets may lie.
+							  atof(argv[11]),// Width of eta band outside of Castor wherein gen jets may lie.
+							  argv[12] );	// matchE or matchPhi: how do we match the response matrix?
 			  }
                         }
                 }

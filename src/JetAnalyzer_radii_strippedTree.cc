@@ -611,16 +611,8 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	// start event loop
 
 	int absurdFake = 0;
+        int emptyCastor = 0;
 	for( counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {
-/*
-	if( 	counter_events != 10360 && 
-		counter_events != 22760 &&
-		counter_events != 34676 &&
-		counter_events != 45338 &&
-		counter_events != 49909 &&
-		counter_events != 52584 ){ continue; }
-*/		
-//	for( counter_events = 0; counter_events < treesize; counter_events++ ) {
 	       
 	  if( comments_ ){ cout << "******************************************" << endl; }
 	  if( counter_events%1000== 0){ cout << "\t" << counter_events << "\tpassed" << endl; }
@@ -630,7 +622,9 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	  /////////////////////////////////////////
 	
    	  if( !isData_) { b_CastorGenJets->GetEntry( counter_events ); }
-	  b_CastorJets->GetEntry( counter_events );			
+	  b_CastorJets->GetEntry( counter_events );	
+
+
 				
 	  /////////////////////////////////////////
 	  // Start Nvertex == 1 part of the code 
@@ -661,6 +655,8 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	      int sector = CastorSector( det_phi ) ; 
  	      det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
 	    }
+	    if( det_jet == 0 && det_energy < threshold_ ){ emptyCastor++; }		
+
 	    if( comments_ ){ cout << "Type is\t" << GetJetType( castor_jet ) << "\tfor\t" << counter_events << "\t" << det_jet << "\t" << det_energy << endl; }
 /*
 	    if(  det_energy < threshold_ ){ 
@@ -720,6 +716,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	    ////////////////////////////////////////////////////////
 
 	    for(int det_jet = 0; det_jet < CastorJets->size(); det_jet++){
+
 
 	      MyCastorJet castor_det = (*CastorJets)[det_jet];
 	      TString detjettype = GetJetType(castor_det);
@@ -1172,7 +1169,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
     // write all histo's to file
     
 	std::cout << "total number of events = " << totalevents << " from " << it << " file(s)" << endl;
-	
+	std::cout << emptyCastor << " events without Castor jets.\t" << endl;
 	
 	// create output root file
 	Char_t filename[200];

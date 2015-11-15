@@ -109,7 +109,7 @@ class Unfolder{
    void LabelPlots( TString label );
    void Plot_Absolute(TPad* &pad_, TString variable);
    void Plot_Absolute(TPad* &pad_, vector<TH1D*>);
-   void Plot_DistributionsResponseObject();
+   void Plot_DistributionsResponseObject(int files);
    void Plot_Ratio(TPad* &pad_, TString variable);
    void Plot_Ratio(TPad* &pad_, vector<TH1D*>);
    void Plot_Unfolded();
@@ -5703,13 +5703,15 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
 
   TH1D* hAverage, *hFirst;
   TString drawoptions = "histsame";
+  double models = 0.;
 
   TH1D* hGen, *hDet;
 
-//  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
-  for(int MC_ = 0; MC_ < 2 ; MC_++){
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
     //-- Generator level.
-
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
+    models++;
+    
     //-- Data unfolded.
     TH1D* hData;
 
@@ -5726,7 +5728,7 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
     }
   }
 
-  hAverage->Scale( 1./2. );
+  hAverage->Scale( 1./models );
 
   hFirst = (TH1D*)hAverage->Clone("First");
 
@@ -5757,7 +5759,10 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
 
 
   //-- Model dependence.
-  for(int MC_ = 0; MC_ < 2 ; MC_++){
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+    //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
+
     //-- Generator level.
 
     TH1D* hGen, *hDet, *hData;
@@ -5823,10 +5828,13 @@ void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variabl
   TString drawoptions = "edatasame";
 
   TH1D* hGen, *hDet;
+  double models = 0.;
 
-//  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
-  for(int MC_ = 0; MC_ < 2 ; MC_++){
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
     //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
+    //-- Generator level.
+    models++;
 
     //-- Data unfolded.
     TH1D* hData;
@@ -5844,7 +5852,7 @@ void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variabl
     }
   }
 
-  hAverage->Scale( 1./2. );
+  hAverage->Scale( 1./models );
 
   hFirst = (TH1D*)hAverage->Clone("First");
 
@@ -5878,7 +5886,9 @@ void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variabl
 
 
   //-- Model dependence.
-  for(int MC_ = 0; MC_ < 2 ; MC_++){
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+    //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
     //-- Generator level.
 
     TH1D* hGen, *hDet, *hData;
@@ -5955,7 +5965,9 @@ void Unfolder::Plot_Unfolded_positionDependence(TPad* & pad_, TString variable, 
   legend->AddEntry( hData, legend_info_[ MC_files_[0] ], "ep"  );  
 
   //-- Model dependence.
-  for(int MC_ = 2; MC_ < 4 ; MC_++){
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+    //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "position" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
     //-- Generator level.
 
     TH1D* hGen, *hDet;
@@ -6014,7 +6026,9 @@ void Unfolder::Plot_Unfolded_Ratio_positionDependence(TPad* & pad_, TString vari
   drawoptions = "edatasame";
 
   //-- Model dependence.
-  for(int MC_ = 2; MC_ < 4 ; MC_++){
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+    //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "position" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
     //-- Generator level.
 
     TH1D* hGen, *hDet;
@@ -6233,7 +6247,7 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variabl
 
 
 
-void Unfolder::Plot_DistributionsResponseObject(){
+void Unfolder::Plot_DistributionsResponseObject(int files){
 
   TCanvas *can_;
   TPad *pad_abs_, *pad_ratio_;
@@ -6246,7 +6260,16 @@ void Unfolder::Plot_DistributionsResponseObject(){
 
   TLegend* legend = new TLegend( 0.5, 0.65, 0.93, .95);
 
-  for(int file_ = 0; file_ < MC_files_.size(); file_++){
+  int compared_files;
+  TString compared_files_label;
+  if( files == 1 ){ 
+	compared_files = 1;
+	compared_files_label = "leadingSample"; }
+  else{ compared_files = MC_files_.size();
+	compared_files_label = "allSamples"; }
+
+
+  for(int file_ = 0; file_ < compared_files; file_++){
 
     TString filename = MC_files_[ (file_) ];
     TFile* _file = TFile::Open( filename, "read");
@@ -6275,7 +6298,7 @@ void Unfolder::Plot_DistributionsResponseObject(){
     //-- Measured to truth ratio.
     pad_ratio_->cd(); 
     hMeasured->Divide( hTruth );
-    hMeasured->GetYaxis()->SetRangeUser(0., 1.5);
+    hMeasured->GetYaxis()->SetRangeUser(0., 2.);
     hMeasured->Draw( drawoptions_ratio );
     hMeasured->GetXaxis()->SetTitle("E (GeV)");
     drawoptions_ratio = "histsame";
@@ -6285,8 +6308,8 @@ void Unfolder::Plot_DistributionsResponseObject(){
   pad_abs_->cd();
   legend->Draw();
 
-  can_->SaveAs( TString::Format(folder_ + "/Compare_truth_measured_deltaphi_0%i_etaband_0%i.C", static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) )  );
-  can_->SaveAs( TString::Format(folder_ + "/Compare_truth_measured_deltaphi_0%i_etaband_0%i.pdf", static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
+  can_->SaveAs( TString::Format(folder_ + "/Compare_truth_" + compared_files_label + "_measured_deltaphi_0%i_etaband_0%i.C", static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) )  );
+  can_->SaveAs( TString::Format(folder_ + "/Compare_truth_" + compared_files_label + "_measured_deltaphi_0%i_etaband_0%i.pdf", static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
 
 
 }

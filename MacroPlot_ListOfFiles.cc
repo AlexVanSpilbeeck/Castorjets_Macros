@@ -103,6 +103,7 @@ int main(){
    std::map<TString, std::map<TString, TString> > set_of_tags;
    std::map<TString, TString> calibration_tag;
    std::map<TString, TString> scalefactors;
+   std::map<TString, TString> mc_type;	// Is our MC a model or position dependent source?
   
 
    bool vary_eta 	= false;
@@ -114,7 +115,7 @@ int main(){
    bool compare_em 	= false;
    bool determine_fit 	= false;
    bool systematics_ 	= true;
-  double scalefactors_Data_;
+   double scalefactors_Data_;
 
    cout << "\n\n\n" << endl;
    cout << "Welcome to the show!" << endl << endl << endl;
@@ -268,6 +269,7 @@ int main(){
      legends[MCfile] = "Displaced (Pythia6)";
      calibration_tag[MCfile] = "MC";	
      scalefactors[MCfile] = "547922";
+     mc_type[MCfile] = "actual";
 
      MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
      filenames.push_back( MCfile );
@@ -279,6 +281,19 @@ int main(){
      legends[MCfile] = "Displaced (Pythia8)";
      calibration_tag[MCfile] = "MC";	
      scalefactors[MCfile] = "670215";
+     mc_type[MCfile] = "model";   
+
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_EPOS_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("(ak5, ak5) - Displaced, EPOS");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Displaced");    
+     printLabel[MCfile] = "Displaced_EPOS";
+     legends[MCfile] = "Displaced (EPOS)";
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "632346";
+     mc_type[MCfile] = "model";   
 
      MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_down_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
      filenames.push_back( MCfile );
@@ -290,6 +305,7 @@ int main(){
      legends[MCfile] = "Displaced (down)";
      calibration_tag[MCfile] = "MC";	
      scalefactors[MCfile] = "608839";
+     mc_type[MCfile] = "position";   
 
      MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_up_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
      filenames.push_back( MCfile );
@@ -301,6 +317,7 @@ int main(){
      legends[MCfile] = "Displaced (up)";
      calibration_tag[MCfile] = "MC";	
      scalefactors[MCfile] = "592822";
+     mc_type[MCfile] = "position";   
 
      datafile = "/user/avanspil/Castor_Analysis/ak5_data_unfold_Emin_" + Ethresh + ".000000.root";
    }
@@ -308,6 +325,7 @@ int main(){
    set_of_tags["calibration_tag"] = calibration_tag;
    set_of_tags["scalefactors"] = scalefactors;
    set_of_tags["legends"] = legends;
+   set_of_tags["mc_type"] = mc_type;
 
     // MCfile for calibration of data.
 //     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f.root", deltaPhiMax, etawidth );
@@ -1235,17 +1253,25 @@ cout << "MCfile\t" << MCfile << endl;
      //-- Comparison of unfolded distributions.
 
 
-     my_first_unfolder.Plot_DistributionsResponseObject();
+     	//-- Extract the response object per file and plot detector and generator level distributions.
+    my_first_unfolder.Plot_DistributionsResponseObject(1);	
+    my_first_unfolder.Plot_DistributionsResponseObject(-1);	
 
-     my_first_unfolder.Chi2diff_test_data("all", "Displaced", 2);
+	//-- Unfold with a number of Bayesian iterations and check the chi2 between two consecutive iterations.
+	//-- This is Delta Chi2.
+//     my_first_unfolder.Chi2diff_test_data("all", "Displaced", 2);
 
-/*
+
+	//-- Plot the different model samples, calculate the average and plot the absolutes and ratios versus the average.
      my_first_unfolder.DoublePaddedComparison_modelDependence("all", 30);
      my_first_unfolder.DoublePaddedComparison_modelDependence("all", 50);
 
+	//-- Plot the actual sample and the samples containing the uncertainty on the position.
+	//-- Plot the absolute and plot ratio versus the actual sample.
      my_first_unfolder.DoublePaddedComparison_positionDependence("all", 30);
      my_first_unfolder.DoublePaddedComparison_positionDependence("all", 50);
-
+/*
+	//-- Plot all systematics in absolute and ratio.
      TCanvas* can_30it;
      my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_30it, "all", 30);
 
@@ -1253,10 +1279,10 @@ cout << "MCfile\t" << MCfile << endl;
      my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_50it, "all", 50);
 */
 
-     my_first_unfolder.DoublePaddedComparison_unfolding("all", 30);
-     my_first_unfolder.DoublePaddedComparison_unfolding("all", 50);
+//     my_first_unfolder.DoublePaddedComparison_unfolding("all", 30);	//
+//     my_first_unfolder.DoublePaddedComparison_unfolding("all", 50);	/
 
-     my_first_unfolder.Plot_Unfolded();
+///     my_first_unfolder.Plot_Unfolded();
 
 
 /*

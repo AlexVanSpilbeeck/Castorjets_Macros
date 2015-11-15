@@ -224,6 +224,20 @@ int main(){
 	scalefactors[MCfile] = "670215"; 
      }
 
+     if( model_ == "epos" && setup == "smear"){
+       cout << "MC file 3" << endl;
+
+       filenames.push_back( MCfile );
+       legendEntries.push_back("(ak5, ak5) - Displaced, EPOS");
+       colours.push_back(getColor(color_index++));
+       linestyle.push_back( style_of_line++);
+       fileLabel.push_back("Displaced");    
+       printLabel[MCfile] = "Displaced_EPOS";
+       legends[MCfile] = "Displaced (Epos)";
+       calibration_tag[MCfile] = "MC";	
+	scalefactors[MCfile] = "632346"; 
+     }
+
        datafile = "/user/avanspil/Castor_Analysis/ak5_data_unfold_Emin_" + Ethresh + ".000000.root";
 
    }

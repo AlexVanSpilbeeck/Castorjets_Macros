@@ -1094,6 +1094,7 @@ cout << "MCfile\t" << MCfile << endl;
 
    for(int file_ = 0; file_ < filenames.size(); file_++){
      my_first_unfolder.PlotResponseMatrix( file_ );
+     my_first_unfolder.PlotNjetsMatrix( file_ );
    }
 
    my_first_unfolder.SetScaleFactorData( scalefactors_Data_ );
@@ -1250,6 +1251,9 @@ cout << "MCfile\t" << MCfile << endl;
 
    if( setup == "unfold"){
 
+     //-- Comparison of eta diff.
+     my_first_unfolder.PlotEtaDiff();
+
      //-- Comparison of unfolded distributions.
 
 
@@ -1291,11 +1295,12 @@ cout << "MCfile\t" << MCfile << endl;
 /*
      my_first_unfolder.Hist_DetLevel();
 */
-/*
+
      my_first_unfolder.PlotStartingDistributions_MCfiles("fake");
      my_first_unfolder.PlotStartingDistributions_MCfiles("miss");
      my_first_unfolder.PlotStartingDistributions_MCfiles("detector");
-
+     my_first_unfolder.PlotStartingDistributions_MCfiles("generator");
+/*
      my_first_unfolder.PlotStartingDistributions_comparingEmin("fake");
      my_first_unfolder.PlotStartingDistributions_comparingEmin("miss");
      my_first_unfolder.PlotStartingDistributions_comparingEmin("detector");

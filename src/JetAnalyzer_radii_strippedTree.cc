@@ -306,6 +306,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 
         TH1D *hGenJet_energy = new TH1D("hGenJet_energy","GenJet energy distribution",		Ebins, Emin, Emax);
 	TH1D *hGenJet_energy_lead = new TH1D("hGenJet_energy_lead","Leading GenJet energy distribution",          Ebins, Emin, Emax);
+        TH1D *hGenJet_eta = new TH1D("hGenJet_eta","GenJet eta distribution;#eta;;",		20, -7.1, -4.7);
 	TH1D *hCastorJet_pt = new TH1D("hCastorJet_pt","CastorJet pt distribution",30,0,30);
 	TH1D *hCastorJet_em = new TH1D("hCastorJet_em","CastorJet EM energy distribution",150,0,1500);
 	TH1D *hCastorJet_had = new TH1D("hCastorJet_had","CastorJet HAD energy distribution",150,0,1500);
@@ -632,10 +633,40 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 
   	  // Match DET and GEN jets. 
   	  if( !isData_ ) { 
-	    hNumber_of_match_jets->Fill( CastorJets->size(), CastorGenJets->size());             
+
+	    int ndet = 0, ngen = 0;
+
+   	    for(int det_jet = CastorJets->size()-1; det_jet >= 0; det_jet-- ){
+	      MyCastorJet castor_jet = (*CastorJets)[ det_jet ];
+	      double det_energy = castor_jet.energy;           
+	      double det_phi = castor_jet.phi;
+	      int sector = CastorSector( det_phi ) ; 
+ 	      det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
+
+	      if( det_energy> threshold_ ){ ndet++; }
+	    } // Loop over det. jets.
+
+	    for( int gen_jet =  CastorGenJets->size()-1; gen_jet >=0; gen_jet--){
+	      MyGenJet castor_gen = (*CastorGenJets)[gen_jet];
+	      double gen_energy = castor_gen.Energy();
+
+	      if( gen_energy > threshold_ ){
+		double gen_eta = castor_gen.Eta();
+		hGenJet_eta->Fill( gen_eta );
+
+		if( gen_eta > genetamin_ && gen_eta < genetamax_ ){ 
+    	          hGenJet_energy->Fill( gen_energy );
+		  ngen++;
+		}
+	      }
+	    }
+	    hNumber_of_match_jets->Fill( ndet, ngen);  	    
+          }
+
+           
 	    if( ((*CastorGenJets)[0]).Energy() > threshold_ ){ hGenJet_energy_lead->Fill( ((*CastorGenJets)[0]).Energy() ); }
 	    hCastorJet_pt->Fill( ((*CastorGenJets)[0]).Pt() );
-	  }
+	  
   	  int matched_pairs = 0;
 
           // -- MATCHING
@@ -669,17 +700,6 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 
 
 
-	  if( !isData_ ){
-	    for( int gen_jet =  CastorGenJets->size()-1; gen_jet >=0; gen_jet--){
-	      MyGenJet castor_gen = (*CastorGenJets)[gen_jet];
-	      double gen_energy = castor_gen.Energy();
-	      hGenJet_energy->Fill( gen_energy );
-		
-	      //if( gen_energy < threshold_){
-	      //  CastorGenJets->erase( CastorGenJets->begin() + gen_jet ); 
-	      //}
-	    }
-          }
 
 	  if( comments_ && !isData_){ cout << "\n\n\n$$$\tEvent\t" << counter_events << "\tdet size\t" << CastorJets->size() << "\tgen size\t" << CastorGenJets->size() << endl;}
 
@@ -1223,6 +1243,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	hCastorJet_multi->Write();
 	hGenJet_energy->Write();
         hGenJet_energy_lead->Write();
+	hGenJet_eta->Write();
 
 
         hCastorJet_energy_gen->Write();
@@ -1477,6 +1498,7 @@ int JetAnalyzer_radii_strippedTree::posLeadingTrackJet(std::vector<MyTrackJet> J
 	
 	return posLeadingTrackJetresult;
 }
+
 
 
 

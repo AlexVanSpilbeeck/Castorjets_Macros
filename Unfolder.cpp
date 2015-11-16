@@ -140,6 +140,8 @@ class Unfolder{
 
    void Set_DeltaPhi_Etaband(double deltaphi, double etaband);
 
+   void PlotNjetsMatrix(int file_ );
+   void Get_Njets(int file_, TH2D* &hist_);
 
 
    void Chi2diff_test_data(TString variable, TString file, int method);
@@ -149,6 +151,8 @@ class Unfolder{
    void PlotStartingDistributions(TString distribution);
    void PlotStartingDistributions_comparingEmin(TString distribution);
    void PlotStartingDistributions_MCfiles(TString distribution);
+
+   void PlotEtaDiff();
 
    void CalibrationFunction(int phi_first, int phi_last, TGraphErrors* &gre);
    void CalibrationFunction_workingsectors(int first_sector, int last_sector, TGraphErrors* &gre);
@@ -333,6 +337,26 @@ void Unfolder::Get_ResponseMatrix(int file_, TH2D* &hist_){
    hist_ = hRes;
 }
 
+
+
+
+
+void Unfolder::Get_Njets(int file_, TH2D* &hist_){
+
+   TFile *_file0;
+   TString drawoptions = "";
+
+   if( file_ < MC_files_.size() ){      _file0 = new TFile( MC_files_[file_], "Read");  drawoptions = "hist";}
+   else if( file_ == -1 ){              _file0 = new TFile( datafile_, "Read");         drawoptions = "data";}
+
+   TH2D* hRes = (TH2D*)_file0->Get("hNumber_of_match_jets");      hRes->Sumw2();
+   hRes->GetXaxis()->SetTitle("N_{det}");
+   hRes->GetYaxis()->SetTitle("N_{gen}");
+
+   if( normalise_1 ) hRes->Scale( 1./hRes->Integral() );
+
+   hist_ = hRes;
+}
 
 
 
@@ -3950,11 +3974,36 @@ void Unfolder::PlotResponseMatrix(int file_ ){
 
   can->SetLogz();
 
-  can->SaveAs( TString::Format("Plots/ResponseMatrix/Response_matrix_" + label_ + "_" + printLabel_[ MC_files_[file_] ] + ".C") );
-  can->SaveAs( TString::Format("Plots/ResponseMatrix/Response_matrix_" + label_ + "_" + printLabel_[ MC_files_[file_] ] + ".pdf") );
+  can->SaveAs( TString::Format(folder_ + "Response_matrix_" + label_ + "_" + printLabel_[ MC_files_[file_] ] + ".C") );
+  can->SaveAs( TString::Format(folder_ + "Response_matrix_" + label_ + "_" + printLabel_[ MC_files_[file_] ] + ".pdf") );
 
   cout << "€€€\t" << hRes->Integral() << "\tevents" << endl;
 }
+
+
+
+
+
+
+void Unfolder::PlotNjetsMatrix(int file_ ){
+
+  TCanvas *can;
+  PrepareCanvas_2D(can, "NumberOfJets_" + printLabel_[ MC_files_[file_] ] );
+
+  TH2D* hRes;
+  Get_Njets( file_, hRes );
+  Prepare_2Dplot( hRes );
+
+  hRes->Draw("colz");
+
+  can->SetLogz();
+
+  can->SaveAs( TString::Format(folder_ + "NumberOfJets_" + label_ + "_" + printLabel_[ MC_files_[file_] ] + ".C") );
+  can->SaveAs( TString::Format(folder_ + "NumberOfJets_" + label_ + "_" + printLabel_[ MC_files_[file_] ] + ".pdf") );
+
+  cout << "€€€\t" << hRes->Integral() << "\tevents" << endl;
+}
+
 
 
 
@@ -5356,7 +5405,7 @@ void Unfolder::PlotStartingDistributions_MCfiles(TString distribution){
   if (distribution == "generator"){ 	distributionname = "hGenJet_energy"; }
   if (distribution == "miss"){ 	distributionname = "hCastorJet_miss_all"; }
 
-  TString drawoptions = "ph";
+  TString drawoptions = "hist";
 
   for(int file_ = 0; file_ < MC_files_.size(); file_++){
   
@@ -5377,22 +5426,21 @@ void Unfolder::PlotStartingDistributions_MCfiles(TString distribution){
     hDistribution->SetLineColor( getColor( file_+1 ) ); 
     hDistribution->SetLineStyle( file_ + 1 ); 
 
-    hDistribution->SetMarkerSize( 1.25 );
     hDistribution->GetXaxis()->SetNdivisions( 504 );
     hDistribution->GetXaxis()->SetTitle("E (GeV)");
 
 
     hDistribution->DrawClone( drawoptions );
-    drawoptions = "phsame";
-    legend->AddEntry( hDistribution, TString::Format( distribution + " " + legend_info_[MC_files_[file_]]), "lp" ) ;
+    drawoptions = "histsame";
+    legend->AddEntry( hDistribution, TString::Format( distribution + " " + legend_info_[MC_files_[file_]]), "l" ) ;
       legend->SetFillColor( 0 );
   }
    
   legend->Draw();
 
   can_startingDistributions->SetLogy();
-  can_startingDistributions->SaveAs( TString::Format(folder_ + "can_startingDistribution_" + distribution + "_Emin_%i.C", static_cast<int>( Ethresh_ ) ) );
-  can_startingDistributions->SaveAs( TString::Format(folder_ + "can_startingDistribution_" + distribution + "_Emin_%i.pdf", static_cast<int>( Ethresh_) ) );
+  can_startingDistributions->SaveAs( TString::Format(folder_ + "can_startingDistribution_" + distribution + "_Emin_%i_deltaPhiMax_0%i_etaband_0%i.C", static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ), static_cast<int>( 10. * etawidth_ ) ) );
+  can_startingDistributions->SaveAs( TString::Format(folder_ + "can_startingDistribution_" + distribution + "_Emin_%i_deltaPhiMax_0%i_etaband_0%i.pdf", static_cast<int>( Ethresh_) , static_cast<int>( 10. * deltaPhiMax_ ), static_cast<int>( 10. * etawidth_ ) ) );
 
 }
 
@@ -6310,6 +6358,64 @@ void Unfolder::Plot_DistributionsResponseObject(int files){
 
   can_->SaveAs( TString::Format(folder_ + "/Compare_truth_" + compared_files_label + "_measured_deltaphi_0%i_etaband_0%i.C", static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) )  );
   can_->SaveAs( TString::Format(folder_ + "/Compare_truth_" + compared_files_label + "_measured_deltaphi_0%i_etaband_0%i.pdf", static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
+
+
+}
+
+
+
+//-- Compare the etaDiff distributions between the different MC samples.
+void Unfolder::PlotEtaDiff(){
+
+ TString canvasname = TString::Format("Compare_eta_diff_Emin_%i_deltaPhiMax_0%i_etaband_0%i", static_cast<int>( Ethresh_ ), static_cast<int>( 10. * deltaPhiMax_ ), static_cast<int>( 10. * etawidth_ ) );
+
+ TCanvas* can_;
+ PrepareCanvas( can_, canvasname );
+
+ TString drawoptions = "hist";
+
+ double min_val, max_val;
+ TH1D* hFirst;
+
+ for(int file_ = 0; file_ < MC_files_.size(); file_++){
+
+   // Open file.
+   TString filename = MC_files_[ (file_) ];
+   TFile* _file = TFile::Open( filename, "read");
+
+   // Prepare scaling.
+   TString scalefactor_MC = (set_of_tags_[ "scalefactors" ])[ MC_files_[file_] ];
+   double scalefactors_MC_ = scalefactor_MC.Atof() ;
+
+   // Extract histogram, scale and prepare.
+   TH1D* hGen = (TH1D*)_file->Get("hGenJet_eta");
+   hGen->Scale( 1./scalefactors_MC_ );   
+
+   hGen->SetLineColor( getColor( file_+1 ) );
+   hGen->SetLineWidth( 2 );
+   hGen->SetLineStyle( file_+1);
+
+   if( file_ == 0 ){
+     hFirst = (TH1D*)hGen->Clone("hFirst");
+     hFirst->GetXaxis()->SetTitle("#eta_{gen}");
+     hFirst->Draw( drawoptions );
+   }
+   else{
+     hGen->Draw( drawoptions );
+   }
+   First_Plot( hFirst, hGen, file_, max_val, min_val);
+
+   hGen->Draw( drawoptions );
+
+   drawoptions = "histsame";
+ }
+
+ hFirst->GetYaxis()->SetRangeUser(0.9 * min_val, 1.1 * max_val);
+ can_->SetLogy();
+
+ can_->SaveAs( TString::Format( folder_ + canvasname + ".C") );
+ can_->SaveAs( TString::Format( folder_ + canvasname + ".pdf") );
+
 
 
 }

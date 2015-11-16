@@ -1944,7 +1944,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   TString htitle;
   TLegend *leg = new TLegend(0.65, 0.45, 0.95, 0.95);
     leg->SetFillColor(0);
-  int iterations_ = 50, iterations_start = 50;
+  int iterations_ = 50, iterations_start = 1;
   int actual_iterations = 0;
 
   double xaxisgraph[iterations_], yaxisgraph[iterations_], chi2diff[iterations_];
@@ -4486,7 +4486,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   ofstream testing_covariance;
   testing_covariance.open("Testing_covariance.txt", ios::app);
 
-  cout << "***\t" << iterations << "\t" << hUnfold->Integral() << endl;
+  cout << "***\t" << iterations << "\t" << hUnfold->Integral() << "\t" << Ethresh_ << endl;
 
   // -- Open files.
   TFile* _file_det, *_file_unfold;

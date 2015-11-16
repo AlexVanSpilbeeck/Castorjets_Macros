@@ -1206,7 +1206,7 @@ cout << "MCfile\t" << MCfile << endl;
 //     my_first_unfolder.ClosureTest_data("lead", "Displaced");
 
      // Closure Test - method 1.
-//     my_first_unfolder.SetSubhistogram_cut( Eplotmin );
+     my_first_unfolder.SetSubhistogram_cut( Eplotmin );
 
 //     my_first_unfolder.PlotStartingDistributions();
 
@@ -1254,8 +1254,8 @@ cout << "MCfile\t" << MCfile << endl;
 
 
      	//-- Extract the response object per file and plot detector and generator level distributions.
-    my_first_unfolder.Plot_DistributionsResponseObject(1);	
-    my_first_unfolder.Plot_DistributionsResponseObject(-1);	
+//    my_first_unfolder.Plot_DistributionsResponseObject(1);	
+//    my_first_unfolder.Plot_DistributionsResponseObject(-1);	
 
 	//-- Unfold with a number of Bayesian iterations and check the chi2 between two consecutive iterations.
 	//-- This is Delta Chi2.
@@ -1263,13 +1263,13 @@ cout << "MCfile\t" << MCfile << endl;
 
 
 	//-- Plot the different model samples, calculate the average and plot the absolutes and ratios versus the average.
-     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 30);
-     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 50);
+//     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 30);
+//     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 50);
 
 	//-- Plot the actual sample and the samples containing the uncertainty on the position.
 	//-- Plot the absolute and plot ratio versus the actual sample.
-     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 30);
-     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 50);
+//     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 30);
+//     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 50);
 /*
 	//-- Plot all systematics in absolute and ratio.
      TCanvas* can_30it;

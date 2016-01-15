@@ -20,6 +20,8 @@
 #include <TPad.h>
 #include <TColor.h>
 #include <TText.h>
+#include <TObjString.h>
+
 #include <TLine.h>
 #include <TPaletteAxis.h>
 
@@ -38,9 +40,15 @@
 #include <stdio.h>
 #include <cstring>
 
+/*
 #include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
-
+#include "../../../RooUnfold-1.1.1/src/RooUnfoldBinByBin.h"
+#include "../../../RooUnfold-1.1.1/src/RooUnfoldBayes.h"
+#include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
+#include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
+*/
 #include "color.h"
+#include "tdrstyle.C"
 #include "NonZeroMinimum.h"
 #include "MacroPlot_Unfold_energy_MC.h"
 
@@ -56,23 +64,30 @@
 
 using namespace std;
 
-int main(){
+int main(int argc, char* argv[]){
    gROOT->SetStyle ("Plain");
    gStyle->SetPalette(1);
    gStyle->SetOptTitle(0);
+
+   setTDRStyle();
 
 //   TString label = "20150323_Plots_Calibrating_ak5ak5";
    TString label = "20150330_Plots_unfolding";
 
    // -- Prepare the necessary vectors.
 
+   // MC files needed for calibration, unfolding, statistics.
    std::vector<TString> filenames;
       std::vector<TString> fileLabel;
       std::vector<TString> legendEntries;
       std::vector<int>     colours;
       std::vector<int>	linestyle;
    
+   // Data. THE data.
    std::vector<TString> data_files;
+
+   // Files with Egen distributions with several setups.
+   std::vector<TString> extra_files;
    
    std::vector<TString> plotVariables;
      std::vector<TString> plotX;
@@ -86,17 +101,19 @@ int main(){
    
    int style_of_line = 1; 
 
-   TString setup;  
-   TString Ethresh;
-   double Eplotmin;
-   double deltaPhiMax;
-   double etawidth;
+   TString setup = "";  
+   TString Ethresh = "";
+   TString type = "";
+   double Eplotmin = 0.;
+   double deltaPhiMax = 0.;
+   double etawidth = 0.;
    TString match ="";
    TString model_ = "";
    TString modelfilename = "";
  
    std::map<TString, TString> axis_of_interest;
    std::map<TString, TString> legends;
+   std::map<TString, TString> legends_gen;
    std::map<TString, TString> printLabel;
    std::map<TString, TString> xtitle, ytitle, htitle;
 
@@ -119,9 +136,10 @@ int main(){
 
    cout << "\n\n\n" << endl;
    cout << "Welcome to the show!" << endl << endl << endl;
- 
-     cout << "What is the setup?\t";
-     cin >> setup;
+
+   setup = argv[1];
+   Ethresh = argv[2];
+   type = argv[7];
 
 
 
@@ -141,13 +159,49 @@ int main(){
      //datafile = "Histograms/ak5_data_" + setup + "_Emin_" + Ethresh + ".000000.root";
      legends[datafile] = "Data";
      printLabel[datafile] = "data";
-     scalefactors_Data_ = 4661641;
+     scalefactors_Data_ = 7388000;
      scalefactors[datafile] = TString::Format("%i", static_cast<int>(scalefactors_Data_) );
 
 
    /******
    * MC. * 
    ******/ 
+   if( setup == "isolated"){
+     deltaPhiMax = 0.2;
+     etawidth = 0.0;
+     
+
+
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_isolated_Emin_150.000000_deltaPhiMax_%f_etaband_%f_matchE.root", deltaPhiMax, etawidth );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("(ak5, ak5)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("ShowerLibrary");    
+     printLabel[MCfile] = "ShowerLibrary_Pythia6Z2star";
+     legends[MCfile] = "Shower Library (Pythia6)";
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "547922";
+     mc_type[MCfile] = "actual";
+
+
+/*     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_FullSimulation_isolated_Emin_150.000000.root", deltaPhiMax, etawidth );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("(ak5, ak5)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("FullSimulation");    
+     printLabel[MCfile] = "FullSimulation_Pythia6Z2star";
+     legends[MCfile] = "Full Simulation(Pythia6)";
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "547922";
+     mc_type[MCfile] = "actual";
+
+     printLabel[""] = "isolated";
+     scalefactors[""] = "0";
+*/
+   }
+
    if( setup == "raw" ){
      MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
      filenames.push_back( MCfile );
@@ -166,8 +220,7 @@ int main(){
 
      //-- Smearing: only 1 file.	 
    if( setup == "smear" ){
-     cout << "What is energy threshold?\t";
-     cin >> Ethresh;
+
      cout << "Plot from which Edet value?\t";
      cin >> Eplotmin;
      cout << "Use what delta phi max?\t";
@@ -239,7 +292,8 @@ int main(){
 	scalefactors[MCfile] = "632346"; 
      }
 
-       datafile = "/user/avanspil/Castor_Analysis/ak5_data_unfold_Emin_" + Ethresh + ".000000.root";
+       datafile = "/user/avanspil/Castor_Analysis/ak5_data_unfold_Emin_" + Ethresh + ".000000_all.root";
+
 
    }
 
@@ -247,31 +301,30 @@ int main(){
 
    //-- Unfolding: multiple files.
    if( setup == "unfold" ){
+     Eplotmin = atof(argv[3]);
+     deltaPhiMax = atof(argv[4]);
+     etawidth = atof(argv[5]);
+     match = argv[6];
+     TString jettype = argv[7];
+     if( jettype != "" ){ jettype = "_" + jettype; }
 
-     cout << "What is energy threshold?\t";
-     cin >> Ethresh;
-     cout << "Plot from which Edet value?\t";
-     cin >> Eplotmin;
-     cout << "Use what delta phi max?\t";
-     cin >> deltaPhiMax;
-     cout << "Eta band outside of CASTOR?\t";
-     cin >> etawidth;
-     cout << "What matching procedure?\t";
-     cin >> match;
-
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
-     filenames.push_back( MCfile );
+//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+//     MCfile = TString::Format("/user/avanspil/public/CastorJets/ak5ak5_Pythia6Z2star_NewGeo_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_had_matchE.root");
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_NewGeo_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_0.500000_etaband_0.000000_" + type + "_matchE.root");
+     filenames.push_back( MCfile ); 
      legendEntries.push_back("(ak5, ak5) - Displaced");
      colours.push_back(getColor(color_index++));
      linestyle.push_back( style_of_line++);
      fileLabel.push_back("Displaced");    
      printLabel[MCfile] = "Displaced_Pythia6Z2star";
      legends[MCfile] = "Displaced (Pythia6)";
+     legends_gen[MCfile] = "Pythia6 (Z2*)";
      calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "547922";
+     scalefactors[MCfile] = "total_events_nocuts";
      mc_type[MCfile] = "actual";
 
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_0.500000_etaband_0.000000_" + type + "_matchE.root");
      filenames.push_back( MCfile );
      legendEntries.push_back("(ak5, ak5) - Displaced, Pythia8");
      colours.push_back(getColor(color_index++));
@@ -279,11 +332,28 @@ int main(){
      fileLabel.push_back("Displaced");    
      printLabel[MCfile] = "Displaced_Pythia84C";
      legends[MCfile] = "Displaced (Pythia8)";
+     legends_gen[MCfile] = "Pythia8 (4C)";
      calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "670215";
-     mc_type[MCfile] = "model";   
+     scalefactors[MCfile] = "total_events_nocuts";
+     mc_type[MCfile] = "model";  
 
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_EPOS_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_nonDisplaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_0.500000_etaband_0.000000_" + type + "_matchE.root");
+     filenames.push_back( MCfile );
+     legendEntries.push_back("(ak5, ak5) - non Displaced, Pythia8");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Nominal");    
+     printLabel[MCfile] = "_Pythia84C";
+     legends[MCfile] = "Nominal (Pythia8)";
+     legends_gen[MCfile] = "Pythia8 (4C, nom.)";
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "total_events_nocuts";
+     mc_type[MCfile] = "model_";    
+
+
+//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_EPOS_displaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_EPOS_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_0.500000_etaband_0.000000_" + type + "_matchE.root");
      filenames.push_back( MCfile );
      legendEntries.push_back("(ak5, ak5) - Displaced, EPOS");
      colours.push_back(getColor(color_index++));
@@ -291,11 +361,14 @@ int main(){
      fileLabel.push_back("Displaced");    
      printLabel[MCfile] = "Displaced_EPOS";
      legends[MCfile] = "Displaced (EPOS)";
+     legends_gen[MCfile] = "EPOS";
      calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "632346";
+     scalefactors[MCfile] = "total_events_nocuts";
      mc_type[MCfile] = "model";   
 
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_down_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+
+//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_down_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia6Z2star_down_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_0.500000_etaband_0.000000_" + type + "_matchE.root");
      filenames.push_back( MCfile );
      legendEntries.push_back("(ak5, ak5) - Displaced down");
      colours.push_back(getColor(color_index++));
@@ -307,7 +380,8 @@ int main(){
      scalefactors[MCfile] = "608839";
      mc_type[MCfile] = "position";   
 
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_up_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_up_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_%f_etaband_%f_" + match + ".root", deltaPhiMax, etawidth );
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia6Z2star_up_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_0.500000_etaband_0.000000_" + type + "_matchE.root");
      filenames.push_back( MCfile );
      legendEntries.push_back("(ak5, ak5) - Displaced up");
      colours.push_back(getColor(color_index++));
@@ -319,11 +393,65 @@ int main(){
      scalefactors[MCfile] = "592822";
      mc_type[MCfile] = "position";   
 
+     MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160114_Tune4C_MPI_off_softQCD_1000000events_presetTune.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("Pythia8 4C (no MPI)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Pythia84C_noMPI");    
+     printLabel[MCfile] = "Pythia84C_noMPI";
+     legends[MCfile] = "Pythia8 4C (no MPI)";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune";   
+
+
+     MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160114_Tune4C_MPI_on_softQCD_1000000events_presetTune.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("Pythia8 4C (MPI)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Pythia84C_MPI");    
+     printLabel[MCfile] = "Pythia84C_MPI";
+     legends[MCfile] = "Pythia8 4C (MPI)";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune"; 
+
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5_HEJ.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("HEJ");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("HEJ");    
+     printLabel[MCfile] = "HEJ";
+     legends[MCfile] = "HEJ";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune"; 
+
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5_QGSJet.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("QGSJet");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("QGSJet");    
+     printLabel[MCfile] = "QGSJet";
+     legends[MCfile] = "QGSJet";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune"; 
+
      datafile = "/user/avanspil/Castor_Analysis/ak5_data_unfold_Emin_" + Ethresh + ".000000.root";
    }
 
    set_of_tags["calibration_tag"] = calibration_tag;
    set_of_tags["scalefactors"] = scalefactors;
+   set_of_tags["legends_gen"] = legends_gen;
    set_of_tags["legends"] = legends;
    set_of_tags["mc_type"] = mc_type;
 
@@ -335,7 +463,7 @@ int main(){
 
 
 
-cout << "MCfile\t" << MCfile << endl;
+ 
 
      
 /*
@@ -771,7 +899,7 @@ cout << "MCfile\t" << MCfile << endl;
    * Unfolding *
    ************/
 
-/*
+
    Plot_list.push_back("Plot_Bayes_vs_Gen");
      xTitle["Plot_Bayes_vs_Gen"] = "E";
      yTitle["Plot_Bayes_vs_Gen"] = "#frac{Bayes}{Gen}";
@@ -814,9 +942,9 @@ cout << "MCfile\t" << MCfile << endl;
      yTitle["Plot_JES_vs_E"] = "JES";
      labels["Plot_JES_vs_E"] = label;
      save["Plot_JES_vs_E"] = "JES";
-*/  
 
-/*
+
+
    Plot_list.push_back("Unfold_data_Bayes");
      xTitle["Unfold_data_Bayes"] = "E (GeV)";
      yTitle["Unfold_data_Bayes"] = "#frac{dN}{dE}";
@@ -847,7 +975,7 @@ cout << "MCfile\t" << MCfile << endl;
      yTitle["Compare_det_level"] = "#frac{dN}{dE}";
      labels["Compare_det_level"] = datafile;
      save["Compare_det_level"] = "Comparison";  
-*/
+
 
   /**********************
   * Unfold data itself. *
@@ -887,7 +1015,7 @@ cout << "MCfile\t" << MCfile << endl;
    /***********************
    * Loop over the plots. *
    ***********************/  
-
+/*
    for( int plot = 0; plot < Plot_list.size(); plot++){  
    
      cout << "// -- FUNCTION\t" <<  Plot_list[plot] << endl;
@@ -947,7 +1075,7 @@ cout << "MCfile\t" << MCfile << endl;
 
  
      //-- Reset variables.
-      
+     
      drawoptions =  draw[Plot_list[plot]] ;
      max_val = 0, min_val = 1;
      if( current_function != NULL ){
@@ -1017,10 +1145,10 @@ cout << "MCfile\t" << MCfile << endl;
        } // Loop over files.
        
       
-      /*****************************************************************************
-      * The functions that do not produce a series of 1D plots on the same canvas. *
-      *****************************************************************************/ 
-       
+
+      // The functions that do not produce a series of 1D plots on the same canvas. //
+
+      
      if( Plot_list[plot] == "Plot_2D_Energy_Response"){
         current_function = &Plot_2D_Energy_Response; 
 	cout << "2D responses" << endl;}
@@ -1055,7 +1183,7 @@ cout << "MCfile\t" << MCfile << endl;
      
       
    } // Loop over plots.
- 
+ */
 
    xtitle["hCastorJet_energy"] = "E_{Det} [GeV]";
    ytitle["hCastorJet_energy"] = "#frac{1}{N}.#frac{dN}{dE_{Det}}";
@@ -1068,12 +1196,28 @@ cout << "MCfile\t" << MCfile << endl;
    int month = aTime->tm_mon + 1; // Month is 0 - 11, add 1 to get a jan-dec 1-12 concept
    int year = aTime->tm_year + 1900;
 
-   TString labeltje = TString::Format("%i%i%i_" + setup + "_" + Ethresh + "_%i_deltaPhiMax_0%i_etaband_0%i_" + modelfilename, year, month, day, static_cast<int>(Eplotmin), static_cast<int>(10. * deltaPhiMax), static_cast<int>(10. * etawidth) );
+   TString datum = TString::Format( "%i", year );
+   if( month < 10 ) datum += "0";
+   datum += TString::Format( "%i", month );;
+   if( day < 10 ) datum += "0";
+   datum += TString::Format( "%i", day );;
+
+   TString labeltje;
+
+   if( setup != "isolated" ){
+     labeltje += TString::Format( datum + "_" + setup + "_" + Ethresh + "_%i_deltaPhiMax_0%i_etaband_0%i_" + "_" + modelfilename, static_cast<int>(Eplotmin), static_cast<int>(10. * deltaPhiMax), static_cast<int>(10. * etawidth) );
+   }
+
+   else{ 
+     labeltje += TString::Format( datum + "_" + setup + "_" + Ethresh);
+   }
 
    if( setup == "unfold" ){
      labeltje += "_" + match;
    }
    labeltje += "_" + model_;
+
+   cout << "Label is\t" << labeltje << endl;
 
    Unfolder my_first_unfolder(	filenames, 
 				datafile, 
@@ -1083,24 +1227,33 @@ cout << "MCfile\t" << MCfile << endl;
 				etawidth, 
 				labeltje , 
 				0);
-   my_first_unfolder.LabelPlots( 
+
+
+   if( setup != "isolated" ){
+     my_first_unfolder.LabelPlots( 
 	TString::Format( setup + "_" + Ethresh + "_%i_deltaPhiMax_0%i_etaband_0%i_" + modelfilename, 
 	static_cast<int>(Eplotmin), 
 	static_cast<int>(10. * deltaPhiMax), 
-	static_cast<int>(10. * etawidth) ) );
+	static_cast<int>(10. * etawidth) ) ); 
+   }
+   else{
+     my_first_unfolder.LabelPlots( 
+	TString::Format( setup + "_" + Ethresh ) ); 
+   }
 
-   my_first_unfolder.PrepareLegend( legends, printLabel );
+   my_first_unfolder.PrepareLegend( legends, printLabel, legends_gen );
    my_first_unfolder.PrepareTitles( xtitle, ytitle, htitle );
 
    for(int file_ = 0; file_ < filenames.size(); file_++){
-     my_first_unfolder.PlotResponseMatrix( file_ );
-     my_first_unfolder.PlotNjetsMatrix( file_ );
+//     my_first_unfolder.PlotResponseMatrix( file_ );
+//     my_first_unfolder.PlotNjetsMatrix( file_ );
+//     my_first_unfolder.PlotEgenEtaMatrix( file_ );
    }
 
    my_first_unfolder.SetScaleFactorData( scalefactors_Data_ );
 
 
-   my_first_unfolder.Hist_DetLevel();
+//   my_first_unfolder.Hist_DetLevel();
 //   my_first_unfolder.Hist_DetLevel_lead();
 /*
    my_first_unfolder.Hist_GenLevel();
@@ -1110,10 +1263,17 @@ cout << "MCfile\t" << MCfile << endl;
    my_first_unfolder.DoublePaddedComparison("hCastorJet_energy_lead");
 */
 
+
   // ISOLATED
    if( setup == "isolated"){ 
 
+//     my_first_unfolder.Plot_JER();
+
 //     my_first_unfolder.CalculateSystematics("20150729_test", 1, 16);
+
+     my_first_unfolder.Plot_Isolation();
+
+     cout << "     my_first_unfolder.CalibrationFactors_oneCanvas(true);" << endl;
 //     my_first_unfolder.CalibrationFactors_oneCanvas(true);
 //     my_first_unfolder.CalibrationFactors_oneCanvas(false);
 /*
@@ -1123,25 +1283,28 @@ cout << "MCfile\t" << MCfile << endl;
      my_first_unfolder.CalculateSystematics("one", 13);
      my_first_unfolder.CalculateSystematics("one", 14);
      my_first_unfolder.CalculateSystematics("one", 15);
-*/
-//     my_first_unfolder.Plot_Calibrated_functions();
+
+     my_first_unfolder.Plot_Calibrated_functions();
      // --  Creates a canvas with the calibration functions in absolute and ratio format.
 
+*/
 /*
      my_first_unfolder.CalculateSystematics("all_sectors",1,1);
-*/
      my_first_unfolder.CalculateSystematics("good_sectors",1,1);
      my_first_unfolder.CalculateSystematics("separate_sectors", 13, 14);
+     my_first_unfolder.CalculateSystematics("separate_sectors", 1, 16);
+*/
 
+/*
 
-
-/*     TGraphErrors* gre;
+     TGraphErrors* gre;
 
      my_first_unfolder.SetFitDraw( true );
-     my_first_unfolder.CalibrationFunction(1, 1, gre); 
-
-     my_first_unfolder.CalibrationFunction_sectors(13, 14, -1, gre);   
 */
+//     my_first_unfolder.CalibrationFunction(1, 16, gre); 
+
+//     my_first_unfolder.CalibrationFunction_sectors(13, 14, -1, gre);   
+
    } // ISOLATED.
 
    
@@ -1151,7 +1314,7 @@ cout << "MCfile\t" << MCfile << endl;
 
 //     my_first_unfolder.Hist_GenLevel("lead");
 //     my_first_unfolder.Hist_GenLevel("all");
-     my_first_unfolder.Hist_DetLevel();
+//     my_first_unfolder.Hist_DetLevel();
 
 /*
      for(int file_ = 0; file_ < filenames.size(); file_++){ 
@@ -1214,6 +1377,7 @@ cout << "MCfile\t" << MCfile << endl;
 //     my_first_unfolder.Smear_gen(0);
 
      //my_first_unfolder.SetAddLabel( "findingSolutions" )
+
      my_first_unfolder.ClosureTest_data("all", "Displaced", 1);
 
 
@@ -1249,10 +1413,23 @@ cout << "MCfile\t" << MCfile << endl;
    }
 
 
+
+ my_first_unfolder.Plot_GenLevels_();
+
+
    if( setup == "unfold"){
 
+     my_first_unfolder.SetSubhistogram_cut( Eplotmin );
+     my_first_unfolder.SetSubhistogram_max( 1800. );
+
+
+     TH1D* hDummy;
+     my_first_unfolder.SectorDependent_unfolding( hDummy );
+     my_first_unfolder.Draw_Gen_Pythia8();
+     
+
      //-- Comparison of eta diff.
-     my_first_unfolder.PlotEtaDiff();
+//     my_first_unfolder.PlotEtaDiff();
 
      //-- Comparison of unfolded distributions.
 
@@ -1265,29 +1442,36 @@ cout << "MCfile\t" << MCfile << endl;
 	//-- This is Delta Chi2.
 //     my_first_unfolder.Chi2diff_test_data("all", "Displaced", 2);
 
-
 	//-- Plot the different model samples, calculate the average and plot the absolutes and ratios versus the average.
+//     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 12);
 //     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 30);
-//     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 50);
+
+
+//     my_first_unfolder.DoublePaddedComparison_JESDependence("all", 30);
+//     my_first_unfolder.DoublePaddedComparison_JESmeasured("all", 30);
+//     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 30);
+
+//     my_first_unfolder.CompareGenLevel();
 
 	//-- Plot the actual sample and the samples containing the uncertainty on the position.
 	//-- Plot the absolute and plot ratio versus the actual sample.
 //     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 30);
-//     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 50);
-/*
+
 	//-- Plot all systematics in absolute and ratio.
      TCanvas* can_30it;
      my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_30it, "all", 30);
 
-     TCanvas* can_50it;
-     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_50it, "all", 50);
+//     TCanvas* can_50it;
+//     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_50it, "all", 50);
+
+	//-- Plot the unfolded distribution after an increasing number of Bayesian iterations.
+//     my_first_unfolder.DoublePaddedComparison_unfolding("all", 30);	
+
+//     my_first_unfolder.Plot_Unfolded();
+/*
+     my_first_unfolder.Plot_Unfolded_JES();
+     my_first_unfolder.Plot_Measured_JES();
 */
-
-//     my_first_unfolder.DoublePaddedComparison_unfolding("all", 30);	//
-//     my_first_unfolder.DoublePaddedComparison_unfolding("all", 50);	/
-
-///     my_first_unfolder.Plot_Unfolded();
-
 
 /*
      my_first_unfolder.DoublePaddedComparison_statistics("all", 12);
@@ -1295,11 +1479,13 @@ cout << "MCfile\t" << MCfile << endl;
 /*
      my_first_unfolder.Hist_DetLevel();
 */
-
-     my_first_unfolder.PlotStartingDistributions_MCfiles("fake");
+/*
+     my_first_unfolder.PlotStartingDistributions_MCfiles("eta");
+     my_first_unfolder.PlotStartingDistributions_MCfiles("fake"); 
      my_first_unfolder.PlotStartingDistributions_MCfiles("miss");
      my_first_unfolder.PlotStartingDistributions_MCfiles("detector");
      my_first_unfolder.PlotStartingDistributions_MCfiles("generator");
+*/
 /*
      my_first_unfolder.PlotStartingDistributions_comparingEmin("fake");
      my_first_unfolder.PlotStartingDistributions_comparingEmin("miss");
@@ -1319,14 +1505,25 @@ cout << "MCfile\t" << MCfile << endl;
 
      TCanvas* can_12it;
 
-//     can_12it->SaveAs("Totaldependence_12it.C");
-//     can_12it->SaveAs("Totaldependence_12it.pdf");
+     can_12it->SaveAs("Totaldependence_12it.C");
+     can_12it->SaveAs("Totaldependence_12it.pdf");
 
      cout << "Off to 50" << endl;
-
+*/
+/*
      TCanvas* can_50it;   
      my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_50it , "all", 50);
 */
+
+//     TCanvas* can_30it;   
+//     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_30it , "all", 30);
+/*
+     TCanvas* can_12it;   
+     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_12it , "all", 12);
+*/
+
+//     TF1* analytical;
+//     my_first_unfolder.Fit_unfolded_distribution(analytical);
    }
 
   return(0); 

@@ -29,6 +29,8 @@
 #include <TTree.h>
 #include <TText.h>
 #include <TThread.h>
+#include <TString.h>
+#include <TObjString.h>
 #include <TVectorD.h>
 
 //#include <TPythia8.h>
@@ -54,7 +56,6 @@
 #include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
 #include "../../../RooUnfold-1.1.1/src/RooUnfoldBinByBin.h"
 #include "../../../RooUnfold-1.1.1/src/RooUnfoldBayes.h"
-#include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
 #include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
 #include "color.h"
 #include "Function_Rebin.h"
@@ -136,6 +137,11 @@ class Unfolder{
    void Plot_Measured_JES();
    void Plot_JER();
    void Plot_Isolation();
+   
+   void Draw_Gen_Pythia8();
+   
+
+   void SectorDependent_unfolding(TH1D* &hSectorDependent);
 
    void Plot_Unfolded_positionDependence(TPad* & pad_, TString variable, int iterations);
    void Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int iterations);
@@ -150,7 +156,7 @@ class Unfolder{
    void Prepare_2Dplot( TH2D* &hist_, TString xtitle, TString ytitle, int divisionsx, int divisionsy);
    void PrepareCanvas( TCanvas* &can_, TString label);
    void PrepareCanvas_2D( TCanvas* &can_, TString label);
-   void PrepareLegend( map<TString, TString> entries, map<TString, TString> printLabel );
+   void PrepareLegend( map<TString, TString> legend_info, map<TString, TString> printLabel, map<TString, TString> legend_info_gen_ );
    void PrepareTitles( map<TString, TString> xtitle ,  map<TString, TString> ytitle ,  map<TString, TString> htitle);
    void ScaleToData( int MC, double &scale );
    void SetAddLabel( TString label );
@@ -211,6 +217,32 @@ class Unfolder{
 
    void Smear_gen(int file);
 
+
+
+
+
+
+
+
+
+
+
+
+// Stupid checking functions.
+void Plot_GenLevels_();
+
+
+
+
+
+
+
+
+
+
+
+
+
   private:
    vector<TString> MC_files_;
    TString datafile_;
@@ -230,7 +262,8 @@ class Unfolder{
 
    TH2D* hError_hist;
 
-   map<TString, TString> legend_info_;
+   map<TString, TString> legend_info_;	// Legend entries.
+   map<TString, TString> legend_info_gen_;	// Legend entries for plots without any det. level influence.
    map<TString, TString> xtitle_;
    map<TString, TString> ytitle_;
    map<TString, TString> htitle_;
@@ -753,24 +786,32 @@ void Unfolder::Hist_DetLevel_MCWithSmear(){
 
 // -- Plot
 void Unfolder::Get_GenEnergy(int file_, TH1D* &hist_){
-   cout << "\n\n\n// -- Generator level energy - file selection\t" << file_ << endl;
+   cout << "\n\n\n// -- Generator level energy - file selection (file, hist)\t" << file_ << endl;
+
+   cout << "\nYes, here" << endl;
+
    TH1D *hGen;
    TFile *_file0;
    TString drawoptions = "";
    
+   cout << "\nSome stuff\t" << MC_files_.size() << "\t" << MC_files_[file_] << endl;
+
    if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); 	drawoptions = "hist";}
    
+   cout << "\nOpened file" << endl;
+
    hGen = (TH1D*)_file0->Get("hGenJet_energy");	
    if( !hGen ) hGen = (TH1D*)_file0->Get("hGenJet_Pythia84C_MPI_off");	
    if( !hGen ) hGen = (TH1D*)_file0->Get("hGenJet_Pythia84C_MPI_on");	
+
+   cout << "\nExtracted GenJetEnergy" << endl;
 
    hGen->Sumw2();
    hGen->GetXaxis()->SetTitle("E_{det} (GeV)");
    hGen->GetYaxis()->SetTitle("#frac{dN}{dE}");
 
-     if( scaletodata_ ){
-	cout << "Oh here - pure\t" <<  MC_files_[file_] << endl;
-
+   if( scaletodata_ ){
+   cout << "\nScaledata is true" << endl;
       int total_events_nocuts;
       TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
       TString branch_str = (set_of_tags_[ "scalefactors" ])[ MC_files_[file_] ];
@@ -778,19 +819,21 @@ void Unfolder::Get_GenEnergy(int file_, TH1D* &hist_){
 
       tree_numbers->GetEntry( 0 );
       hGen->Scale( 1./ total_events_nocuts);
-      cout << "\tNormalize to\t" << total_events_nocuts << endl;
+      cout << MC_files_[file_] << "\tNormalize to\t" << total_events_nocuts << endl;
     }
 
    if( normalise_1 ) hGen->Scale( 1./hGen->Integral() );
    
    hist_ = hGen;
+
+   cout << "\nReached the end of Unfolder::Get_GenEnergy" << endl;
 }
 
 
 
 
 void Unfolder::Get_GenEnergy_response(int file_, TH1D* &hist_){
-   cout << "\n\n\n// -- Generator level energy - file selection\t" << file_ << endl;
+   cout << "\n\n\n// -- Generator level energy response - file selection (file, hist)\t" << file_ << endl;
    TH1D *hGen;
    TFile *_file0;
    TString drawoptions = "";
@@ -878,11 +921,13 @@ void Unfolder::Get_PureGenEnergy(int file_, TH1D* &hist_){
       tree_numbers->GetEntry( 0 );
 
       hGen->Scale( 1./ total_events_nocuts);
-      cout << "\tNormalize to\t" << total_events_nocuts << endl;
+      cout << MC_files_[file_] << "\tNormalize to\t" << total_events_nocuts << endl;
     }
     hGen->Sumw2();
     hGen->GetXaxis()->SetTitle("E_{det} (GeV)");
     hGen->GetYaxis()->SetTitle("#frac{dN}{dE}");
+    
+    cout << "\nUnfolder::Get_PureGenEnergy\tNormalized" << endl;
 
     if( normalise_1 ) hGen->Scale( 1./hGen->Integral() ); 
   }
@@ -1498,6 +1543,11 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
 
 
 
+
+
+
+
+
 void Unfolder::Get_GenSmeared(int file_, TH1D* &hist_, TH1D* hGen, TString variable){
   cout << "Unfolder::Get_GenSmeared(" << file_ << ", " << variable << ")" << endl;
 
@@ -1576,8 +1626,9 @@ void Unfolder::Prepare_2Dplot(TH2D* &hist_, TString xaxis, TString yaxis, int di
 
 }
 
-void Unfolder::PrepareLegend( map<TString, TString> legend_info, map<TString, TString> printLabel ){
+void Unfolder::PrepareLegend( map<TString, TString> legend_info, map<TString, TString> printLabel, map<TString, TString> legend_info_gen ){
 
+  legend_info_gen_ = legend_info_gen;
   legend_info_ = legend_info;
   printLabel_ = printLabel;
 
@@ -1642,6 +1693,8 @@ void Unfolder::DoublePaddedComparison_modelDependence(TString variable, int iter
   TCanvas* can_;
   TPad* pad_abs_, *pad_ratio_;
   PrepareCanvas(can_, "Comparison_UnfoldedEnergy_Data_and_MC");
+
+  scaletodata_ = false;
 
   SplitCanvas(can_, pad_abs_, pad_ratio_);
 
@@ -2112,7 +2165,13 @@ void Unfolder::CompareGenLevel(){
 
   double Det_to_gen = Det_to_gen_scale(0);
 
-  for( int file = 0; file <= 1; file++ ){
+  for( int file = 0; file < MC_files_.size(); file++ ){
+
+    if( ( (set_of_tags_["mc_type"])[MC_files_[file]] == "shift_MPI_or_Tune" ) ) { 
+	cout << "Bad type\t" << MC_files_[file]	<< endl;
+	continue; }
+
+/*
     int file_ = 1;
     if( file == MC_files_.size() ){
       file_ = -1;
@@ -2124,8 +2183,15 @@ void Unfolder::CompareGenLevel(){
     Get_DetEnergy( file_ , hist_ );
     Rebin_to( hist_, 50 ); 
     hist_->Scale( Det_to_gen );
+*/
 
-    Get_DetUnfolded( file, hist_, 4);
+
+    int file_ = file;
+    Get_DetEnergy( -1 , hist_ );
+    Get_DetUnfolded( file, hist_, 30);
+//    Get_GenEnergy(file_, hist_);    
+
+    hist_->Scale( 1./hist_->Integral() );
 
     hist_->GetXaxis()->SetTitle( xtitle_["hGenJet_energy"] );
     hist_->GetYaxis()->SetTitle( ytitle_["hGenJet_energy"] );
@@ -2150,6 +2216,7 @@ void Unfolder::CompareGenLevel(){
     drawoptions = "histsame";
     if( done_data ){ break; }
   }
+  cout << "Done loop" << endl;
 
   MakeDoublePaddedComparison(can, histos, leg );
 
@@ -2400,6 +2467,34 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   hError_hist->Draw("colz");
   canerror->SaveAs("error_plot.C");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4927,18 +5022,6 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   TRandom3* rand = new TRandom3();
     rand->SetSeed( iterations  );
 
-/*
-    //-- Get a time dependent seed.
-    time_t timer;
-    struct tm y2k = {0};
-    double seconds;
-
-    y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
-    y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;    
-    seconds = difftime(timer,mktime(&y2k));
-
-    rand->SetSeed( seconds );
-*/
   //----------------------------------------------//
   // -- Repeat the following algorithm N times. --//
   //----------------------------------------------//
@@ -4961,19 +5044,21 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
     FillAnew_2D( hResponse, hResponse_new, rand);
 
-//    testing_covariance << "new/old\t" << hFake_new->Integral()/hFake->Integral() << "\t" << hMiss_new->Integral()/hMiss->Integral() << "\t" << hResponse_new->Integral()/hResponse->Integral() << "\n\n";
+    //    testing_covariance << "new/old\t" << hFake_new->Integral()/hFake->Integral() << "\t" << hMiss_new->Integral()/hMiss->Integral() << "\t" << hResponse_new->Integral()/hResponse->Integral() << "\n\n";
 
     //--------------------------------------------------------------------------------------//
     // OPTION - Vary the fake distribution, calculate the measured and truth distributions. //
     //--------------------------------------------------------------------------------------//
 
-    FillAnew_1D( hFake, hFake_new, rand);/*
-TCanvas *can_fake;
-PrepareCanvas(can_fake, "canfakes");
-hFake->Draw("hist");
-hFake_new->SetLineColor(kRed);
-hFake_new->Draw("histsame");
-can_fake->SaveAs("Fakes_canvas.C");*/
+    FillAnew_1D( hFake, hFake_new, rand);
+    /*
+    TCanvas *can_fake;
+    PrepareCanvas(can_fake, "canfakes");
+    hFake->Draw("hist");
+    hFake_new->SetLineColor(kRed);
+    hFake_new->Draw("histsame");
+    can_fake->SaveAs("Fakes_canvas.C");
+     */
     FillAnew_1D( hMiss, hMiss_new, rand);
     //-- Determine the number of fakes as: fakes = measured - matched(det)
     TH1D* hRes_X = (TH1D*)hResponse_new->ProjectionX();
@@ -4986,27 +5071,28 @@ can_fake->SaveAs("Fakes_canvas.C");*/
 				<< hMeasured_new->GetXaxis()->GetBinUpEdge( hMeasured_new->GetNbinsX() ) 		<< endl;*/
     cout << "hMeasured_new->Add( hRes_X, 1.);" << endl;
     hMeasured_new->Add( hRes_X, 1.); 
-/*
-TCanvas *can____;
-TPad* abs_, *ratio_;
-PrepareCanvas( can____, "comparing");
-SplitCanvas( can____, abs_, ratio_);
-ratio_->cd();
-hRes_X->Draw("hist");
-hMeasured_new->SetLineColor( kRed );
-//hMeasured_new->Draw("histsame");
-ratio_->SetLogy();
 
-abs_->cd();
-hResponse_new->Draw("colz");
+    /*
+    TCanvas *can____;
+    TPad* abs_, *ratio_;
+    PrepareCanvas( can____, "comparing");
+    SplitCanvas( can____, abs_, ratio_);
+    ratio_->cd();
+    hRes_X->Draw("hist");
+    hMeasured_new->SetLineColor( kRed );
+    //hMeasured_new->Draw("histsame");
+    ratio_->SetLogy();
 
-can____->SaveAs("NotAddingUp.C");
-hMeasured_new->Draw("hist");
-can____->SaveAs("NotAddUp.C");
-*/
+    abs_->cd();
+    hResponse_new->Draw("colz");
+
+    can____->SaveAs("NotAddingUp.C");
+    hMeasured_new->Draw("hist");
+    can____->SaveAs("NotAddUp.C");
+    */
     TH1D* hRes_Y = (TH1D*)hResponse_new->ProjectionY();
     hTruth_new = (TH1D*)hMiss_new->Clone("hTruth_new");
-/*
+    /*
     cout << "hRes_Y\t" 	<< hRes_Y->GetNbinsX() 	<< "\t" 
 				<< hRes_Y->GetBinLowEdge( 1 ) 	<< "\t" 
 				<< hRes_Y->GetXaxis()->GetBinUpEdge( hRes_Y->GetNbinsX() ) << endl;
@@ -5015,13 +5101,13 @@ can____->SaveAs("NotAddUp.C");
 				<< hTruth_new->GetXaxis()->GetBinUpEdge( hTruth_new->GetNbinsX() ) 		<< endl;*/
     cout << "hTruth_new->Add( hRes_Y, 1.); " << endl;
     hTruth_new->Add( hRes_Y, 1.); 
-//    hTruth_new = (TH1D*)hRes_Y->Clone("hTruth_new");
+    //    hTruth_new = (TH1D*)hRes_Y->Clone("hTruth_new");
 
     //--------------------------------------------------------------------------//
     // OPTION - Vary the measured and truth distributions, calculate the fakes. //
     //--------------------------------------------------------------------------//
 
-/*    
+    /*    
     FillAnew_1D( hMeasured, hResponse_new->ProjectionX(), hMeasured_new, rand);
     FillAnew_1D( hTruth, hResponse_new->ProjectionY(), hTruth_new, rand);
 
@@ -5029,7 +5115,7 @@ can____->SaveAs("NotAddUp.C");
     TH1D* hRes_X = (TH1D*)hResponse_new->ProjectionX();
     hFake_new = (TH1D*)hMeasured_new->Clone("hFake_new");
     hFake_new->Add( hRes_X, -1. );
-*/  
+    */  
 
     //-----------------------//
     // (4) Unfold-and-smear. //
@@ -5081,7 +5167,7 @@ can____->SaveAs("NotAddUp.C");
     cout << "Unfolded\t" 	<< hUnfold->GetNbinsX() 	<< "\t" 
 				<< hUnfold->GetBinLowEdge( 1 ) 	<< "\t" 
 				<< hUnfold->GetXaxis()->GetBinUpEdge( hUnfold->GetNbinsX() ) << endl;    
-*/
+    */
     //-- Make sure that the unfolded distribution has only real, possible numbers.
     if( !BadNumerals(hUnfold) ){ cout << "This is not good\t" << n_spread << endl; n_spread--; continue; }
 
@@ -5120,11 +5206,11 @@ can____->SaveAs("NotAddUp.C");
       //smear_value -= data_value;
 
       sparseSmear.SetBinContent( sparse_entry_smear, smear_value );
-/*
+      /*
       if( n_spread <= 10){
 	testing_covariance << setprecision(8) <<  smear_value << endl;
       }
-*/
+      */
     }
   } // Loop over algorithm.
 
@@ -6183,6 +6269,7 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
   pad_->cd();
 
   TLegend* legend = new TLegend( 0.60, 0.7, 0.95, 0.9  );
+  legend->SetFillColor( kWhite );
 
   TH1D* hAverage, *hFirst;
   TString drawoptions = "histsame";
@@ -6194,6 +6281,8 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
     //-- Generator level.
     if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
     models++;
+
+    cout << "Working on\t" << MC_files_[MC_] << endl;
     
     //-- Data unfolded.
     TH1D* hData;
@@ -6428,6 +6517,7 @@ void Unfolder::Plot_Unfolded_positionDependence(TPad* & pad_, TString variable, 
   pad_->cd();
 
   TLegend* legend = new TLegend( 0.60, 0.7, 0.95, 0.9  );
+  legend->SetFillColor(kWhite );
 
 
   TH1D *hFirst, *hData;
@@ -6439,10 +6529,9 @@ void Unfolder::Plot_Unfolded_positionDependence(TPad* & pad_, TString variable, 
 
   //-- Unfolding
   Get_DetUnfolded( 0 , hData, iterations, variable);
+cout << "Unfolding position\t" << MC_files_[0] << endl;
 
   SetDnDx( hData );
-
-  hFirst = (TH1D*)hData->Clone("First");
 
   hData->SetMarkerColor( kBlack );
   hData->SetLineColor( kBlack );
@@ -6456,15 +6545,14 @@ void Unfolder::Plot_Unfolded_positionDependence(TPad* & pad_, TString variable, 
     //-- Generator level.
     if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "position" ){ continue; }
     //-- Generator level.
+cout << "Unfolding position\t" << MC_files_[MC_] << endl;
 
     TH1D* hGen, *hDet;
 
     //-- Data unfolded.
     TH1D* hData;
 
-    if( variable == "all") { Get_DetEnergy( -1 , hData); }
-    if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }
-
+    Get_DetEnergy( -1 , hData); 
     Get_DetUnfolded( MC_ , hData, iterations, variable);
     SetDnDx( hData );
 
@@ -7229,18 +7317,21 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     TH1D* hGen;
     if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && 
 	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual" &&  
-	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "shift_MPI_or_Tune" ){ continue; }
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "shift_MPI_or_Tune" &&
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "model_" ){ continue; }
 
     color_++ ;
     if( color_ == 1 || color_ == 3 || color_ == 7) color_++;
 
+    //-- If scaletodata_ is true, the gen. energy spectrum will be scaled with numbers taken from the file before being passed back.
     scaletodata_ = true;
-    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){ 
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){ // There is only one gen. distribution, since there are no cuts on detector level.
       Get_GenEnergy( MC_, hGen ); }
-    else{ 
-      //Get_GenEnergy( MC_, hGen ); }
+    else{ // There are several gen. distributions, take the one uninfluenced by the cuts on detector level.
       Get_PureGenEnergy( MC_, hGen ); }
     scaletodata_ = false;
+
+    //-- Skip to next file if histogram does not exist.
     if( hGen->Integral() != hGen->Integral() ){ continue; }   
 
     SetDnDx( hGen );
@@ -7250,21 +7341,15 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
       drawoptions = "plsame";
     }
 
-    // Scale MC to number of events with castor jets above threshold.
-//    double scale;    
-//    ScaleToData( MC_, scale );
-//    hGen->Scale( scale );
-
-
+    //-- Multiply the distribution to the total number of measured data.
     hGen->Scale( 7388000. );
-
-    
-
    
+    //-- Set line properties.
     hGen->SetLineColor( getColor(color_) );
     hGen->SetLineStyle( 2 );
     hGen->SetLineWidth( 3 );
 
+    //-- Set ratio of distribution.
     hGen_ratio = (TH1D*)hGen->Clone("hGen_ratio");
     hGen_ratio->Divide( hReference );
 
@@ -7274,15 +7359,35 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     pad_ratio_->cd();
     hGen_ratio->Draw( drawoptions);
 
-    TString legend_file = legend_info_[MC_files_[MC_]];
+    TString legend_file = legend_info_gen_[MC_files_[MC_]];
 
     if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){
-      legend->AddEntry( hGen, legend_file + " (gen)", "lp");
+      legend->AddEntry( hGen, TString::Format( legend_file  ), "lp");
     }
     else{
-      legend->AddEntry( hGen, legend_file + " (gen)", "l");
+      legend->AddEntry( hGen, legend_file , "l");
     }
   }
+  
+   /*
+   TH1D* hSectorDependent;
+   SectorDependent_unfolding( hSectorDependent );
+   hSectorDependent->SetLineStyle( 3 );
+   hSectorDependent->SetMarkerStyle( 24 );
+   
+   hSectorDependent->SetLineWidth( 2 );
+   hSectorDependent->SetLineColor( kBlack ); 
+   
+   pad_abs_->cd();   
+   hSectorDependent->DrawClone("plsame");
+   legend->AddEntry( hSectorDependent, "unf. per sector (p6)", "lp");
+   cout << "Drawn" << hSectorDependent->GetMinimum() << "\t" << hSectorDependent->GetMaximum() << endl;
+
+   pad_ratio_->cd();
+   hSectorDependent->Divide( hReference );
+   hSectorDependent->Draw("plsame");
+   cout << "Drawn" << hSectorDependent->GetMinimum() << "\t" << hSectorDependent->GetMaximum() << endl;
+   */
 
    pad_abs_->cd();
    legend->SetFillColor(0);
@@ -7918,4 +8023,319 @@ void Unfolder::ScaleToData( int MC, double &scale ){
 
 
 
+void Unfolder::Plot_GenLevels_(){
+  cout << "\nUnfolder::Plot_GenLevels_()" << endl;
 
+  TCanvas *can = new TCanvas();
+
+  gStyle->SetLineWidth(2);
+
+
+cout << "Opening" << endl;
+  TFile *_file0 = TFile::Open("/user/avanspil/Castor_Analysis/ak5ak5_NewGeo_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", "READ");
+
+  TFile *_file1 = TFile::Open("/user/avanspil/Castor_Analysis/ak5ak5_displaced_pythia6Z2star_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", "READ");
+  TFile *_file2 = TFile::Open("/user/avanspil/Castor_Analysis/ak5ak5_displaced_pythia6Z2star_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", "READ");
+
+  TFile *_file3 = TFile::Open("/user/avanspil/Castor_Analysis/ak5ak5_Pythia6Z2star_up_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", "READ");
+  TFile *_file4 = TFile::Open("/user/avanspil/Castor_Analysis/ak5ak5_Pythia6Z2star_down_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", "READ");
+
+
+  TFile *_file5 = TFile::Open("/user/avanspil/Castor_Analysis/ak5ak5_displaced_EPOS_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", "Read");
+
+  TFile *_file6 = TFile::Open("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_nonDisplaced_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", "Read");
+
+  TFile *_file7 = TFile::Open("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_displaced_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", "Read");
+
+  TH1D* h0, *h1, *h2, *h3, *h4, *h5, *h6, *h7;
+  TLegend* leg = new TLegend(0, 0.6, 0.4, 1.);
+
+  h0 = (TH1D*)_file0->Get("hGenJet_energy_noCuts");	leg->AddEntry( h0, "NewGeo", "l");
+  h1 = (TH1D*)_file1->Get("hGenJet_energy_noCuts");	leg->AddEntry( h1, "displace p6", "l");
+  h2 = (TH1D*)_file2->Get("hGenJet_energy_noCuts");	leg->AddEntry( h2, "displaced", "l");
+  h3 = (TH1D*)_file3->Get("hGenJet_energy_noCuts");	leg->AddEntry( h3, "up", "l");
+  h4 = (TH1D*)_file4->Get("hGenJet_energy_noCuts");	leg->AddEntry( h4, "down", "l");
+
+  h5 = (TH1D*)_file5->Get("hGenJet_energy_noCuts");	leg->AddEntry( h5, "EPOS", "l");
+  h6 = (TH1D*)_file6->Get("hGenJet_energy_noCuts");	leg->AddEntry( h6, "nom. p8", "l");
+  h7 = (TH1D*)_file7->Get("hGenJet_energy_noCuts");	leg->AddEntry( h7, "dis. p8", "l");
+
+  int events0, events1, events2, events3, events4, events5, events6, events7;
+  TTree *tree0, *tree1, *tree2, *tree3, *tree4, *tree5, *tree6, *tree7;
+
+  tree0 = (TTree*)_file0->Get("useful_numbers"); if( !tree0 ) cout << "Nothin" << endl;
+  tree1 = (TTree*)_file1->Get("useful_numbers");
+  tree2 = (TTree*)_file2->Get("useful_numbers");
+  tree3 = (TTree*)_file3->Get("useful_numbers");
+  tree4 = (TTree*)_file4->Get("useful_numbers");
+  tree5 = (TTree*)_file5->Get("useful_numbers");
+  tree6 = (TTree*)_file6->Get("useful_numbers");
+  tree7 = (TTree*)_file7->Get("useful_numbers");
+
+
+      tree0->SetBranchAddress("total_events_nocuts", &events0);
+      tree1->SetBranchAddress("total_events_nocuts", &events1);
+      tree2->SetBranchAddress("total_events_nocuts", &events2);
+      tree3->SetBranchAddress("total_events_nocuts", &events3);
+      tree4->SetBranchAddress("total_events_nocuts", &events4);
+      tree5->SetBranchAddress("total_events_nocuts", &events5);
+      tree6->SetBranchAddress("total_events_nocuts", &events6);
+      tree7->SetBranchAddress("total_events_nocuts", &events7);
+
+tree0->GetEntry(0);
+tree1->GetEntry(0);
+tree2->GetEntry(0);
+tree3->GetEntry(0);
+tree4->GetEntry(0);
+tree5->GetEntry(0);
+tree6->GetEntry(0);
+tree7->GetEntry(0);
+
+
+cout	<< "\n0\t" << events0
+	<< "\n1\t" << events1
+        << "\n2\t" << events2
+        << "\n3\t" << events3
+        << "\n4\t" << events4
+        << "\n5\t" << events5
+        << "\n6\t" << events6
+        << "\n7\t" << events7 << endl;
+
+
+  h0->Scale( 1./events0 );
+  h1->Scale( 1./events1 );
+  h2->Scale( 1./events2 );
+  h3->Scale( 1./events3 );
+  h4->Scale( 1./events4 );
+  h5->Scale( 1./events5 );
+  h6->Scale( 1./events6 );
+  h7->Scale( 1./events7 );
+
+  h0->Divide( h2 );
+  h0->GetYaxis()->SetRangeUser(1e-4, 2.);
+  h1->SetLineWidth( 3 );
+  h0->Draw("hist");
+
+  h1->Divide( h2 );
+  h1->SetLineColor( getColor(2) );
+  h1->SetLineStyle( 2 );
+  h1->SetLineWidth( 3 );
+  h1->Draw("histsame");
+/*
+  h2->Divide( h2 );
+  h2->SetLineColor( getColor(3) );
+  h2->SetLineStyle( 3 );
+  h2->Draw("histsame");
+*/
+  h3->Divide( h2 );
+  h3->SetLineColor( getColor(4) );
+  h3->SetLineStyle( 4 );
+  h3->SetLineWidth( 3 );
+  h3->Draw("histsame");
+
+  h4->Divide( h2 );
+  h4->SetLineColor( getColor(5) );
+  h4->SetLineStyle( 2 );
+  h4->SetLineWidth( 3 );
+  h4->Draw("histsame");
+
+  h6->Divide( h2 );
+  h6->SetLineColor( getColor(6) );
+  h6->SetLineStyle( 2 );
+  h6->SetLineWidth( 3 );
+  h6->Draw("histsame");
+
+  h7->Divide( h2 );
+  h7->SetLineColor( getColor(7) );
+  h7->SetLineStyle( 2 );
+  h7->SetLineWidth( 3 );
+  h7->Draw("histsame");
+
+  h5->Divide( h2 );
+  h5->SetLineColor( getColor(8) );
+  h5->SetLineStyle( 3 );
+  h5->SetLineWidth( 3 );
+  h5->Draw("histsame");
+
+  h2->Divide( h2 );
+  h2->SetLineColor( getColor(3) );
+  h2->SetLineStyle( 3 );
+  h2->SetLineWidth( 3 );
+  h2->Draw("histsame");
+
+
+  leg->Draw();
+//  can->SetLogy();
+  can->SaveAs("Three_genPlots.C");
+  can->SaveAs("Three_genPlots.pdf");
+
+}
+
+
+
+void Unfolder::SectorDependent_unfolding( TH1D* &hSectorDependent ){
+  cout << "\nUnfolder::SectorDependent_unfolding" << endl;
+
+  // Initiate data and MC files.
+
+  TFile* _fileMC = TFile::Open( MC_files_[0], "Read");
+  TFile* _fileData = TFile::Open( datafile_, "Read");
+
+  cout << "\nUnfolder::SectorDependent_unfolding - files" << endl;
+
+  // Declare histogram where all unfolded spectra will be added together.
+
+  TH1D* JetEnergySpectrum = (TH1D*)_fileData->Get("hCastorJet_energy");
+  JetEnergySpectrum->Scale( 0. );	//-- Multiply by zero to empty.
+
+  cout << "\nUnfolder::SectorDependent_unfolding - empty histo" << JetEnergySpectrum->GetNbinsX() << endl;
+
+  // Extract TH2D.
+  TH2D* hCastorJet_energy_sectors = (TH2D*)_fileData->Get("hCastorJet_energy_sectors");
+
+  cout << "\nUnfolder::SectorDependent_unfolding - 2D" << endl;
+      cout << "File\t" << datafile_ << endl;
+      cout << "Name\t" << hCastorJet_energy_sectors->GetName();
+      cout << "Bins\t" << hCastorJet_energy_sectors->GetNbinsX() << "\t" << hCastorJet_energy_sectors->GetNbinsY() << endl;
+
+  // Declare canvas on which to draw all unfolded spectra: should be the same.
+
+  TCanvas *can_ ;
+  PrepareCanvas( can_, "All sectors unfolded");
+  TString drawoptions = "hist";
+  int color = 1;
+
+  // Loop over sectors.
+ 
+  for(int sector = 0; sector < 16; sector++){
+
+    // Extract response object.
+    RooUnfoldResponse* response_ = (RooUnfoldResponse*)_fileMC->Get( TString::Format("response_sector%i", sector) );
+
+    cout << "\nUnfolder::SectorDependent_unfolding - response sector " << sector << endl;
+    cout << "\nUnfolder::SectorDependent_unfolding -  " << response_->Hfakes()->Integral() << "\t" << response_->Hfakes()->GetEntries() << endl;
+    cout << "\nUnfolder::SectorDependent_unfolding -  " << response_->Hresponse()->Integral() << "\t" << response_->Hresponse()->GetEntries() << endl;
+
+    // Extract histogram.
+    cout << "Bins\t" << hCastorJet_energy_sectors->GetNbinsX() << "\t" << hCastorJet_energy_sectors->GetNbinsY() << endl;
+    TH1D* hist_data = (TH1D*)hCastorJet_energy_sectors->ProjectionX( TString::Format("Energy_spectrum_%i", sector), sector+1, sector+1);
+
+    cout << "\nUnfolder::SectorDependent_unfolding - 1D " << sector << endl;
+    cout << hist_data->GetNbinsX() << endl;
+
+    // Unfold.
+    RooUnfoldBayes unfold_bayes(response_, hist_data, 30);
+    TH1D* hUnfold = (TH1D*) unfold_bayes.Hreco( RooUnfold::kCovariance ); 
+    
+    SetDnDx( hUnfold );
+    hUnfold->GetYaxis()->SetRangeUser(0.1, 6e3);
+
+    // Draw.
+    can_->SetLogy();
+    can_->cd();
+    hUnfold->SetLineWidth(2);
+    hUnfold->SetLineColor( getColor(color++) );
+    hUnfold->Draw(drawoptions);
+    drawoptions = "histsame";
+    
+    JetEnergySpectrum->Add( hUnfold );
+     
+  }
+  can_->SaveAs("Sector_unfolded.pdf");
+  
+  hSectorDependent = (TH1D*)JetEnergySpectrum->Clone("hSectorDependent_unfolding");
+
+}
+
+
+
+
+
+void Unfolder::Draw_Gen_Pythia8(){
+
+  //-- Initiate canvas.
+  TCanvas* can_;
+
+  
+  TLegend *leg = new TLegend(
+  	1. - can_->GetLeftMargin() - 0.4, 
+	1. - can_->GetTopMargin() - 0.25,
+	1. - can_->GetLeftMargin(),
+	1. - can_->GetTopMargin() );
+
+  TPad* pad_abs_, *pad_ratio_;
+  PrepareCanvas(can_, "Pythia8");
+  cout << "Canvas prepared" << endl;
+  SplitCanvas(can_, pad_abs_, pad_ratio_);
+  
+  TH1D* hReference, *hGen;
+  int pythia8s = 0;
+  TString drawoptions  = "hist";
+
+  
+  
+  //-- Loop over files, hold on to those with Pythia8 in the name.
+  
+  for(int file_ = 0; file_ < MC_files_.size(); file_++){
+  
+    if( (set_of_tags_["mc_type"])[MC_files_[file_]] != "model" && 
+	(set_of_tags_["mc_type"])[MC_files_[file_]] != "actual" &&  
+	(set_of_tags_["mc_type"])[MC_files_[file_]] != "shift_MPI_or_Tune" &&
+	(set_of_tags_["mc_type"])[MC_files_[file_]] != "model_" ){ continue; }  
+  
+    if(  !MC_files_[file_].Contains("ythia8") &&  !MC_files_[file_].Contains("Tune4")){ continue; }
+    pythia8s++;
+  
+    TFile* _fileMC = TFile::Open( MC_files_[file_], "Read");
+    
+    cout << "file_\t" << MC_files_[file_] << endl;
+ 
+    // Extract the right distribution.
+    scaletodata_ = true;
+    if( (set_of_tags_["mc_type"])[MC_files_[file_]] == "shift_MPI_or_Tune" ){ // There is only one gen. distribution, since there are no cuts on detector level.
+      Get_GenEnergy( file_, hGen ); }
+    else{ // There are several gen. distributions, take the one uninfluenced by the cuts on detector level.
+      Get_PureGenEnergy( file_, hGen ); }
+    scaletodata_ = false;
+    
+    SetDnDx( hGen );
+       
+    hGen->Scale( 7388000. );
+       
+    
+    if( pythia8s == 1 ){ hReference = (TH1D*)hGen->Clone("Reference"); }
+    
+  
+    pad_abs_->cd();
+    
+    hGen->SetLineColor( getColor( pythia8s ) );
+    hGen->SetLineStyle( pythia8s );
+    hGen->SetLineWidth( 3 );
+    hGen->DrawClone( drawoptions );
+    
+    pad_ratio_->cd();
+    hGen->Divide( hReference );
+    hGen->Draw( drawoptions );    
+    
+    drawoptions = "histsame";
+
+
+    TString legend_file = legend_info_gen_[MC_files_[file_]];
+    leg->AddEntry( hGen, legend_file, "l" );
+          
+  }
+  pad_abs_->SetLogy();  
+
+  can_->cd();
+
+  leg->Draw();
+  can_->SaveAs( folder_ + "/Pythia8_comparison.pdf");
+    can_->SaveAs( folder_ + "/Pythia8_comparison.C");
+
+  
+  
+
+
+
+
+}

@@ -54,6 +54,6 @@ double GetAverage(TH1D *histo){
     count += value;  
   }
   
-  sum = sum/count;
+  if( count != 0) sum = sum/count;
 
 }

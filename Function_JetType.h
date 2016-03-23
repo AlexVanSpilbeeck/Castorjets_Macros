@@ -6,6 +6,9 @@
 #include <TF1.h>
 #include <TString.h>
 #include "../src/MyCastorJet.h"
+#include "../src/MyGenJet.h"
+
+using namespace std;
 
 TString GetJetType(MyCastorJet castorjet){
 
@@ -51,6 +54,31 @@ TString GetJetType(MyCastorJet castorjet){
 }
 
 
+
+TString GetJetType(MyGenJet genjet){
+
+  TString genjettype = "other";
+  vector<MyGenPart> JetParts = genjet.JetPart;
+
+  // Analyze jet type.
+  int ipart;
+  double E_em = 0.;
+  double E_had = 0.;
+
+  for(vector<MyGenPart>::iterator it = JetParts.begin() ;it != JetParts.end() ;++it,++ipart) {
+//    cout<< "\tparticle\t" << (*it).pdgId << endl;
+//    it->Print();
+//    cout<<endl;
+     if( abs( (*it).pdgId ) < 100 ){ E_em += (*it).E(); }
+     else{ E_had += (*it).E(); }
+  }
+
+  if( E_had > 2. * E_em ){ genjettype = "had"; }
+  else if( E_em >  2. * E_had ){ genjettype = "em"; }
+  
+  
+  return genjettype;
+}
 
 
 

@@ -58,9 +58,16 @@
 #include "../../../RooUnfold-1.1.1/src/RooUnfoldBayes.h"
 #include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
 #include "color.h"
-#include "Function_Rebin.h"
+
 #include "Function_average_histogram.h"
 #include "Function_changeBinEdges.h"
+#include "Function_CorrectSectorNumber.h"
+#include "Function_FinishCanvas.h"
+#include "Function_Prepare1Dplot.h"
+#include "Function_Prepare2Dplot.h"
+#include "Function_PrepareCanvas.h"
+#include "Function_Rebin.h"
+#include "Function_SetRangeToIncludeAll.h"
 #include "GetSubHistogram.h"
 #include "Correct_Sector.h"
 //#include "Function_make_Tex.h"
@@ -81,18 +88,15 @@ class Unfolder{
    void Chi2_comparison_MC_det(TString variable = "lead");
    double Chi2_testII( TH1D* hist_data, TH1D* hist_MC);
    double Chi2_testIII( TH1D* hist_data, TH1D* hist_MC);
-   void ClosureTest_data(TString variable = "lead", TString file = "Displaced", int method = 1);
-   void ClosureTest_MC(TString variable = "lead");
-   void ClosureTest_MC_detLevel(TString variable = "lead");
+
    void CompareGenLevel();
+   void Cut_efficiency(); 	// Counts the number of events in Data: how efficient is each cut?
    void DoublePaddedComparison(TString variable);
    void DoublePaddedComparison_statistics(TString variable, int iterations = 0);
    void DoublePaddedComparison_unfolding(TString variable, int iterations = 0);
-   void DoublePaddedComparison_positionDependence(TString variable, int iterations = 0);
-   void DoublePaddedComparison_modelDependence(TString variable, int iterations = 0);
-   void DoublePaddedComparison_JESDependence(TString variable, int iterations = 0);
-   void DoublePaddedComparison_JESmeasured(TString variable, int iterations = 0);
-   void Get_DetEnergy(int file_, TH1D* &hist_);
+
+   int Get_DetEnergy(int file_, TH1D* &hist_);
+   int Get_DetEnergy_unCalib(int file_, TH1D* &hist_);
    void Get_DetEnergy_lead(int file_, TH1D* &hist_);
    void Get_DetEnergy_JESup(int file_, TH1D* &hist_);
    void Get_DetEnergy_JESdown(int file_, TH1D* &hist_);
@@ -107,8 +111,10 @@ class Unfolder{
    void Get_GenSmeared(int file_, int MC_, TH1D* &hist_, TH1D* hGen, TString variable = "all");
    void Get_Misses(int file_, TH1D* &hist_);
    void Get_ResponseMatrix(int file_, TH2D* &hist_);
+   void Get_ResponseMatrix(TString file_, TH2D* &hist_);
    void Get_ResponseMatrixTHn(int file_, THnSparseD* & hist_);
    void Get_EgenEtaMatrix(int file_, TH2D* &hist_);
+
    void Hist_DetLevel();
    void Hist_DetLevel_DataWithSmear();
    void Hist_DetLevel_lead();
@@ -119,9 +125,13 @@ class Unfolder{
    void Hist_getFake(int file_, TH1D* &hist_);
    void Hist_getMiss(int file_, TH1D* &hist_);
    void Hist_getTruth();
+
    void LabelPlots( TString label );
+
    void Plot_Absolute(TPad* &pad_, TString variable);
    void Plot_Absolute(TPad* &pad_, vector<TH1D*>);
+   void Plot_covariance(int file_, int iterations);
+
    void Plot_DistributionsResponseObject(int files);
    void Plot_Ratio(TPad* &pad_, TString variable);
    void Plot_Ratio(TPad* &pad_, vector<TH1D*>);
@@ -130,35 +140,48 @@ class Unfolder{
    void Plot_Unfolded_Ratio();
    void Plot_Unfolded_Ratio(TPad* &pad_, TString variable, int iterations = 0);
    void Plot_Unfolded_Ratio_statistics(TPad* &pad_, TString variable, int iterations = 0);
-   void Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variable, int iterations);
-   void Plot_Unfolded_Ratio_positionDependence(TPad* & pad_, TString variable, int iterations);
    void Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variable, int iterations);
-   void Plot_Unfolded_JES();
-   void Plot_Measured_JES();
-   void Plot_JER();
-   void Plot_Isolation();
-   
-   void Draw_Gen_Pythia8();
-   
 
-   void SectorDependent_unfolding(TH1D* &hSectorDependent);
-
+   //== Systematic uncertainties: plotted on a double padded canvas (abs. and ratio), and the two functions.
+   void DoublePaddedComparison_positionDependence(TString variable, int iterations = 0);
    void Plot_Unfolded_positionDependence(TPad* & pad_, TString variable, int iterations);
-   void Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int iterations);
+   void Plot_Unfolded_Ratio_positionDependence(TPad* & pad_, TString variable, int iterations);
 
+   void DoublePaddedComparison_modelDependence(TString variable, int iterations = 0);
+   void Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int iterations);
+   void Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variable, int iterations);
+
+   void DoublePaddedComparison_JESDependence(TString variable, int iterations = 0);
    void Plot_Unfolded_JESDependence(TPad* & pad_, TString variable, int iterations);
    void Plot_Unfolded_Ratio_JESDependence(TPad* & pad_, TString variable, int iterations);
 
+   void DoublePaddedComparison_JESmeasured(TString variable, int iterations = 0);
    void Plot_measured_JESDependence(TPad* & pad_, TString variable, int iterations);
    void Plot_measured_Ratio_JESDependence(TPad* & pad_, TString variable, int iterations);
 
-   void Prepare_2Dplot( TH2D* &hist_);
-   void Prepare_2Dplot( TH2D* &hist_, TString xtitle, TString ytitle, int divisionsx, int divisionsy);
-   void PrepareCanvas( TCanvas* &can_, TString label);
-   void PrepareCanvas_2D( TCanvas* &can_, TString label);
-   void PrepareLegend( map<TString, TString> legend_info, map<TString, TString> printLabel, map<TString, TString> legend_info_gen_ );
-   void PrepareTitles( map<TString, TString> xtitle ,  map<TString, TString> ytitle ,  map<TString, TString> htitle);
+   //== Plot simple functions.
+   void Plot_EtaDiff();
+   void Plot_JER();
+   void Plot_Isolation();
+   void Plot_CastorJetID();   
+   void Plot_Unfolded_JES();
+   void Plot_Measured_JES();
+   void Plot_NjetsMatrix(int file_ );
+   void Plot_EgenEtaMatrix(int file_ );
+
+   //== Plot and compare distributions stored in files for several setups.
+   void PlotStartingDistributions();
+   void PlotStartingDistributions(TString distribution);
+   void PlotStartingDistributions_comparingEmin(TString distribution);
+   void PlotStartingDistributions_MCfiles(TString distribution);
+   void PlotStartingDistributions_ratio(TString distribution);
+
+
+
+   int Scale_to_xsec(int file_, TH1D* &hist_);
+
    void ScaleToData( int MC, double &scale );
+   void Scale_to_Ntotal(int file_, TH1D* &hist_);
    void SetAddLabel( TString label );
    void SetCastorJetEnergy_norm( double renorm );
    void SetScaleFactorData( double scalefactors_Data );
@@ -166,61 +189,62 @@ class Unfolder{
    void SetSubhistogram_cut(double Ecut);
    void SetSubhistogram_max(double Ecut);
    void SetFitDraw( bool fitnotdrawn );
-   void SplitCanvas(TCanvas* &can_, TPad* &pad_abs_, TPad* &pad_ratio_);
+
    void Systematics_CompareDetLevel();
    void Systematics_CompareGenLevel();
 
-   void Fit_unfolded_distribution( TF1* &analytical);
 
-   void Set_DeltaPhi_Etaband(double deltaphi, double etaband);
-
-   void PlotNjetsMatrix(int file_ );
    void Get_Njets(int file_, TH2D* &hist_);
 
-   void PlotEgenEtaMatrix(int file_ );
 
-   void Chi2diff_test_data(TString variable, TString file, int method);
+
+
 
    void Unfolding_data(TString variable = "lead", int iterations_ = 10);
-   void PlotStartingDistributions();
-   void PlotStartingDistributions(TString distribution);
-   void PlotStartingDistributions_comparingEmin(TString distribution);
-   void PlotStartingDistributions_MCfiles(TString distribution);
 
-   void PlotEtaDiff();
 
+   //== Calibration functions.
+   void CalibrationFactors_oneCanvas(bool draw_functions);
    void CalibrationFunction(int phi_first, int phi_last, TGraphErrors* &gre);
    void CalibrationFunction_workingsectors(int first_sector, int last_sector, TGraphErrors* &gre);
    void CalibrationFunction_sectors(int first_sector, int last_sector, int whichfile, TGraphErrors* &gre);
    void CalculateSystematics(TString setup = "separate", int first_sector = 1, int last_sector = 16);
    void CalculateSystematics_comparison();
-
    void Plot_Calibrated_functions();
-   void PlotResponseMatrix(int file_ );
+   void Fit_unfolded_distribution( TF1* &analytical);
 
+   //== Response matrix proper.
+   void PlotResponseMatrix(int file_, TString setup );
+   void PlotResponseMatrix(TString file_, TString setup );
+
+   //== Derived from response matrix.
    void PlotFromResponseMatrix(int file_, TString axis_1, TString axis_2);
    void PlotFromResponseMatrix(int file_, TString axis_1);
-
    void Dissect_ResponseObject();
 
-   void CalibrationFactors_oneCanvas(bool draw_functions);
+   //== Chi2 and covariance matrix. Closure test
+   void ClosureTest_data(TString variable = "lead", TString file = "Displaced", int method = 1);
+   void ClosureTest_MC(TString variable = "lead");
+   void ClosureTest_MC_detLevel(TString variable = "lead");
+   void Chi2diff_test_data(TString variable, TString file, int method);
 
    double Calculate_chi2(TH1D* hist_ref, TH1D* hist_res);
-
-   void Get_UnfoldSmearError( TH1D* vUnfold, TH1D* &vSmeared, int file_, TString variable, int iterations );
-   void Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations, TString variable, int method , double &chi2);
-
    void Calculate_smearedBackError(int file_, int MC_, int iterations, TH1D* &hActual_hist, TH1D* hUnfold);
    double Calculate_smearedBackError_covariance( TH1D* hData, TH1D* hUnfold, RooUnfoldResponse* response, int iterations );
-
    void CovarianceMatrix( TH1D* hUnfold, TH1D* hSmeared, TMatrixD& cov_);
 
    void Smear_gen(int file);
 
+   void Get_UnfoldSmearError( TH1D* vUnfold, TH1D* &vSmeared, int file_, TString variable, int iterations );
+   void Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations, TString variable, int method , double &chi2);
 
 
 
-
+   //== Initialization functions.
+   void Initialize_xsec( std::map<TString, double> );
+   void Trigger_efficiency( double trigger_eff );
+   void PrepareLegend( map<TString, TString> legend_info, map<TString, TString> printLabel, map<TString, TString> legend_info_gen_ );
+   void PrepareTitles( map<TString, TString> xtitle ,  map<TString, TString> ytitle ,  map<TString, TString> htitle);
 
 
 
@@ -244,6 +268,10 @@ void Plot_GenLevels_();
 
 
   private:
+   double lumi_;
+   double trigger_efficiency_correction_;
+
+
    vector<TString> MC_files_;
    TString datafile_;
    TString folder_; 
@@ -273,6 +301,8 @@ void Plot_GenLevels_();
    map<TString, TGraphErrors*> calibration_graphs_;
 
    map<TString, map<TString, TString> > set_of_tags_;
+
+   map<TString, double> xsec_;
 
    void MakeDoublePaddedComparison(TCanvas * &can, vector<TH1D*>, TLegend *leg);
    double Chi2_test( TH1D* hist_data, TH1D* hist_MC);
@@ -320,6 +350,8 @@ Unfolder::Unfolder( vector<TString> MC_files, TString datafile, std::map< TStrin
   etawidth_ = etawidth;
   addLabel_ = "";  
 
+  lumi_ =  1.23115 * 1e5;
+
   int  new_dir = mkdir( ("Plots/" + folder).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
 
   normalise_1 = false;
@@ -335,28 +367,78 @@ void Unfolder::SetFitDraw(bool fitnotdrawn){
 }
 
 
+
+void Unfolder::Initialize_xsec( std::map<TString, double> xsec ){  
+  xsec_ = xsec;
+}
+
+void Unfolder::Trigger_efficiency( double trigger_eff ){
+  trigger_efficiency_correction_ = trigger_eff;
+}
+
+
+
+
+
+
+
 /*****************************************
 * Plot the Det level energy distribution *
 *****************************************/
 // -- Plot
-void Unfolder::Get_DetEnergy(int file_, TH1D* &hist_){
-   cout << "\n\n\n// -- Detector level energy - file selection\t" << file_ << endl;
+int Unfolder::Get_DetEnergy(int file_, TH1D* &hist_){
+   cout << "\n\t===// -- Detector level energy - file selection\t" << file_ << endl;
 
    TH1D *hDet;
    TFile *_file0;
    TString drawoptions = "";
    
+   cout << "\t===//\tUnfolder::Get_DetEnergy\topening files" << endl;
    if( file_ == -1 ){			_file0 = new TFile( datafile_, "Read");		drawoptions = "data";}
    else if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); 	drawoptions = "hist";}
 
+   cout << "\tUnfolder::Get_DetEnergy\topened file" << endl;
          
-   hDet = (TH1D*)_file0->Get("hCastorJet_energy");	hDet->Sumw2();
-   hDet->GetXaxis()->SetTitle("E_{det} (GeV)");
+   hDet = (TH1D*)_file0->Get("hCastorJet_energy");
+
+   if( !hDet ) return 0;
+
+   hDet->Sumw2();
+   hDet->GetXaxis()->SetTitle("E_{det} [GeV]");
    hDet->GetYaxis()->SetTitle("#frac{dN}{dE}");
   
    if( normalise_1 ) hDet->Scale( 1./hDet->Integral() );
  
    hist_ = hDet;
+   cout << "\t===// -- Detector level energy - end\t" << file_ << endl;   
+}
+
+
+
+int Unfolder::Get_DetEnergy_unCalib(int file_, TH1D* &hist_){
+   cout << "\n\t===// -- Detector level uncalibrated energy - file selection\t" << file_ << endl;
+
+   TH1D *hDet;
+   TFile *_file0;
+   TString drawoptions = "";
+   
+   cout << "\t===//\tUnfolder::Get_DetEnergy_unCalib\topening files" << endl;
+   if( file_ == -1 ){			_file0 = new TFile( datafile_, "Read");		drawoptions = "data";}
+   else if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); 	drawoptions = "hist";}
+
+   cout << "\tUnfolder::Get_DetEnergy\topened file" << endl;
+         
+   hDet = (TH1D*)_file0->Get("hCastorJet_energy_unCalib");
+
+   if( !hDet ) return 0;
+
+   hDet->Sumw2();
+   hDet->GetXaxis()->SetTitle("E_{det} [GeV]");
+   hDet->GetYaxis()->SetTitle("#frac{dN}{dE}");
+ 
+ 
+   hist_ = hDet;
+   cout << "\t===// -- Detector level uncalibrated energy - end\t" << file_ << endl;   
 }
 
 
@@ -371,7 +453,7 @@ void Unfolder::Get_DetEnergy_lead(int file_, TH1D* &hist_){
 
 
    hDet = (TH1D*)_file0->Get("hCastorJet_energy_lead");      hDet->Sumw2();
-   hDet->GetXaxis()->SetTitle("E_{det} (GeV)");
+   hDet->GetXaxis()->SetTitle("E_{det} [GeV]");
    hDet->GetYaxis()->SetTitle("#frac{dN}{dE}");
 
    if( normalise_1 ) hDet->Scale( 1./hDet->Integral() );
@@ -397,7 +479,7 @@ void Unfolder::Get_DetEnergy_JESup(int file_, TH1D* &hist_){
 
          
    hDet = (TH1D*)_file0->Get("hCastorJet_energy_JES_up");	hDet->Sumw2();
-   hDet->GetXaxis()->SetTitle("E_{det} (GeV)");
+   hDet->GetXaxis()->SetTitle("E_{det} [GeV]");
    hDet->GetYaxis()->SetTitle("#frac{dN}{dE}");
   
    if( normalise_1 ) hDet->Scale( 1./hDet->Integral() );
@@ -422,7 +504,7 @@ void Unfolder::Get_DetEnergy_JESdown(int file_, TH1D* &hist_){
 
          
    hDet = (TH1D*)_file0->Get("hCastorJet_energy_JES_down");	hDet->Sumw2();
-   hDet->GetXaxis()->SetTitle("E_{det} (GeV)");
+   hDet->GetXaxis()->SetTitle("E_{det} [GeV]");
    hDet->GetYaxis()->SetTitle("#frac{dN}{dE}");
   
    if( normalise_1 ) hDet->Scale( 1./hDet->Integral() );
@@ -444,14 +526,34 @@ void Unfolder::Get_ResponseMatrix(int file_, TH2D* &hist_){
    else if( file_ == -1 ){              _file0 = new TFile( datafile_, "Read");         drawoptions = "data";}
 
    TH2D* hRes = (TH2D*)_file0->Get("hCastorJet_energy_response_fine");      hRes->Sumw2();
-   hRes->GetXaxis()->SetTitle("E_{det} (GeV)");
-   hRes->GetYaxis()->SetTitle("E_{gen} (GeV)");
+   hRes->GetXaxis()->SetTitle("E_{det} [GeV]");
+   hRes->GetYaxis()->SetTitle("E_{gen} [GeV]");
 
    if( normalise_1 ) hRes->Scale( 1./hRes->Integral() );
 
    hist_ = hRes;
 }
 
+
+
+
+
+
+void Unfolder::Get_ResponseMatrix(TString file_, TH2D* &hist_){
+
+   TFile *_file0;
+   TString drawoptions = "";
+
+   _file0 = new TFile( file_, "Read");  
+
+   TH2D* hRes = (TH2D*)_file0->Get("hCastorJet_energy_response_fine");      hRes->Sumw2();
+   hRes->GetXaxis()->SetTitle("E_{det} [GeV]");
+   hRes->GetYaxis()->SetTitle("E_{gen} [GeV]");
+
+   if( normalise_1 ) hRes->Scale( 1./hRes->Integral() );
+
+   hist_ = hRes;
+}
 
 
 
@@ -483,7 +585,7 @@ void Unfolder::Get_EgenEtaMatrix(int file_, TH2D* &hist_){
    else if( file_ == -1 ){              _file0 = new TFile( datafile_, "Read");         drawoptions = "data";}
 
    TH2D* hRes = (TH2D*)_file0->Get("hGenJet_energy_vs_eta");      hRes->Sumw2();
-   hRes->GetXaxis()->SetTitle("E_{gen} (GeV)");
+   hRes->GetXaxis()->SetTitle("E_{gen} [GeV]");
    hRes->GetYaxis()->SetTitle("#eta");
 
    if( normalise_1 ) hRes->Scale( 1./hRes->Integral() );
@@ -600,59 +702,73 @@ void Unfolder::Hist_DetLevel_lead(){
 void Unfolder::Hist_DetLevel(){
   cout << "\n\nUnfolder::Hist_DetLevel()\n\n";
 
+  //-- Prepare legend etc.
   TH1D* hist_;
   TString drawoptions = "hist", legendoptions = "l";
   TCanvas *can; 
   PrepareCanvas( can, "Detector_Level_Energy" );
   vector<TH1D*> histos;
-  TLegend*leg = new TLegend( 0.65, 0.75, 0.95, .95);
+
+  TLegend*leg = new TLegend( 0.75, 0.55, 0.93, .93);
+    leg->SetFillColor( kWhite );
+
   bool done_data = false;
 
-  double max_ = 0.;
-
+  //-- Loop over files.
   for( int file = 0; file <= MC_files_.size(); file++ ){
     int file_ = file;
-
+   
     //-- Data.
     if( file == MC_files_.size() ){
       file_ = -1;
       drawoptions = "datasame";
-      legendoptions = "lp";
+      legendoptions = "p";
       done_data = true;
     }
 
-    //-- MC.
     else{
-      TString scalefactor_MC = (set_of_tags_[ "scalefactors" ])[ MC_files_[file_] ];
-      double scalefactors_MC_ = scalefactor_MC.Atof() ;
-      SetCastorJetEnergy_norm( scalefactors_MC_ / scalefactors_Data_ ); 
-    }  
+      if( (set_of_tags_["mc_type"])[MC_files_[file_]] != "model" && 
+	  (set_of_tags_["mc_type"])[MC_files_[file_]] != "actual" &&  
+	  (set_of_tags_["mc_type"])[MC_files_[file_]] != "model_"   ) { continue; }
+    }
 
-    Get_DetEnergy( file_ , hist_ );
+    Get_DetEnergy_unCalib( file_ , hist_ );     hist_->GetXaxis()->SetRangeUser( 150., 2100./1.5 );
+//    Get_DetEnergy( file_ , hist_ );
+
+
+    if( !hist_) continue;
+    if( hist_->Integral() != hist_->Integral() ) continue;
+
+    //== Scale MC to number of events.
+    if( file_ != -1 ){  Scale_to_Ntotal(file, hist_); }
+
+    if( hist_->Integral() == 0. ) continue;	
+
     hist_->SetLineColor( getColor( file_ +1) );
     hist_->SetLineWidth( 3 );
     hist_->SetMarkerColor( getColor( file_ +1) );
     hist_->SetMarkerSize( 1 );
+    hist_->GetYaxis()->SetTitle( "N" );
 
-    if( file_ >= 0 ){
-      TString scalefactor_MC = (set_of_tags_[ "scalefactors" ])[ MC_files_[ file_ ] ];
-      double scalefactors_MC_ = scalefactor_MC.Atof() ;
-      SetCastorJetEnergy_norm( scalefactors_MC_/ scalefactors_Data_ ); 
-      hist_->Scale( 1./renorm_ );
-    }
+//    SetDnDx( hist_ );
+    Prepare_1Dplot( hist_ );
 
     if( file_ != -1) {histos.push_back( hist_ ); }
     if( file_ == -1) {histos.insert( histos.begin(), hist_) ; }
 
     TString legend_info;
-    if( file_ == -1 ){ legend_info = legend_info_[datafile_]; }
-    else{ legend_info = legend_info_[MC_files_[file_]];  }
+    if( file_ == -1 ){ legend_info = "Data"; }
+    else{ legend_info = legend_info_gen_[MC_files_[file_]];  }
 
     leg->AddEntry( hist_, legend_info, legendoptions );
     drawoptions = "histsame";
     if( done_data ){ break; }
   }
-   MakeDoublePaddedComparison(can, histos, leg );
+
+  MakeDoublePaddedComparison(can, histos, leg );
+
+  can->cd();
+  Finish_canvas( can );
  
   can->SaveAs( TString::Format( folder_ + "DetectorLevelEnergy" + label_ + ".C") );
   can->SaveAs( TString::Format( folder_ + "DetectorLevelEnergy" + label_ + ".pdf") );
@@ -784,49 +900,124 @@ void Unfolder::Hist_DetLevel_MCWithSmear(){
 * Plot the Gen level energy distribution *
 *****************************************/
 
-// -- Plot
-void Unfolder::Get_GenEnergy(int file_, TH1D* &hist_){
-   cout << "\n\n\n// -- Generator level energy - file selection (file, hist)\t" << file_ << endl;
 
-   cout << "\nYes, here" << endl;
+// -- Plot
+int Unfolder::Scale_to_xsec(int file_, TH1D* &hist_){
+   cout << "\t===// -- Scale to x-section - file selection (file, hist)\t" << file_ << endl;
 
    TH1D *hGen;
    TFile *_file0;
    TString drawoptions = "";
    
-   cout << "\nSome stuff\t" << MC_files_.size() << "\t" << MC_files_[file_] << endl;
-
    if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); 	drawoptions = "hist";}
-   
-   cout << "\nOpened file" << endl;
 
-   hGen = (TH1D*)_file0->Get("hGenJet_energy");	
+   int total_events_nocuts;
+   TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
+   TString branch_str = (set_of_tags_[ "scalefactors" ])[ MC_files_[file_] ];
+   tree_numbers->SetBranchAddress(branch_str, &total_events_nocuts);
+
+   tree_numbers->GetEntry( 0 );
+
+   double xsec = 1.;
+   xsec = xsec_[MC_files_[file_]];
+   cout << "\t==xsec\t" << xsec << endl;
+
+   if( xsec == 0. ) return 0;
+
+   hist_->Scale( xsec/ total_events_nocuts);
+
+   cout << MC_files_[file_] << "\tNormalize to\t" << total_events_nocuts << "\t" << xsec << endl;
+
+   cout << "\nReached the end of Unfolder::Scale_to_xsec" << endl;
+   cout << "==Returning histogram\t" << hist_->Integral()  << endl << endl << endl;
+}
+
+
+
+
+
+// -- Plot
+void Unfolder::Scale_to_Ntotal(int file_, TH1D* &hist_){
+   
+
+   cout << "\t===// -- Scale to Nevents - file selection (file, hist)\t" << file_ << endl;
+
+   TH1D *hGen;
+   TFile *_file0;
+   TString drawoptions = "";
+   TString branch_str = "castor_150GeV_events";   
+
+   //Extract number of events from MC file.
+   if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); }
+   int total_events_MC;
+   TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
+   tree_numbers->SetBranchAddress(branch_str, &total_events_MC);
+   tree_numbers->GetEntry( 0 );
+
+   //Extract number of events from data file.
+   TFile* _fileData = new TFile( datafile_, "Read");
+   int total_events_data;
+   TTree *tree_numbers_data = (TTree*)_fileData->Get("useful_numbers");
+   tree_numbers_data->SetBranchAddress(branch_str, &total_events_data);
+   tree_numbers_data->GetEntry( 0 );
+
+   hist_->Scale( double(total_events_data)/double(total_events_MC));
+
+   cout << MC_files_[file_] << "\tNormalize to\t" << total_events_data/total_events_MC <<  endl;
+
+   cout << "\nReached the end of Unfolder::Scale_to_Ntotal" << endl;
+   cout << "==Returning histogram\t" << hist_->Integral()  << endl << endl << endl;
+}
+
+
+
+
+
+
+// -- Plot
+void Unfolder::Get_GenEnergy(int file_, TH1D* &hist_){
+   cout << "\t\t// -- Generator level energy - file selection (file, hist)\t" << file_ << endl;
+
+   TH1D *hGen;
+   TFile *_file0;
+   TString drawoptions = "";
+   
+   if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); 	drawoptions = "hist";}
+
+   hGen = (TH1D*)_file0->Get("hGenJet_energy");
    if( !hGen ) hGen = (TH1D*)_file0->Get("hGenJet_Pythia84C_MPI_off");	
    if( !hGen ) hGen = (TH1D*)_file0->Get("hGenJet_Pythia84C_MPI_on");	
 
    cout << "\nExtracted GenJetEnergy" << endl;
 
    hGen->Sumw2();
-   hGen->GetXaxis()->SetTitle("E_{det} (GeV)");
+   hGen->GetXaxis()->SetTitle("E_{det} [GeV]");
    hGen->GetYaxis()->SetTitle("#frac{dN}{dE}");
 
-   if( scaletodata_ ){
-   cout << "\nScaledata is true" << endl;
+   if( scaletodata_ && !MC_files_[file_].Contains("HEJ") ){
       int total_events_nocuts;
       TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
       TString branch_str = (set_of_tags_[ "scalefactors" ])[ MC_files_[file_] ];
-      tree_numbers->SetBranchAddress(branch_str, &total_events_nocuts);
+      tree_numbers->SetBranchAddress(branch_str, &total_events_nocuts);     
 
       tree_numbers->GetEntry( 0 );
-      hGen->Scale( 1./ total_events_nocuts);
+
+      double xsec = 1.;
+      xsec = xsec_[MC_files_[file_]];
+      hGen->Scale( xsec/ total_events_nocuts);
+
+      cout << "\t***\t" << MC_files_[file_] << "\t" << hGen->Integral() << "\t" << endl;
+
       cout << MC_files_[file_] << "\tNormalize to\t" << total_events_nocuts << endl;
     }
+
 
    if( normalise_1 ) hGen->Scale( 1./hGen->Integral() );
    
    hist_ = hGen;
 
    cout << "\nReached the end of Unfolder::Get_GenEnergy" << endl;
+   cout << "==Returning histogram\t" << hGen->Integral()  << endl << endl << endl;
 }
 
 
@@ -844,7 +1035,7 @@ void Unfolder::Get_GenEnergy_response(int file_, TH1D* &hist_){
    RooUnfoldResponse* response = (RooUnfoldResponse*)_file0->Get("response");
 
    hGen = (TH1D*)response->Htruth();
-   hGen->GetXaxis()->SetTitle("E_{det} (GeV)");
+   hGen->GetXaxis()->SetTitle("E_{det} [GeV]");
    hGen->GetYaxis()->SetTitle("#frac{dN}{dE}");
 
    if( normalise_1 ) hGen->Scale( 1./hGen->Integral() );
@@ -863,7 +1054,7 @@ void Unfolder::Get_Misses(int file_, TH1D* &hist_){
    if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); 	drawoptions = "hist";}
    
    hGen = (TH1D*)_file0->Get("hCastorJet_miss_all");	hGen->Sumw2();
-   hGen->GetXaxis()->SetTitle("E_{det} (GeV)");
+   hGen->GetXaxis()->SetTitle("E_{det} [GeV]");
    hGen->GetYaxis()->SetTitle("#frac{dN}{dE}");
 
    if( normalise_1 ) hGen->Scale( 1./hGen->Integral() );
@@ -885,7 +1076,7 @@ void Unfolder::Get_GenEnergy_lead(int file_, TH1D* &hist_){
    if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); 	drawoptions = "hist";}
    
    hGen = (TH1D*)_file0->Get("hGenJet_energy_lead");	hGen->Sumw2();
-   hGen->GetXaxis()->SetTitle("E_{det} (GeV)");
+   hGen->GetXaxis()->SetTitle("E_{det} [GeV]");
    hGen->GetYaxis()->SetTitle("#frac{dN}{dE}");
 
 
@@ -900,7 +1091,7 @@ void Unfolder::Get_GenEnergy_lead(int file_, TH1D* &hist_){
 
 
 void Unfolder::Get_PureGenEnergy(int file_, TH1D* &hist_){
-   cout << "\n\n\n// -- Generator level energy - file selection\t" << file_ << endl;
+   cout << "\t\t// -- Generator level energy - file selection\t" << file_ << endl;
    TH1D *hGen;
    TFile *_file0;
    TString drawoptions = "";
@@ -909,10 +1100,13 @@ void Unfolder::Get_PureGenEnergy(int file_, TH1D* &hist_){
   
    hGen = (TH1D*)_file0->Get("hGenJet_energy_noCuts");	
    
+   //-- Continue if the histogram exists.
    if( hGen ){
+     cout << "Unfolder::Get_PureGenEnergy\thGen exists" << endl;
 
+     //-- Continue if the histogram must be scaled to its number of events.
+     //-- 
      if( scaletodata_ ){
-	cout << "Oh here - pure\t" <<  MC_files_[file_] << endl;
 
       int total_events_nocuts;
       TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
@@ -920,11 +1114,13 @@ void Unfolder::Get_PureGenEnergy(int file_, TH1D* &hist_){
       tree_numbers->SetBranchAddress(branch_str, &total_events_nocuts);
       tree_numbers->GetEntry( 0 );
 
-      hGen->Scale( 1./ total_events_nocuts);
+      double xsec = 1.;
+      xsec = xsec_[MC_files_[file_]];
+      hGen->Scale( xsec/ total_events_nocuts);
       cout << MC_files_[file_] << "\tNormalize to\t" << total_events_nocuts << endl;
     }
     hGen->Sumw2();
-    hGen->GetXaxis()->SetTitle("E_{det} (GeV)");
+    hGen->GetXaxis()->SetTitle("E_{det} [GeV]");
     hGen->GetYaxis()->SetTitle("#frac{dN}{dE}");
     
     cout << "\nUnfolder::Get_PureGenEnergy\tNormalized" << endl;
@@ -935,6 +1131,9 @@ void Unfolder::Get_PureGenEnergy(int file_, TH1D* &hist_){
     hGen = (TH1D*)_file0->Get("hGenJet_energy");	
   }
   hist_ = hGen;
+
+   cout << "\nReached the end of Unfolder::Get_PureGenEnergy" << endl;
+   cout << "==Returning histogram\t" << hGen->Integral() << endl << endl << endl;
 }
 
 
@@ -1120,70 +1319,67 @@ void Unfolder::Plot_Unfolded(){
 
 
     int color_ = 1;
-    TH1D* hGen, *hDet, *hData, *hData_ratio;
-    TString legend_file = legend_info_[MC_files_[file_]];
+    TH1D* hGen, *hDet, *hFirst, *hData_ratio;
+    TString legend_file = legend_info_gen_[MC_files_[file_]];
     TString print_label = printLabel_[MC_files_[file_]];
   
     TCanvas *can;
     TPad *pad_abs_, *pad_ratio_;
     PrepareCanvas( can , "Comparison_Energy_Unfolded");
-    SplitCanvas( can, pad_abs_, pad_ratio_ );
-    TLegend* leg = new TLegend(0.6, 0.55, 0.95, 0.95);  
+    TLegend* leg = new TLegend(0.6, 0.48, 1. - can->GetRightMargin(), 1. - can->GetTopMargin());  
     leg->SetFillColor(0);
 
     double min_val, max_val;
+    TString drawoptions = "hist";
+    bool first_iteration = true;
+    int it_incr = 3;
+    int it_max = 30;
 
-    pad_abs_->cd();
-
-    Get_DetEnergy(-1, hData);
-    hDet = (TH1D*)hData->Clone( TString::Format( "Unfolded") );
-
-    SetDnDx( hData );
-    hData->GetXaxis()->SetTitle("E (GeV)");
-    hData->GetYaxis()->SetTitle("#frac{dN}{dE}");
-    hData->	Draw("ephist");
-    hData->GetXaxis()->SetNdivisions(504);
-    First_Plot( hData, hData, 0, min_val, max_val);
-    leg->	AddEntry( hData, "Measured Data", "p");
-
-    pad_ratio_->cd();
-
-    hData_ratio = (TH1D*)hData->Clone("hData_ratio");
-    hData_ratio->Divide( hData );
-    hData_ratio->GetYaxis()->SetRangeUser(0.,2.);
-    hData_ratio->GetYaxis()->SetTitle("Ratio (unf./meas.)");
-    hData_ratio->GetYaxis()->SetTitleSize(0.09);
-    hData_ratio->GetYaxis()->SetNdivisions(14);
-    hData_ratio->Draw("ephist");
-
-    for( int iterations = 30; iterations <= 30; iterations += 4, color_++){
+    for( int iterations = 1; iterations <= it_max; iterations += it_incr, color_++){
+          
 
       Get_DetEnergy(-1, hDet);
       Get_DetUnfolded(file_, hDet, iterations);
+      hDet->Scale( 1./(1.2*1e5) );      
       hDet->SetName( TString::Format( "Iterations_%i", iterations) );
 
       SetDnDx( hDet );
       hDet->SetLineColor( getColor(color_) );
       hDet->SetLineStyle( color_ );
       hDet->SetLineWidth( 2 );
+      hDet->GetXaxis()->SetNdivisions(504);
+      hDet->SetXTitle("E [GeV]");
+      hDet->SetYTitle("#frac{d#sigma}{dE} [mb/GeV]");
 
-      pad_abs_->cd();
-      hDet->DrawClone("histsame");
-      First_Plot( hData, hDet, iterations, min_val, max_val);
-      leg->AddEntry( hDet, TString::Format("%i it., "+ legend_file, iterations), "lp" );
+      can->cd();
+      Prepare_1Dplot( hDet );
+      hDet->DrawClone( drawoptions );
+      drawoptions = "histsame";
 
-      pad_ratio_->cd();
-      hDet->Divide( hData );
-      hDet->Draw("histsame");
+
+      if( first_iteration){
+	hFirst = (TH1D*)hDet->Clone("hFirst");
+	first_iteration = false;
+      }
+
+      First_Plot( hFirst, hDet, iterations, min_val, max_val);
+
+//      leg->AddEntry( hDet, TString::Format("%i it., #Delta#varphi = 0.%i, #eta = 0.%i", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ), "l");
+      leg->AddEntry( hDet, TString::Format("%i it., " + legend_info_gen_[MC_files_[0]], iterations), "l");
+
+
     }
-    
-    pad_abs_->cd();
     leg->Draw();
-    pad_abs_->SetLogy();
+    can->SetLogy();
     can->Update();
   
     can->SaveAs(folder_ + "/Compare_UnfoldedEnergy" + print_label + ".C");
     can->SaveAs(folder_ + "/Compare_UnfoldedEnergy" + print_label + ".pdf");  
+
+    can->SaveAs( TString::Format(folder_ + "Compare_UnfoldedData_%i_iterations_%i_GeV_deltaPhiMax_0%i_etaband_0%i.C", 
+	it_max, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
+    can->SaveAs( TString::Format(folder_ + "Compare_UnfoldedData_%i_iterations_%i_GeV_deltaPhiMax_0%i_etaband_0%i.pdf", 
+	it_max, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
   }  
 }
 
@@ -1284,7 +1480,10 @@ void Unfolder::Plot_Absolute( TPad* & pad_, TString variable){
       hFirst = (TH1D*)hDistr->Clone(variable + "_first");
       hDistr = hFirst;
       firstDistr = false;
+      Prepare_1Dplot( hFirst );
     }
+
+    Prepare_1Dplot( hDistr );
 
     hDistr->Scale( 1./hDistr->Integral() );
     First_Plot( hFirst, hDistr, nDistr, max_val, min_val);
@@ -1295,15 +1494,14 @@ void Unfolder::Plot_Absolute( TPad* & pad_, TString variable){
     hDistr->SetLineColor( getColor( nDistr+1 ) );
     hDistr->SetLineStyle( nDistr+1 );
     hDistr->SetLineWidth( 3 );
-    hDistr->SetMarkerColor(  getColor( nDistr+1 ) );
-  
+    hDistr->SetMarkerColor(  getColor( nDistr+1 ) ); 
+
     pad_->cd();
     pad_->SetLogy();
     hDistr->Draw( drawoptions );
    
     drawoptions = "histsame";
     nDistr++;
-//    leg->Draw();
     
     if( nDistr > 0 ) pad_->Update();
     if( file_ == MC_files_.size() ){
@@ -1344,7 +1542,17 @@ void Unfolder::Plot_Ratio( TPad* & pad_, TString variable){
       hFirst = (TH1D*)hDistr->Clone(variable + "_first");
       hFirst_abs = (TH1D*)hFirst->Clone(variable + "_first_absolute");
       hFirst->Divide( hFirst );
+      hFirst->GetYaxis()->SetTitle("Ratio");
       firstDistr = false;
+      hFirst->GetYaxis()->SetLabelFont(42);
+      hFirst->GetYaxis()->SetLabelSize( (hFirst->GetYaxis()->GetLabelSize())*1.5 );
+      hFirst->GetYaxis()->SetLabelSize( (hFirst->GetYaxis()->GetLabelSize())*1.5 );
+      hFirst->GetYaxis()->SetLabelOffset( hFirst->GetYaxis()->GetLabelOffset() );
+
+      hFirst->GetXaxis()->SetLabelFont(42);
+      hFirst->GetXaxis()->SetLabelSize( ( hFirst->GetXaxis()->GetLabelSize())*1.5 );
+      hFirst->GetXaxis()->SetTitleSize( ( hFirst->GetXaxis()->GetTitleSize())*1.5 );
+      hFirst->GetXaxis()->SetLabelOffset( hFirst->GetXaxis()->GetLabelOffset()*1.5 );
     }
    
     hDistr->Divide( hFirst_abs );
@@ -1357,6 +1565,8 @@ void Unfolder::Plot_Ratio( TPad* & pad_, TString variable){
     hDistr->SetLineWidth( 3 );
     hDistr->SetLineStyle( file_+1 );
     hDistr->SetMarkerColor(  getColor( file_+1 ) );
+
+
 
 
     pad_->cd();
@@ -1416,11 +1626,107 @@ void Unfolder::Get_DetUnfolded(int file_, TH1D* &hist_, int iterations, TString 
   // the original hist has become obsolete, transform it into the unfolded histogram.
   hist_ = (TH1D*) unfold_bayes.Hreco(); 
 
+  //== The following lines extract the unfolding matrix and plot it as a histogram.
+  TCanvas * can_unfold = new TCanvas("unfolded", "unfodled", 1.);
+  PrepareCanvas_2D( can_unfold, TString::Format("Unfolding_matrix_%i_iterations", iterations) );
+  TMatrixD& unfold_m = (TMatrixD&)unfold_bayes.UnfoldingMatrix();
+  TH2D* unfold_h = new TH2D( unfold_m );   
+  double min_unfold = GetMinimumValue( unfold_h );
+  double max_unfold = unfold_h->GetMaximum();
+  unfold_h->GetZaxis()->SetRangeUser( min_unfold * 0.9, max_unfold * 1.1);
+  Prepare_2Dplot( unfold_h );
+
+  unfold_h->GetXaxis()->SetTitle("E_{det} [GeV]");
+  unfold_h->GetYaxis()->SetTitle("E_{gen} [GeV]");
+
+//  unfold_h->Draw("colz");
+  
+  can_unfold->SetLogz();
+  
+//  can_unfold->SaveAs( folder_ + TString::Format("UnfoldMatrix_%i.pdf", iterations) );
+//  can_unfold->SaveAs( folder_ + TString::Format("UnfoldMatrix_%i.C", iterations) );  
+  //== Done drawing.
+
+
+  //== This draw the covariance matrix.
+  TCanvas * can_cov = new TCanvas("covariance", "covariance", 1.);
+  PrepareCanvas_2D( can_cov, TString::Format("Covariance_unfolding_matrix_%i_iterations", iterations) );
+  TMatrixD& covariance_m = (TMatrixD&)unfold_bayes.GetMeasuredCov();
+  TH2D* covariance_h = new TH2D( covariance_m );   
+  double min_covariance = GetMinimumValue( covariance_h );
+  double max_covariance = covariance_h->GetMaximum();
+  covariance_h->GetZaxis()->SetRangeUser( min_covariance * 0.9, max_covariance * 1.1);
+  Prepare_2Dplot( covariance_h );
+
+  covariance_h->GetXaxis()->SetTitle("E_{det} [GeV]");
+  covariance_h->GetYaxis()->SetTitle("E_{gen} [GeV]");
+
+//  covariance_h->Draw("colz");
+  
+  can_cov->SetLogz();
+  
+//  can_cov->SaveAs( folder_ + TString::Format("Covariance_UnfoldMatrix_%i.pdf", iterations) );
+//  can_cov->SaveAs( folder_ + TString::Format("Covariance_UnfoldMatrix_%i.C", iterations) );  
+
+
+  //== Done with the covariance matrix.
+
   cout << "\t\tUnfolder::Get_DetUnfolded after\t" << hist_->Integral() << endl;
 
   }
 }
 
+
+
+
+
+void Unfolder::Plot_covariance(int file_, int iterations){
+
+  if( file_ >= 0 ){
+  TFile *_file0 = new TFile( MC_files_[file_], "read");
+
+  TH1D* hist_;
+  Get_DetEnergy( 0, hist_ );
+  RooUnfoldResponse* response;
+  response = (RooUnfoldResponse*)_file0->Get("response"); 
+
+  // Use hist as input for the unfolding.
+  RooUnfoldBayes unfold_bayes(response, hist_, iterations);
+
+ //== This draw the covariance matrix.
+  TCanvas * can_cov = new TCanvas("covariance", "covariance", 1.);
+  PrepareCanvas_2D( can_cov, TString::Format("Covariance_unfolding_matrix_%i_iterations", iterations) );
+  TMatrixD covariance_m = (TMatrixD)unfold_bayes.Ereco( RooUnfold::kCovariance);
+  TH2D* covariance_h = new TH2D( covariance_m );   
+  double min_covariance = GetMinimumValue( covariance_h );
+  double max_covariance = covariance_h->GetMaximum();
+  covariance_h->GetZaxis()->SetRangeUser( min_covariance * 0.9, max_covariance * 1.1);
+  Prepare_2Dplot( covariance_h );
+
+  covariance_h->GetXaxis()->SetTitle("E_{det} [GeV]");
+  covariance_h->GetYaxis()->SetTitle("E_{gen} [GeV]");
+
+  //== We need to change the bins of the covariance matrix. 
+  //== We use the response matrix as template.
+  TH2D* hTemplate = (TH2D*)response->Hresponse();
+  ChangeBinEdges( covariance_h, covariance_h, hTemplate);
+
+
+  Prepare_2Dplot( covariance_h );
+
+  DrawWithNegativeLog( covariance_h, can_cov );
+  
+  can_cov->SetLogz();
+
+  Finish_canvas(can_cov);
+  
+  can_cov->SaveAs( folder_ + TString::Format("Covariance_UnfoldMatrix_%i.pdf", iterations) );
+  can_cov->SaveAs( folder_ + TString::Format("Covariance_UnfoldMatrix_%i.C", iterations) );  
+
+
+  //== Done with the covariance matrix.
+ } 
+}
 
 
 
@@ -1475,7 +1781,7 @@ void Unfolder::Get_UnfoldSmearError( TH1D* vUnfold, TH1D* &vSmeared, int MC_, TS
 /////////////////////////////////////
 
 void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations, TString variable, int method, double &chi2 ){
-  cout << "Unfolder::Unfold-and-smear\t" << MC_files_[ MC_ ] << "\tmethod\t" << method << endl;
+  cout << "\n\t===Unfolder::Unfold-and-smear===\t" << MC_files_[ MC_ ] << "\tmethod\t" << method << endl;
   variable = "all";
 
   ofstream smearing_matrix;
@@ -1484,13 +1790,10 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
   TH1D* theHist = (TH1D*)hist_->Clone("theHist");
 
   TFile *_file0 = new TFile( MC_files_[ MC_ ], "read");
-  cout << "Using \t" << MC_files_[ MC_ ] << endl;
   TFile *_file_det = new TFile( datafile_, "read");
   RooUnfoldResponse* response;
   
-  if( variable == "all"){ 		response = (RooUnfoldResponse*)_file0->Get("response"); }
-  else if( variable == "lead"){ 	response = (RooUnfoldResponse*)_file0->Get("response_lead"); }
-
+  response = (RooUnfoldResponse*)_file0->Get("response"); 
 
   //-- Extract histograms.
   TH1D* hMiss = (TH1D*)_file0->Get("hCastorJet_miss_all");
@@ -1501,10 +1804,6 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
   TH1D* hSmear;
 
 
- TCanvas *can_res_;
- PrepareCanvas_2D(can_res_, "response_matrix");
- hResponse->Draw("colz");
- can_res_->SaveAs("WhatDoesThisLookLike.C");
   // -- S = R * (U - M) + F
 
   // -- Construct the RooUnfolfBayes object to obtain the covariance matrix and the unfolded distribution.
@@ -1513,23 +1812,32 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
   unfold_bayes.SetVerbose(0);
   TH1D* hUnfold = (TH1D*) unfold_bayes.Hreco( RooUnfold::kCovariance );
 
-  /*
-  cout << "Unfold\t" << hUnfold->GetNbinsX() << "\t" << hUnfold->GetBinLowEdge( 1 ) << "\t" << hUnfold->GetXaxis()->GetBinUpEdge( hUnfold->GetNbinsX() ) << endl;
-  cout << "Original\t" << theHist->GetNbinsX() << "\t" << theHist->GetBinLowEdge( 1 ) << "\t" << theHist->GetXaxis()->GetBinUpEdge( theHist->GetNbinsX() ) << endl;
-  cout << "Fake\t" << hFake->GetNbinsX() << "\t" << hFake->GetBinLowEdge( 1 ) << "\t" << hFake->GetXaxis()->GetBinUpEdge( hFake->GetNbinsX() ) << endl;
-  */
+  int total_events_nocuts, total_events_nocuts_data;
 
-  hFake->Scale( 1./renorm_ );   
+  //-- MC.
+  TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
+  tree_numbers->SetBranchAddress("castor_300GeV_events", &total_events_nocuts);
+  tree_numbers->GetEntry( 0 );
+
+  //-- Data.
+  TTree *tree_numbers_data = (TTree*)_file_det->Get("useful_numbers");
+  tree_numbers_data->SetBranchAddress("castor_300GeV_events", &total_events_nocuts_data);
+  tree_numbers_data->GetEntry( 0 );
+
+  hFake->Scale( static_cast<double>(total_events_nocuts_data )/static_cast<double>( total_events_nocuts) );
+
+  cout << "%%hSmear\t" << hSmear->Integral() << endl;
   hSmear = (TH1D*) response->ApplyToTruth( hUnfold );
-  hSmear->Add( hFake );   
-
+  hSmear->Add( hFake );  
+  cout << "%%hSmear\t" << hSmear->Integral() << endl;
+  cout << "\tScale\t" << static_cast<double>(total_events_nocuts_data )/static_cast<double>( total_events_nocuts) << endl;
 
   // Method 1: calculation of chi² through toy model.
+
   if( method == 1 ){ 
     chi2 = Calculate_smearedBackError_covariance( theHist, hUnfold, response, iterations );
   }
   else{ chi2 = 0; }
-
 
   hist_ = hSmear;
   cout << "Done smearing" << endl;
@@ -1564,68 +1872,6 @@ void Unfolder::Get_GenSmeared(int file_, TH1D* &hist_, TH1D* hGen, TString varia
 * Set the right canvas properties *
 **********************************/
 
-void Unfolder::PrepareCanvas( TCanvas* &can_, TString label){
-
-  cout << "\n\n\n// --  Prepare canvas" << endl;
-
-  can_ = new TCanvas( label, label, 900, 900 );
-
-  can_->SetLeftMargin(0.25);
-  can_->SetTopMargin(0.07);
-  can_->SetBottomMargin(0.14);
-  can_->SetRightMargin(0.05);
-}
-
-void Unfolder::PrepareCanvas_2D( TCanvas* &can_, TString label){
-
-  cout << "\n\n\n// --  Prepare canvas 2D" << endl;
-
-  can_ = new TCanvas( label, label, 900, 900 );
-
-  can_->SetLeftMargin(0.17);
-  can_->SetTopMargin(0.09);
-  can_->SetBottomMargin(0.14);
-  can_->SetRightMargin(0.15);
-}
-
-
-void Unfolder::Prepare_2Dplot(TH2D* &hist_){
-
-  hist_->GetYaxis()->SetTitleOffset(1.30);
-  hist_->GetYaxis()->SetTitleSize(0.06);
-  hist_->GetYaxis()->SetLabelSize(0.04);
-
-  hist_->GetXaxis()->SetLabelSize(0.04);
-  hist_->GetXaxis()->SetTitleSize(0.06);
-  hist_->GetXaxis()->SetNdivisions(304);
-
-  double min = GetMinimumValue( hist_ );
-  double max = hist_->GetMaximum();
-
-  hist_->GetZaxis()->SetRangeUser( min*0.9, max*1.1);
-
-}
-
-void Unfolder::Prepare_2Dplot(TH2D* &hist_, TString xaxis, TString yaxis, int divisionsx, int divisionsy){
-
-  hist_->GetYaxis()->SetTitleOffset(1.30);
-  hist_->GetYaxis()->SetTitleSize(0.06);
-  hist_->GetYaxis()->SetLabelSize(0.04);
-  hist_->GetYaxis()->SetNdivisions(divisionsy);
-  hist_->GetYaxis()->SetTitle( yaxis );
-
-  hist_->GetXaxis()->SetLabelSize(0.04);
-  hist_->GetXaxis()->SetTitleSize(0.06);
-  hist_->GetXaxis()->SetNdivisions(divisionsx);
-  hist_->GetXaxis()->SetTitle( xaxis );
-
-  double min = GetMinimumValue( hist_ );
-  double max = hist_->GetMaximum();
-
-  hist_->GetZaxis()->SetRangeUser( min*0.9, max*1.1);
-
-}
-
 void Unfolder::PrepareLegend( map<TString, TString> legend_info, map<TString, TString> printLabel, map<TString, TString> legend_info_gen ){
 
   legend_info_gen_ = legend_info_gen;
@@ -1657,7 +1903,7 @@ void Unfolder::DoublePaddedComparison_unfolding(TString variable, int iterations
 
   SplitCanvas(can_, pad_abs_, pad_ratio_);
 
-  Hist_GenLevel(pad_abs_, true);
+//  Hist_GenLevel(pad_abs_, true);
   Plot_Unfolded(pad_abs_, variable, iterations);
   Plot_Unfolded_Ratio(pad_ratio_, variable, iterations);
 
@@ -1698,7 +1944,7 @@ void Unfolder::DoublePaddedComparison_modelDependence(TString variable, int iter
 
   SplitCanvas(can_, pad_abs_, pad_ratio_);
 
-  Hist_GenLevel(pad_abs_, true);
+//  Hist_GenLevel(pad_abs_, true);
   Plot_Unfolded_modelDependence(pad_abs_, variable, iterations);
   Plot_Unfolded_Ratio_modelDependence(pad_ratio_, variable, iterations);
 
@@ -1723,7 +1969,7 @@ void Unfolder::DoublePaddedComparison_positionDependence(TString variable, int i
   Plot_Unfolded_Ratio_positionDependence(pad_ratio_, variable, iterations);
 
   can_->SaveAs( TString::Format( folder_ + "/Systematics_UnfoldedEnergy_positionDependence_%iterations_deltaphi_0%i_etawidth_0%i.pdf", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) );
-  can_->SaveAs( TString::Format( folder_ + "/Systematics_UnfoldedEnergy_positionDependence_%iterations_deltaphi_0%i_etawidth_0%i.pdf", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) );
+  can_->SaveAs( TString::Format( folder_ + "/Systematics_UnfoldedEnergy_positionDependence_%iterations_deltaphi_0%i_etawidth_0%i.C", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) );
 }
 
 
@@ -1740,7 +1986,7 @@ void Unfolder::DoublePaddedComparison_JESDependence(TString variable, int iterat
 
   SplitCanvas(can_, pad_abs_, pad_ratio_);
 
-  Hist_GenLevel(pad_abs_, true);
+//  Hist_GenLevel(pad_abs_, true);
   Plot_Unfolded_JESDependence(pad_abs_, variable, iterations);
   Plot_Unfolded_Ratio_JESDependence(pad_ratio_, variable, iterations);
 
@@ -1796,11 +2042,10 @@ void Unfolder::Plot_Unfolded(TPad* & pad_, TString variable, int iterations){
 
   for(int MC_ = 0; MC_ < 1; MC_++){ //MC_files_.size(); MC_++){
     cout << "Unfolder::Plot_Unfolded\tMC file \t" << MC_ << endl;
-
+/*
     //-- Plot gen. (MC)
     TH1D* hGen, *hDet;
-    if( variable == "all") { Get_GenEnergy(MC_, hGen); Get_DetEnergy( MC_, hDet) ;}
-    if( variable == "lead") { Get_GenEnergy_lead(MC_, hGen); }
+    Get_GenEnergy(MC_, hGen); Get_DetEnergy( MC_, hDet) ;
     hGen->SetLineColor( getColor( MC_+1 )   );
     hGen->SetLineStyle( 1 );
     hGen->SetLineWidth( 2 );
@@ -1821,27 +2066,36 @@ void Unfolder::Plot_Unfolded(TPad* & pad_, TString variable, int iterations){
     drawoptions = "histsame";
 
     if( MC_ == 0){ First_Plot( hGen, hGen, plotted_hist++, min_val, max_val); }
-
+*/
     //-- Unfold det. (Data)
-    TH1D* hData;
+    TH1D* hData, *hFirst;
 
     if( variable == "all") { Get_DetEnergy(-1, hData); }
     if( variable == "lead"){ Get_DetEnergy_lead(-1, hData); }
 
-    Get_DetUnfolded( MC_, hData, iterations, variable);
-    hData->SetLineColor( getColor( MC_+1) );
-    hData->SetMarkerColor( getColor(MC_+1) );
-    hData->SetMarkerStyle( 24 + MC_);
-    leg->AddEntry( hData, TString::Format("Data %i it.", iterations), "p");
 
-    pad_->cd();
-    hData->     DrawClone("edatasame");
-    can_unfolded->cd();
-    hData->	DrawClone("edatasame");
+    for(int it = 1; it <= iterations; it++){ 
 
-    cout << "\tUnfolder::Plot_Unfolded\t" << MC_ << "\t" << hData->Integral() << endl;
+      Get_DetUnfolded( MC_, hData, it, variable);
+      if( it == 0){ First_Plot( hFirst, hData, plotted_hist++, min_val, max_val); }
+    
+      hData->SetLineColor( getColor( MC_+1) );
+      hData->SetMarkerColor( getColor(MC_+1) );
+      hData->SetMarkerStyle( 24 + MC_);
+      leg->AddEntry( hData, TString::Format("Data %i it.", iterations), "p");
+
+      pad_->cd();
+      hData->     DrawClone(drawoptions);
+
+      can_unfolded->cd();
+      hData->	DrawClone(drawoptions);
+
+      drawoptions = "histsame";
+
+      cout << "\tUnfolder::Plot_Unfolded\t" << MC_ << "\t" << hData->Integral() << endl;
   
-    First_Plot( hGen, hData, plotted_hist++, min_val, max_val);
+      First_Plot( hFirst, hData, plotted_hist++, min_val, max_val);
+    }
   }
  
   cout << "Unfolder::Plot_Unfolded - The End\t" << endl;
@@ -1869,7 +2123,7 @@ void Unfolder::Plot_Unfolded_Ratio(TPad* & pad_, TString variable, int iteration
   TH1D* hFirst;
   TString drawoptions = "hist";
 
-  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+  for(int MC_ = 0; MC_ < 1 ; MC_++){
     //-- Generator level.
 
     TH1D* hGen, *hDet;
@@ -2010,32 +2264,6 @@ void Unfolder::DoublePaddedComparison(TString variable){
 
 
 
-
-void Unfolder::SplitCanvas(TCanvas* &can_, TPad* &pad_abs_, TPad* &pad_ratio_){
-
-  can_->cd();
-
-  double left_ 	= 0.20;
-  double top_ 	= 0.05;
-  double right_ = 0.05;
-  double bottom_= 0.15;
-
-  pad_abs_ = new TPad("Absolute_Values", "Absolute_Values", 0., 0.4,1.,1.);
-  pad_abs_->SetLeftMargin(left_);
-  pad_abs_->SetRightMargin(right_);
-  pad_abs_->SetBottomMargin(0.);
-  pad_abs_->SetTopMargin(top_);
-  pad_abs_->Draw();
-
-  can_->cd();
-  pad_ratio_ = new TPad("Ratios", "Ratios", 0., 0., 1., 0.4);
-  pad_ratio_->SetLeftMargin(left_);
-  pad_ratio_->SetRightMargin(right_);
-  pad_ratio_->SetTopMargin(0);
-  pad_ratio_->SetBottomMargin(bottom_);
-  pad_ratio_->Draw();
-  
-}
 
 
 
@@ -2300,12 +2528,19 @@ void Unfolder::Unfolding_data(TString variable, int iterations_){
 
 
 void Unfolder::ClosureTest_data(TString variable, TString file, int method){
-  cout << "\n\n\tUnfolder::ClosureTest_data" << endl;
+  //== Method is now an obsolete parameter.
+
+  cout << "\n\n\n\t************************************" << endl;
+  cout << "\t************************************" << endl;
+  cout << "\t* ClosureTest_data******************" << endl;
+  cout << "\t************************************" << endl;
+  cout << "\t************************************" << endl;
+
   ofstream iterations_and_errors;
   iterations_and_errors.open("Iterations_and_errors.txt");
 
   // Prepare variables and objects.
-  TH1D* hist_original, *hist_MCdet;
+  TH1D* hist_original;
   TH1D* hist_result; 
   TH1D* hist_reference, *hist_previous; 
   TString htitle;
@@ -2314,35 +2549,30 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   int iterations_ = 30, iterations_start = 30;
   int actual_iterations = 0;
 
+  int file_to_unfold = -1;
+
   double xaxisgraph[iterations_], yaxisgraph[iterations_], chi2diff[iterations_];
 
   TString norm = "notNorm";
 
   vector<TH1D*> histos;
-  TMatrixD cov_m;
+  vector<TH1D*> histos_unfolded;
 
   int current_color = 1;
   
   // Get the detector level distribution.
-  if( variable == "lead"){	Get_DetEnergy_lead(-1, hist_original );	htitle = "E_{det} spectrum (leading)";}
-  else{				Get_DetEnergy(-1, hist_original );	htitle = "E_{det} spectrum (all)";	}
-
-  Get_DetEnergy( 0, hist_MCdet );
-
-  TString scalefactor_MC = (set_of_tags_[ "scalefactors" ])[ MC_files_[0] ];
-  double scalefactors_MC_ = scalefactor_MC.Atof() ;
-
-  SetCastorJetEnergy_norm( scalefactors_MC_ / scalefactors_Data_ ); 
+  Get_DetEnergy(file_to_unfold, hist_original );
+  htitle = "E_{det} spectrum (all)";	
 
   // Hist_reference is the same as the original, but with modified lower edge.
   GetSubHistogram( hist_original, hist_reference, Eplotmin_, 2100.);
 
-  cout << "File for MC sample\t" << MC_files_[0] << endl;
-  cout << "Datafile\t" << datafile_ << endl;
-
-  hError_hist = new TH2D("hError_hist", 	"hError_hist;E;iteration", 
-		hist_reference->GetNbinsX(), hist_reference->GetBinLowEdge( 1 ), hist_reference->GetXaxis()->GetBinUpEdge(  hist_reference->GetNbinsX() ), 
-		iterations_, 0., iterations_ );
+  hError_hist = new TH2D("hError_hist",  "hError_hist;E;iteration", 
+		hist_reference->GetNbinsX(), 
+		hist_reference->GetBinLowEdge( 1 ), 
+		hist_reference->GetXaxis()->GetBinUpEdge(  hist_reference->GetNbinsX() ), 
+		iterations_, 
+		0., iterations_ );
 
    TCanvas* can_ = new TCanvas("can_", "can_", 1.);
    hist_original->Draw("hist");
@@ -2357,68 +2587,74 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   	hist_reference->SetLineWidth( 3 );
   	hist_reference->SetMarkerColor(  getColor( 1 ) );
 	hist_reference->SetMarkerStyle( 20 );
-	hist_reference->GetXaxis()->SetTitle("E (GeV)");
+	hist_reference->GetXaxis()->SetTitle("E [GeV]");
 	hist_reference->GetYaxis()->SetTitle("#frac{dN}{dE}");
 
-
+  hist_reference->Scale( 1./ (1.2 * 1E5) );  
   leg->AddEntry( hist_reference, "Actual data", "p");
 
   SetDnDx( hist_reference );
   histos.push_back( hist_reference );
+  histos_unfolded.push_back(hist_reference);
 
   // Loop over number of Bayesian iterations, and unfold->smear detector level distribution.
   // Calculate chi2 as we go.
   double chi2 = hist_original->Chi2Test( hist_reference, "CHI2/NDF");
-
 
   //---------------------------------------------------------------//
   //-- Loop over the files, if there are several to be unfolded. --//
   //---------------------------------------------------------------//
 
   for(int file_ = 0; file_ < MC_files_.size(); file_++){
-    cout << "We are here" << endl;
-    cout << file << endl << printLabel_[ MC_files_[file_] ] << endl;
+    cout << "\n===Opening file\t" << file << "\t" << printLabel_[ MC_files_[file_] ] << endl;
 
-   if( ! (printLabel_[ MC_files_[file_] ]).Contains(file) ){ continue; }
+   if( (printLabel_[ MC_files_[file_] ]) != file ){
+     continue; 
+   }
 
     //--------------------------------------------------//
     //-- Loop over the number of Bayesian iterations. --//
     //--------------------------------------------------//
 
+    cout << "=== Bayesian iterations ===" << endl;
     int increase_iterations = 1;
-    if( method == 1){ increase_iterations = 3; }
+    increase_iterations = 3;
 
     for(int iterations = iterations_start; iterations <= iterations_; iterations+=increase_iterations){
-      // Determine the inrease in Bayesian iterations.
-      if( method == 1){
-        if(iterations >= 10 ){ increase_iterations = 10; }
-        if(iterations >= 20 ){ increase_iterations = 10; }
-        if(iterations >= 100 ){ increase_iterations = 1; }
-      }
+      TFile *_file0 = new TFile( MC_files_[file_], "read");
 
-      hist_result = (TH1D*)hist_original->Clone(
-	TString::Format("Closure_%i_iterations_phidiff_0%i_etaband_0%i", iterations, static_cast<int>(10.* deltaPhiMax_ ), static_cast<int>(10. * etawidth_) ) );
-      hist_result->SetName( 
-	TString::Format("Closure_%i_iterations_phidiff_0%i_etaband_0%i", iterations, static_cast<int>(10.* deltaPhiMax_ ), static_cast<int>(10. * etawidth_) ) );
-      hist_result->SetTitle( 				
-	TString::Format("Closure_%i_iterations_phidiff_0%i_etaband_0%i", iterations, static_cast<int>(10.* deltaPhiMax_ ), static_cast<int>(10. * etawidth_) ) );
+      //== Determine the inrease in Bayesian iterations.
+      if(iterations >= 10 ){ increase_iterations = 10; }
+      if(iterations >= 20 ){ increase_iterations = 10; }
+      if(iterations >= 100 ){ increase_iterations = 1; }    
 
+      //== Prepare the histogram to send away.
+      TString hist_name =  TString::Format("Closure_%i_iterations_phidiff_0%i_etaband_0%i", 
+		iterations, 
+		static_cast<int>(10.* deltaPhiMax_ ), 
+		static_cast<int>(10. * etawidth_) );
+
+      hist_result = (TH1D*)hist_original->Clone( hist_name );
+      hist_result->SetName( hist_name );
+      hist_result->SetTitle( hist_name );	
+
+      //== Send the histogram away for unfolding.
       double chi2;
-      Unfold_and_smear( -1, hist_result, file_, iterations, variable, method, chi2 );
-
+      Unfold_and_smear( file_to_unfold, hist_result, file_, iterations, variable, method, chi2 );
       GetSubHistogram( hist_result, hist_result, Eplotmin_, 2100.);
 
-      for(int binx = 0; binx <= hist_result->GetNbinsX(); binx++){
-        double bin_err = hist_result->GetBinContent( binx );
-        hError_hist->SetBinContent( binx, iterations, bin_err );
-      }
-
+      //== Set colors.
       hist_result->SetLineColor( getColor( current_color ) );
-      hist_result->SetLineStyle( iterations + 1 );
-      hist_result->SetLineWidth( 3 );
+      hist_result->SetLineStyle( current_color + 1 );
+      hist_result->SetLineWidth( 2 );
       hist_result->SetMarkerColor(  getColor( current_color ) );
-      leg->AddEntry( hist_result, TString::Format("Treated data, %i it., #Delta#varphi = 0.%i, #eta = 0.%i", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ), "l");
+      leg->AddEntry( hist_result, TString::Format("%i it., #Delta#varphi = 0.%i, #eta = 0.%i", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ), "l");
+
+      //== Scale and divide by binsize/
       SetDnDx( hist_result );
+      hist_result->Scale( 1./ (1.2 * 1E5) );  
+
+      //== Store.
       histos.push_back( hist_result );
 
       //-- Chi2 test.
@@ -2434,7 +2670,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
     hist_original->GetXaxis()->SetTitle("E_{det} [GeV]");
     hist_original->GetYaxis()->SetTitle("#frac{1}{N}.#frac{dN}{dE}");
 
-    // Plot the distributions and their ratios.
+    // Plot the smeared distributions and their ratios.
     TCanvas *can;
     PrepareCanvas( can, "ClosureTest_data" + variable);
     MakeDoublePaddedComparison(can, histos, leg );
@@ -2444,7 +2680,6 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
 	iterations_, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
 
     // Finish chi2 study.
-    if( method == 1 ){
 
       TCanvas *can_chi2;
       PrepareCanvas( can_chi2, "CHI2_Test_" + variable);
@@ -2455,8 +2690,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
       can_chi2->SaveAs( TString::Format(folder_ + "Chi2_Test_data_" + variable + "_%i_iterations_%i_GeV_deltaPhiMax_0%i_etaband_0%i_" + norm + ".C", 
   	iterations_, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
       can_chi2->SaveAs( TString::Format(folder_ + "Chi2_Test_data_" + variable + "_%i_iterations_%i_GeV_deltaPhiMax_0%i_etaband_0%i_" + norm + ".pdf",
-	iterations_, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
-    }
+	iterations_, static_cast<int>(Ethresh_), static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );  
 
     iterations_and_errors << "€€€ We plot from\t" << Eplotmin_ << "\tto\t" << hist_original->GetBinLowEdge( hist_original->GetNbinsX()+1 ) << "\toriginal hist has\t" << hist_original->GetNbinsX() << "\t bins" << "\nFrom file\t" << datafile_ << endl;
   }
@@ -2842,6 +3076,7 @@ void Unfolder::ClosureTest_MC(TString variable){
 
 
 void Unfolder::MakeDoublePaddedComparison(TCanvas * &can_, vector<TH1D*> histos, TLegend *legend){
+  cout << "===\tUnfolder::MakeDoublePaddedComparison\t===" << endl;
 
   TPad* pad_abs_, *pad_ratio_;
   PrepareCanvas(can_, "Comparison_UnfoldedEnergy_Data_and_MC");
@@ -2873,6 +3108,7 @@ void Unfolder::Plot_Absolute( TPad* & pad_, vector<TH1D*> histos){
     TH1D* hDistr = histos[hist_];
 
     Rebin_to( hDistr, 50);
+    hDistr->GetYaxis()->SetLabelFont(42);
     hDistr->GetYaxis()->SetTitleOffset( 0.85 );
     hDistr->GetYaxis()->SetTitleSize(0.09);
     hDistr->GetYaxis()->SetLabelSize(0.07);
@@ -2883,12 +3119,16 @@ void Unfolder::Plot_Absolute( TPad* & pad_, vector<TH1D*> histos){
       hFirst = (TH1D*)hDistr->Clone("First_absolute");
       hDistr = hFirst;
       firstDistr = false;
+      Prepare_1Dplot( hFirst );
     }
 
     First_Plot( hFirst, hDistr, nDistr, max_val, min_val);
  
     pad_->cd();
     pad_->SetLogy();
+
+    Prepare_1Dplot( hDistr );
+
     hDistr->Draw( drawoptions );
    
     drawoptions = "histsame";
@@ -2918,21 +3158,45 @@ void Unfolder::Plot_Ratio( TPad* & pad_, vector<TH1D*> histos){
     hDistr->GetXaxis()->SetNdivisions( 504 );
     hDistr->GetYaxis()->SetTitle("Ratio");
 
+    hDistr->GetYaxis()->SetLabelSize( (hDistr->GetYaxis()->GetLabelSize())*1.5 );
+    hDistr->GetYaxis()->SetLabelOffset( (hDistr->GetYaxis()->GetLabelOffset())*1.5 );
+    hDistr->GetYaxis()->SetTitleSize( hDistr->GetYaxis()->GetTitleSize()*1.5 );
+
+    hDistr->GetXaxis()->SetLabelSize(
+      hDistr->GetXaxis()->GetLabelSize() *
+	( double(pad_->GetWw()) / double(pad_->GetWh()) ) * 1.5
+    ); 
+    cout << "***\n"
+	 << "***\t" << pad_->GetWw() << "\t" << pad_->GetWh() << "\t" << pad_->GetWw() / pad_->GetWh() << endl;
+	
+
+
     if( firstDistr ){
       hFirst = (TH1D*)hDistr->Clone("First_ratio");
       hFirst_abs = (TH1D*)hFirst->Clone("_first_absolute");
       hFirst->Divide( hFirst );
       hFirst->GetYaxis()->SetTitle("Ratio");
       firstDistr = false;
+      hFirst->GetYaxis()->SetLabelFont(42);
+      hFirst->GetYaxis()->SetLabelSize( (hFirst->GetYaxis()->GetLabelSize())*1.5 );
+      hFirst->GetYaxis()->SetLabelSize( (hFirst->GetYaxis()->GetLabelSize())*1.5 );
+      hFirst->GetYaxis()->SetLabelOffset( hFirst->GetYaxis()->GetLabelOffset() );
+
+      hFirst->GetXaxis()->SetLabelFont(42);
+      hFirst->GetXaxis()->SetLabelSize( ( hFirst->GetXaxis()->GetLabelSize())*1.5 );
+      hFirst->GetXaxis()->SetTitleSize( ( hFirst->GetXaxis()->GetTitleSize())*1.5 );
+      hFirst->GetXaxis()->SetLabelOffset( hFirst->GetXaxis()->GetLabelOffset()*1.5 );
     }
 
     hDistr->Divide( hFirst_abs );
     First_Plot( hFirst, hDistr, nDistr, max_val, min_val);
 
+    Prepare_1Dplot( hDistr );
+
     pad_->cd();
     hDistr->Draw( drawoptions );
-    hFirst->GetYaxis()->SetRangeUser(0., 3.);
- 
+    hFirst->GetYaxis()->SetRangeUser(0., 3.3);
+
     drawoptions = "histsame";
     nDistr++;
 
@@ -3304,7 +3568,7 @@ void Unfolder::CalibrationFunction(int first_sector, int last_sector, TGraphErro
     legend_gen->SetBorderSize( 0 ); 
 
   int Slice_threshold = 0.;
-  int event_threshold_ = 50.;
+  int event_threshold_ = 20.;
 
 
   // -- Prepare variables, canvasses, ...
@@ -3393,7 +3657,7 @@ void Unfolder::CalibrationFunction(int first_sector, int last_sector, TGraphErro
       TString legend_info;
       if( setup_calibration_ == "all_sectors") { legend_info = "All sectors"; }
       else if( setup_calibration_ == "good_sectors"){ legend_info = "Good sectors"; }
-      else if( setup_calibration_ == "separate_sectors"){ legend_info = TString::Format("Sector %i", bin_phi); }
+      else if( setup_calibration_ == "separate_sectors"){ legend_info = TString::Format("Sector %i", CorrectSectorNumber(bin_phi)); }
        legend_det->AddEntry( Response_meas, legend_info, "lp");
  
        // Draw.
@@ -3513,6 +3777,10 @@ void Unfolder::CalibrationFunction(int first_sector, int last_sector, TGraphErro
 
 
 
+
+
+	
+
 // Calculates calibration function for every single sector.
 void Unfolder::CalibrationFunction_sectors(int first_sector, int last_sector, int which_file, TGraphErrors* &gre){
   cout << "Unfolder::CalibrationFunction_sectors(int " << first_sector << ", int " << last_sector << ", int " << which_file << ", TGraphErrors* &gre)" << endl;
@@ -3607,7 +3875,7 @@ void Unfolder::CalibrationFunction_sectors(int first_sector, int last_sector, in
     // -- Determine which files.
     int first_file, last_file;
 
-    if( which_file = -1){
+    if( which_file == -1){
       first_file = 0;
       last_file = MC_files_.size();
     }
@@ -3617,7 +3885,9 @@ void Unfolder::CalibrationFunction_sectors(int first_sector, int last_sector, in
     }
 
 
-    for(int file_ = 0; file_ < MC_files_.size(); file_++){
+//    for(int file_ = 0; file_ < MC_files_.size(); file_++){
+    for(int file_ = which_file; file_ <= which_file; file_++){
+      cout << "Which_file\t" << file_ << endl;
 
       TFile *_file0 = TFile::Open( MC_files_[file_], "Read");
        
@@ -3648,7 +3918,7 @@ void Unfolder::CalibrationFunction_sectors(int first_sector, int last_sector, in
 	  	
       // cout << "Names\t" << Response_meas->GetName() << "\t\t" << Response_true->GetName() << endl;
 
-      legend_det->AddEntry( Response_meas, TString::Format(legend_info_[ MC_files_[file_] ] + " (Sector %i)", sector), "lp"); 
+      legend_det->AddEntry( Response_meas, TString::Format(legend_info_[ MC_files_[file_] ] + " (Sector %i)", CorrectSectorNumber(sector)), "lp"); 
  
       // Draw.
       can_true->cd();	 
@@ -3891,13 +4161,19 @@ void Unfolder::CalculateSystematics(TString setup, int first_sector, int last_se
       legend_info = "All sectors";
     }
     else if( setup == "separate_sectors"){
-      plots_label = TString::Format("sector_%i", sector);
-      legend_info = TString::Format("Sector %i", sector);
+      plots_label = TString::Format("sector_%i", CorrectSectorNumber(sector));
+      legend_info = TString::Format("Sector %i", CorrectSectorNumber(sector));
+    }
+    else if( setup == "bad_sectors"){
+      plots_label = "bad_sectors";
+      legend_info = "Bad sectors";
     }
     else{
       plots_label = "good_sectors";
       legend_info = "Good sectors";
     }
+
+    cout << "\nlegend_info initial\t" << legend_info << endl;
 
     // Calculate the systematics by getting the behaviour of all well behaved sectors in a single function.
     CalibrationFunction(sector,sector, gre_meas); 
@@ -3913,9 +4189,11 @@ void Unfolder::CalculateSystematics(TString setup, int first_sector, int last_se
       legend_det->SetFillStyle( 0 );
       legend_det->SetBorderSize( 0 );
 
-   TLegend* legend_graph = new TLegend(0.25, 0.60, 0.75, 0.90);
+   TLegend* legend_graph = new TLegend( can_graph->GetLeftMargin(), 0.60, 0.75, 0.90);
       legend_graph->SetFillStyle( 0 );
       legend_graph->SetBorderSize( 0 );
+      legend_graph->SetTextFont(43 );
+      legend_graph->SetTextSize(45 );
 
     // 1. Loop over files.
     // 2. Get parameters and use in function.
@@ -3993,20 +4271,27 @@ void Unfolder::CalculateSystematics(TString setup, int first_sector, int last_se
       can->SaveAs(TString::Format( folder_ + "/Systematics_function_" + plots_label + "_%iGeV.pdf", static_cast<int> (Ethresh_ ) ) );
 
       can_graph->cd();
-cout << "ZZZ\tto extract\t" << MC_files_[file] << endl;
+      //cout << "ZZZ\tto extract\t" << MC_files_[file] << endl;
       TGraphErrors* graph_errs = calibration_graphs_[ MC_files_[file] ];
-cout << "ZZZ\textracted\t" << MC_files_[file] << endl;
+      //cout << "ZZZ\textracted\t" << MC_files_[file] << endl;
+      graph_errs->SetMarkerSize( 2. );
+      Prepare_1Dplot( graph_errs ) ;
+
       graph_errs->Draw(drawoptions_graph);
       drawoptions_graph = "pesame";
 
-      cout << "Ethresh_\t" << Ethresh_ << "\t" << static_cast<int> (Ethresh_ ) << endl;
-
       legend_graph->AddEntry( graph_errs, legend_info_[ MC_files_[file]] + " (" + legend_info + ")", "p");
-
       legend_graph->Draw();
-      
-      can_graph->SaveAs(TString::Format( folder_ + "/Systematics_graph_" + plots_label + "_%iGeV.C", static_cast<int> (Ethresh_ ) ) );
-      can_graph->SaveAs(TString::Format( folder_ + "/Systematics_graph_" + plots_label + "_%iGeV.pdf", static_cast<int> (Ethresh_ ) ) );
+
+      TString setup_;
+      if( MC_files_[file].Contains("isolated") ) setup_ = "isolated";
+      else if( MC_files_[file].Contains("calibrated") ) setup_ = "calibrated";
+
+      //== Add CMS touch to the plot.
+//      Finish_canvas_narrow( can_graph );
+     
+      can_graph->SaveAs(TString::Format( folder_ + "/CalibrationFactors_graph_" + plots_label + "_%iGeV.C", static_cast<int> (Ethresh_ ) ) );
+      can_graph->SaveAs(TString::Format( folder_ + "/CalibrationFactors_graph_" + plots_label + "_%iGeV.pdf", static_cast<int> (Ethresh_ ) ) );
     } // Loop over files.
     
     calibration_parameters_.clear();
@@ -4041,9 +4326,27 @@ void Unfolder::CalibrationFactors_oneCanvas(bool draw_functions){
 
       PrepareCanvas( can, TString::Format("CalibrationFactors_oneCanvas_" + printLabel_[ MC_files_[file] ] ) );
       cout << "Prepared canvas" << endl;
-      TLegend *legend_det = new TLegend(0.65, 0.58, 0.95, 0.93);
+
+      // Two legends for legibility.
+      double common_legend_border = ((1. - can->GetRightMargin()) + 0.65)/2.;
+      double top_legend_border = 1. - can->GetTopMargin();
+
+      TLegend *legend_det = new TLegend(
+	0.65, 
+	0.58, 
+	common_legend_border, 
+	top_legend_border);
         legend_det->SetFillStyle( 0 );
-        legend_det->SetBorderSize( 0 );
+        legend_det->SetBorderSize( 0 );	
+
+      TLegend *legend_det_2 = new TLegend(
+	common_legend_border, 
+	0.58, 
+	1. - can->GetRightMargin(), 
+	top_legend_border);
+        legend_det_2->SetFillStyle( 0 );
+        legend_det_2->SetBorderSize( 0 );	
+
 
       TString drawoptions_gre = "ape";
       TString drawoptions = "hist";
@@ -4073,7 +4376,9 @@ void Unfolder::CalibrationFactors_oneCanvas(bool draw_functions){
       TH1* calibration_histogram_orig = calibration_function->GetHistogram();
       TH1D* calibration_histogram = (TH1D*)calibration_histogram_orig->Clone(TString::Format("Calibration_values_sector_%i", sector) );
       
-      legend_det->AddEntry( calibration_histogram, TString::Format( legend_info_[ MC_files_[file]] + " (sector %i)", Correct_Sector(sector) ), "l");
+//      legend_det->AddEntry( calibration_histogram, TString::Format( legend_info_[ MC_files_[file]] + " (sector %i)", Correct_Sector(sector) ), "l");
+      if( sector%2 == 1. ){ legend_det->AddEntry( calibration_histogram, TString::Format( "Sec. %i", Correct_Sector(sector) ), "l"); }
+      if( sector%2 == 0. ){ legend_det_2->AddEntry( calibration_histogram, TString::Format( "Sec. %i", Correct_Sector(sector) ), "l"); }
 
       can->cd();
 
@@ -4100,12 +4405,23 @@ void Unfolder::CalibrationFactors_oneCanvas(bool draw_functions){
 
     } // Loop over sectors.
 
-      legend_det->Draw();
+    legend_det->Draw();
+    legend_det_2->Draw();
 
     TString with_fit = "_fit";
     if( !draw_functions ){ with_fit = "_no_fit"; }
-    TString savenameC = TString::Format( folder_ + "CalibrationFactors_oneCanvas_" + printLabel_[ MC_files_[file] ] + with_fit + ".C") ;
-    TString savenamepdf = TString::Format( folder_ + "CalibrationFactors_oneCanvas_" + printLabel_[ MC_files_[file] ] + with_fit + ".pdf") ;
+
+    TString setup;
+    if( MC_files_[file].Contains("isolated") ) setup = "isolated";
+    else if( MC_files_[file].Contains("calibrated") ) setup = "calibrated";
+
+    TLatex Tl; Tl.SetTextFont(43); Tl.SetTextSize(35);
+    Tl.DrawText( 180.874,5.031457, legend_info_[ MC_files_[file]] );
+
+    cout << "\%\%\% Setup\t" << setup << endl;
+
+    TString savenameC = TString::Format( folder_ + "CalibrationFactors_oneCanvas_" + printLabel_[ MC_files_[file] ] + with_fit + "_" + setup + ".C") ;
+    TString savenamepdf = TString::Format( folder_ + "CalibrationFactors_oneCanvas_" + printLabel_[ MC_files_[file] ] + with_fit + "_" + setup + ".pdf") ;
 
     can->SaveAs( savenameC);
     can->SaveAs( savenamepdf );
@@ -4335,7 +4651,7 @@ void Unfolder::Analyze_response(TH2D* hResponse_selection, TH2D* hGenE_selection
 ****************************/
 
 
-void Unfolder::PlotResponseMatrix(int file_ ){
+void Unfolder::PlotResponseMatrix(int file_, TString setup ){
 
   TCanvas *can;
   PrepareCanvas_2D(can, "Response_matrix_" + printLabel_[ MC_files_[file_] ] );
@@ -4343,7 +4659,81 @@ void Unfolder::PlotResponseMatrix(int file_ ){
   TH2D* hRes;
   Get_ResponseMatrix( file_, hRes );
   Prepare_2Dplot( hRes );
-  SetD2nDxDy( hRes );
+
+  hRes->GetXaxis()->SetTitle("E_{det} [GeV]");
+  hRes->GetYaxis()->SetTitle("E_{gen} [GeV]");
+//  SetD2nDxDy( hRes );
+
+  hRes->Draw("colz");
+
+  
+  TLatex Tl; 
+  Tl.SetTextFont(43); 
+  Tl.SetTextSize(35);
+  Tl.SetTextAlign( 13 );
+  Tl.DrawLatex( 
+	can->GetLeftMargin(),
+	1. - can->GetTopMargin(), legend_info_gen_[ MC_files_[file_]] );
+
+  Finish_canvas( can );
+
+  can->SetLogz();
+
+  can->SaveAs( TString::Format(folder_ + "Response_matrix_"  + "_" + printLabel_[ MC_files_[file_] ] + "_" + setup + ".C") );
+  can->SaveAs( TString::Format(folder_ + "Response_matrix_"  + "_" + printLabel_[ MC_files_[file_] ] + "_" + setup +  ".pdf") );
+
+  //== Repeat with the response matrix as stored in RooUnfold if possible.
+  if( setup == "unfold"){
+
+    TFile* _file0 = TFile::Open( MC_files_[file_], "Read");
+    RooUnfoldResponse* response = (RooUnfoldResponse*)_file0->Get("response");
+    hRes = (TH2D*)response->Hresponse();
+    Prepare_2Dplot( hRes );
+
+    hRes->GetXaxis()->SetTitle("E_{det} [GeV]");
+    hRes->GetYaxis()->SetTitle("E_{gen} [GeV]");
+//  SetD2nDxDy( hRes );
+
+    hRes->Draw("colz");
+  
+    TLatex Tl; 
+    Tl.SetTextFont(43); 
+    Tl.SetTextSize(35);
+    Tl.SetTextAlign( 13 );
+    Tl.DrawLatex( 
+	can->GetLeftMargin(),
+	1. - can->GetTopMargin(), legend_info_gen_[ MC_files_[file_]] );
+
+    Finish_canvas( can );
+ 
+    can->SetLogz();
+
+    can->SaveAs( TString::Format(folder_ + "RooUnfold_Response_matrix_"  + "_" + printLabel_[ MC_files_[file_] ] + "_" + setup + ".C") );
+    can->SaveAs( TString::Format(folder_ + "RooUnfold_Response_matrix_"  + "_" + printLabel_[ MC_files_[file_] ] + "_" + setup +  ".pdf") );
+  }
+}
+
+
+
+
+
+
+
+void Unfolder::PlotResponseMatrix(TString file_, TString setup ){
+
+  cout << "\n===\tPlotResponseMatrix" << endl;
+
+  TCanvas *can;
+  PrepareCanvas_2D(can, "Response_matrix_" + file_ );
+
+  TH2D* hRes;
+  cout << "\n===\tPlotResponseMatrix" << endl;
+  Get_ResponseMatrix( file_, hRes );
+  cout << "\n===\tPlotResponseMatrix" << endl;
+  Prepare_2Dplot( hRes );
+  cout << "\n===\tPlotResponseMatrix" << endl;
+//  SetD2nDxDy( hRes );
+  cout << "\n===\tPlotResponseMatrix" << endl;
 
   hRes->Draw("colz");
 
@@ -4351,8 +4741,8 @@ void Unfolder::PlotResponseMatrix(int file_ ){
 
   can->SetLogz();
 
-  can->SaveAs( TString::Format(folder_ + "Response_matrix_" + label_ + "_" + printLabel_[ MC_files_[file_] ] + ".C") );
-  can->SaveAs( TString::Format(folder_ + "Response_matrix_" + label_ + "_" + printLabel_[ MC_files_[file_] ] + ".pdf") );
+  can->SaveAs( TString::Format(folder_ + "Response_matrix_" + setup +  ".C") );
+  can->SaveAs( TString::Format(folder_ + "Response_matrix_" + setup +  ".pdf") );
 
   cout << "€€€\t" << hRes->Integral() << "\tevents" << endl;
 }
@@ -4362,7 +4752,7 @@ void Unfolder::PlotResponseMatrix(int file_ ){
 
 
 
-void Unfolder::PlotNjetsMatrix(int file_ ){
+void Unfolder::Plot_NjetsMatrix(int file_ ){
 
   TCanvas *can;
   PrepareCanvas_2D(can, "NumberOfJets_" + printLabel_[ MC_files_[file_] ] );
@@ -4383,7 +4773,7 @@ void Unfolder::PlotNjetsMatrix(int file_ ){
 }
 
 
-void Unfolder::PlotEgenEtaMatrix(int file_ ){
+void Unfolder::Plot_EgenEtaMatrix(int file_ ){
 
   TCanvas *can;
   PrepareCanvas_2D(can, "Egen_vs_eta_matrix_" + printLabel_[ MC_files_[file_] ] );
@@ -4797,7 +5187,7 @@ void Unfolder::Calculate_smearedBackError(int file_, int MC_, int iterations, TH
 void Unfolder::FillAnew_1D(TH1D* hOld, TH1D* &hNew, TRandom3* &rand){
    
 
-  for(int bin = 1; bin <= hOld->GetNbinsX(); bin++){
+  for(int bin = 0; bin <= hOld->GetNbinsX()+1; bin++){
     // Measured distribution.
     int nevents = hOld->GetBinContent( bin );
     int nevents_new;
@@ -4822,7 +5212,7 @@ void Unfolder::FillAnew_1D(TH1D* hOld, TH1D* &hNew, TRandom3* &rand){
 void Unfolder::FillAnew_1D(TH1D* hOld, TH1D* hMin, TH1D* &hNew, TRandom3* &rand){
    
 
-  for(int bin = 1; bin <= hOld->GetNbinsX(); bin++){
+  for(int bin = 0; bin <= hOld->GetNbinsX()+1; bin++){
     // Measured distribution.
     int nevents = hOld->GetBinContent( bin );
     int nevents_new;
@@ -4850,13 +5240,13 @@ void Unfolder::FillAnew_2D(TH2D* hOld, TH2D* &hNew, TRandom3* &rand){
   ofstream testing_covariance, testing_cov2;
   testing_covariance.open("Testing_filling.txt", ios::app);  
 
-  for(int binx = 1; binx <= hOld->GetNbinsX(); binx++){
-    for(int biny = 1; biny <= hOld->GetNbinsY(); biny++){ 
+  for(int binx = 0; binx <= hOld->GetNbinsX()+1; binx++){
+    for(int biny = 0; biny <= hOld->GetNbinsY()+1; biny++){ 
       // Measured distribution.
       int nevents = hOld->GetBinContent( binx, biny );
       int nevents_new;
 
-      if( nevents < 1000 ){ 
+      if( nevents < 10000 ){ 
         nevents_new = rand->Poisson( nevents );
       }
       else{ 
@@ -4874,6 +5264,7 @@ void Unfolder::FillAnew_2D(TH2D* hOld, TH2D* &hNew, TRandom3* &rand){
 
 
 void Unfolder::SetCastorJetEnergy_norm( double renorm ){
+  cout << "\t===\tUnfolder::SetCastorJetEnergy_norm\t===\t" << renorm << endl;
   renorm_ = renorm;
 }
 
@@ -4926,10 +5317,22 @@ void Unfolder::CovarianceMatrix( TH1D* hUnfold, TH1D* hSmeared, TMatrixD& cov_){
 
 double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfold, RooUnfoldResponse* response, int iterations){
 
-  cout << "Unfolder::Calculate_smearedBackError_covariance" << endl;
-  int nPoisson = 10000;
+  cout << "\n\t\t===Unfolder::Calculate_smearedBackError_covariance\titerations\t" << iterations << endl;
+  int nPoisson = 1000;
   int file_ = -1;
   int MC_ = 0;
+
+  cout << "===Renorm===\t"	<< renorm_ << endl;
+  cout << "===Response===\t" 	<< response->GetTitle() << endl;
+  cout << "===hData===\t" 	<< hData->Integral() << endl;
+  cout << "===hUnfold===\t" 	<< hUnfold->Integral() << endl;
+
+  TCanvas* can_evolution_of_data;
+  PrepareCanvas( can_evolution_of_data, "can_evolution_of_data");
+
+  hData->Draw("hist");
+  hUnfold->SetLineColor( kGreen - 3);
+  hUnfold->Draw("histsame");
 
   ofstream testing_covariance;
   testing_covariance.open("Testing_covariance.txt", ios::app);
@@ -4943,67 +5346,172 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
   _file_unfold = new TFile( MC_files_[MC_], "Read"); 
 
+
+  if( 1 > 0){
+      int total_events_nocuts, total_events_nocuts_data;
+
+      TFile* _file0 = _file_unfold;
+
+      TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
+      tree_numbers->SetBranchAddress("castor_300GeV_events", &total_events_nocuts);
+      tree_numbers->GetEntry( 0 );
+
+      TTree *tree_numbers_data = (TTree*)_file_det->Get("useful_numbers");
+      tree_numbers_data->SetBranchAddress("castor_300GeV_events", &total_events_nocuts_data);
+      tree_numbers_data->GetEntry( 0 );
+
+      renorm_ = static_cast<double>(total_events_nocuts_data)/static_cast<double>(total_events_nocuts);
+
+  }
+
+
   // (1) Extract the histograms.
   // cout << "Unfolder::Calculate_smearedBackError (1)" << endl;
+  cout << "===\tRenorm is\t" << renorm_ << "\tInverted\t" << 1./renorm_ << endl;
 
-  TH1D* hMiss 		= (TH1D*)_file_unfold->Get("hCastorJet_miss_all");	hMiss->Scale( 1./renorm_ );	GetSubHistogram( hMiss, hMiss, Ethresh_, 2100.);
-  TH1D* hFake 		= (TH1D*)_file_unfold->Get("hCastorJet_fake_all");	hFake->Scale( 1./renorm_ );	GetSubHistogram( hFake, hFake, Ethresh_, 2100.);
-  TH2D* hResponse_proj 	= (TH2D*)response->Hresponse(); 			hResponse_proj->Scale( 1./renorm_ );	
-//	GetSubHistogram( hResponse_proj, hResponse_proj, Ethresh_, 2100.);
-  TH1D* hTruth 		= (TH1D*)response->Htruth();				hTruth->Scale( 1./renorm_ );	GetSubHistogram( hTruth, hTruth, Ethresh_, 2100.);
-  TH1D* hMeasured	= (TH1D*)response->Hmeasured();				hMeasured->Scale( 1./renorm_ );	GetSubHistogram( hMeasured, hMeasured, Ethresh_, 2100.);
+  cout << "===\tRenorm is\t" << renorm_ << "\tInverted\t" << 1./renorm_ << endl;
+
+  TH1D* hMiss 		= (TH1D*)_file_unfold->Get("hCastorJet_miss_all");	hMiss->Scale( renorm_ );
+	//GetSubHistogram( hMiss, hMiss, Ethresh_, 2100.);
+
+  TH1D* hFake 		= (TH1D*)_file_unfold->Get("hCastorJet_fake_all");	hFake->Scale( renorm_ );	
+//	GetSubHistogram( hFake, hFake, Ethresh_, 2100.);
+
+  TH1D* hFake_bis 	= (TH1D*)response->Hfakes();	hFake_bis->Scale( renorm_ );
+	//GetSubHistogram( hFake_bis, hFake_bis, Ethresh_, 2100.);
+
+  TH2D* hResponse_proj 	= (TH2D*)response->Hresponse(); 
+	//GetSubHistogram( hResponse_proj, hResponse_proj, Ethresh_, 2100.);
+
+  TH1D* hTruth 		= (TH1D*)response->Htruth();
+	//GetSubHistogram( hTruth, hTruth, Ethresh_, 2100.);
+
+  TH1D* hMeasured	= (TH1D*)response->Hmeasured();	
+	//GetSubHistogram( hMeasured, hMeasured, Ethresh_, 2100.);
+
+  cout << "===hFake===\t" << hFake->Integral() << endl;
 
 
-  cout << "*Truth\t" << hTruth->GetNbinsX() << "\t" << hTruth->GetBinLowEdge( 1 ) << "\t" << hTruth->GetXaxis()->GetBinUpEdge( hTruth->GetNbinsX() ) << endl;
-  cout << "*Measured\t" << hMeasured->GetNbinsX() << "\t" << hMeasured->GetBinLowEdge( 1 ) << "\t" << hMeasured->GetXaxis()->GetBinUpEdge( hMeasured->GetNbinsX() ) << endl;
-  cout << "*Fake\t" << hFake->GetNbinsX() << "\t" << hFake->GetBinLowEdge( 1 ) << "\t" << hFake->GetXaxis()->GetBinUpEdge( hFake->GetNbinsX() ) << endl;
-  cout << "*Miss\t" << hMiss->GetNbinsX() << "\t" << hMiss->GetBinLowEdge( 1 ) << "\t" << hMiss->GetXaxis()->GetBinUpEdge( hMiss->GetNbinsX() ) << endl;
+
+  cout << "\n\t*Truth\t"	<< hTruth->GetNbinsX() 		<< "\t" << hTruth->GetBinLowEdge( 1 ) 
+				<< "\t" << hTruth->GetXaxis()->GetBinUpEdge( hTruth->GetNbinsX() ) 		<< "\t" << hTruth->Integral() << endl;
+  cout << "\t*Measured\t" 	<< hMeasured->GetNbinsX() 	<< "\t" << hMeasured->GetBinLowEdge( 1 ) 
+				<< "\t" << hMeasured->GetXaxis()->GetBinUpEdge( hMeasured->GetNbinsX() ) 	<< "\t" << hMeasured->Integral() << endl;
+  cout << "\t*Fake\t" 		<< hFake->GetNbinsX() 		<< "\t" << hFake->GetBinLowEdge( 1 ) 
+				<< "\t" << hFake->GetXaxis()->GetBinUpEdge( hFake->GetNbinsX() ) 		<< "\t" << hFake->Integral() << endl;
+  cout << "\t*Miss\t" 		<< hMiss->GetNbinsX() 		<< "\t" << hMiss->GetBinLowEdge( 1 ) 
+				<< "\t" << hMiss->GetXaxis()->GetBinUpEdge( hMiss->GetNbinsX() ) 		<< "\t" << hMiss->Integral() << endl;
 
 
   //-- Cut off the unneeded parts of vectors and matrices.
   TH1D* hLengthVectorsEmin = (TH1D*)hData->Clone("LengthEmin");
-  GetSubHistogram( hData, hData, Ethresh_, 2100.);
+//  GetSubHistogram( hData, hData, Ethresh_, 2100.);
+ 
+  cout << "\tGotten subhistogram\t" << endl;
 
   TCanvas *can_resp; 
   PrepareCanvas_2D(can_resp, "Response");
   can_resp->SetLogz();
 
+  cout << "\tcan_resp->SetLogz()" << endl;
+
   TH2D* hResponse = (TH2D*)hResponse_proj->Clone("Response_2D");
   hResponse->SetName("Response_2D");
   hResponse->Draw("colz");
+/*
   can_resp->SaveAs( TString::Format( folder_ + "Response_%i_GeV_deltaPhiMax_0%i_etaband_0%i.pdf", 
 	static_cast<int>( Ethresh_) , static_cast<int>(10 * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
   can_resp->SaveAs( TString::Format( folder_ + "Response_%i_GeV_deltaPhiMax_0%i_etaband_0%i.C", 
 	static_cast<int>( Ethresh_) , static_cast<int>(10 * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
-
-
+*/
   cout << "$$$$Mis\t" << hMiss->Integral() << endl;
 
   TCanvas *canData = new TCanvas("canData", "canData", 1.);
-  hData->Draw("ehist");
+    TPad* pad_abs_, *pad_ratio_;
+    PrepareCanvas(canData, "Pad_absolute");
+    SplitCanvas(canData, pad_abs_, pad_ratio_);  
+  pad_abs_->cd();
+  hData->GetXaxis()->SetNdivisions(504);
+  hData->GetXaxis()->SetTitle("E [GeV]");
+  hData->GetYaxis()->SetTitle("dN/dE");
+
+  TH1D* hData_subhisto;
+  GetSubHistogram( hData, hData_subhisto, Eplotmin_, 2100.);
+  SetDnDx( hData_subhisto );
+  hData_subhisto->Scale( 1./ (1.2* 1E5) );
+  hData_subhisto->GetXaxis()->SetNdivisions(504);
+  hData_subhisto->GetXaxis()->SetTitle("E [GeV]");
+  hData_subhisto->GetYaxis()->SetTitle("d#sigma/dE [mb/GeV]");
+  hData_subhisto->Draw("ehist");
+  pad_abs_->SetLogy();
+
+    pad_ratio_->cd();
+  TH1D* hData_copy = (TH1D*)hData_subhisto->Clone("copy");
+  hData_copy->GetYaxis()->SetTitle("ratio");
+  hData_copy->Divide( hData_subhisto );
+  hData_copy->GetYaxis()->SetRangeUser(0.0, 1.3);
+  hData_copy->GetYaxis()->SetTitleSize( hData_copy->GetYaxis()->GetTitleSize()*1.5 );
+  hData_copy->GetYaxis()->SetLabelSize( hData_copy->GetYaxis()->GetLabelSize()*1.5 );
+  hData_copy->GetYaxis()->SetTitleOffset( hData_copy->GetYaxis()->GetTitleOffset()* 0.7 );
+  hData_copy->GetXaxis()->SetTitleSize( hData_copy->GetXaxis()->GetTitleSize()*1.5 );
+  hData_copy->GetXaxis()->SetLabelSize( hData_copy->GetXaxis()->GetLabelSize()*1.5 );
+  hData_copy->Draw("ehist");
+
+  TLegend *leg_data = new TLegend(0.6,.6, 1- canData->GetRightMargin(), 1 - pad_abs_->GetTopMargin() );
+  leg_data->SetFillColor( kWhite );
+  leg_data->AddEntry( hData_copy, "Measured data", "l" );
+
+  //==
 
   TCanvas *canMiss = new TCanvas("canMiss", "canMiss", 1.);
+  hMiss->GetXaxis()->SetNdivisions(504);
+  hMiss->GetXaxis()->SetTitle("E_{miss} [GeV]");
+  hMiss->GetYaxis()->SetTitle("dN/dE");
   hMiss->Draw("ehist");
 
   TCanvas *canFake = new TCanvas("canFake", "canFake", 1.);
+  hFake->GetXaxis()->SetNdivisions(504);
+  hFake->GetXaxis()->SetTitle("E_{fake} [GeV]");
+  hFake->GetYaxis()->SetTitle("dN/dE");
   hFake->Draw("ehist");
 
+  TCanvas *canRes_meas = new TCanvas("canRes_meas", "canRes_meas", 1.);
+    TH1D* hRes_X_old = (TH1D*)hResponse->ProjectionX();
+  hRes_X_old->GetXaxis()->SetNdivisions(504);
+  hRes_X_old->GetXaxis()->SetTitle("E_{resp. meas} [GeV]");
+  hRes_X_old->GetYaxis()->SetTitle("dN/dE");
+  hRes_X_old->Draw("ehist");  
+
+  TCanvas *canRes_true = new TCanvas("canRes_true", "canRes_true", 1.);
+    TH1D* hRes_Y_old = (TH1D*)hResponse->ProjectionY();
+  hRes_Y_old->GetXaxis()->SetNdivisions(504);
+  hRes_Y_old->GetXaxis()->SetTitle("E_{resp. true} [GeV]");
+  hRes_Y_old->GetYaxis()->SetTitle("dN/dE");
+  hRes_Y_old->Draw("ehist");
+
+
   TCanvas *canMeasured = new TCanvas("canMeasured", "canMeasured", 1.);
+  hMeasured->GetXaxis()->SetNdivisions(504);
+  hMeasured->GetXaxis()->SetTitle("E_{meas} [GeV]");
+  hMeasured->GetYaxis()->SetTitle("dN/dE");
   hMeasured->Draw("ehist");
 
   TCanvas *canTruth = new TCanvas("canTruth", "canTruth", 1.);
+  hTruth->GetXaxis()->SetNdivisions(504);
+  hTruth->GetXaxis()->SetTitle("E_{true} [GeV]");
+  hTruth->GetYaxis()->SetTitle("dN/dE");
   hTruth->Draw("ehist");
   
   // (2) Create empty copies.
   // cout << "Unfolder::Calculate_smearedBackError (2)" << endl;
 
-  TH1D* hSmear = (TH1D*)hData->Clone("hSmear");
-  TH1D* hData_new = (TH1D*)hData->Clone("hData_new");			
-  TH1D* hMiss_new = (TH1D*)hMiss->Clone("hMiss_new");			
-  TH1D* hFake_new = (TH1D*)hFake->Clone("hFake_new");
-  TH1D* hTruth_new = (TH1D*)hTruth->Clone("hTruth_new");		
-  TH1D* hMeasured_new = (TH1D*)hMeasured->Clone("hMeasured_new");		
-  TH2D* hResponse_new = (TH2D*)hResponse->Clone("hResponse_new");	
+  TH1D* hSmear 		= (TH1D*)hData->Clone("hSmear");
+  TH1D* hData_new 	= (TH1D*)hData->Clone("hData_new");			
+  TH1D* hMiss_new 	= (TH1D*)hMiss->Clone("hMiss_new");			
+  TH1D* hFake_new 	= (TH1D*)hFake->Clone("hFake_new");
+  TH1D* hTruth_new 	= (TH1D*)hTruth->Clone("hTruth_new");		
+  TH1D* hMeasured_new 	= (TH1D*)hMeasured->Clone("hMeasured_new");		
+  TH2D* hResponse_new 	= (TH2D*)hResponse->Clone("hResponse_new");	
 
   // (2b) Create THnSparse to store data and smeared distributions.
   int bins_sparseData[2] = { hData->GetNbinsX(), nPoisson };
@@ -5019,6 +5527,17 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
   cout << "Unfolder::Calculate_smearedBackError_covariance - Clone spread" << endl;
  
+  pad_abs_->cd();
+  hSmear = (TH1D*)response->ApplyToTruth( hUnfold );
+  hSmear->Add( hFake );
+  hSmear->SetLineStyle( 7 );
+  hSmear->SetLineColor( kBlue );
+
+
+
+
+  cout << "\t\t\t==SMEAR===\t" << hSmear->Integral() << endl;
+
   TRandom3* rand = new TRandom3();
     rand->SetSeed( iterations  );
 
@@ -5029,7 +5548,6 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   for(int n_spread = 0; n_spread < nPoisson; n_spread++){
     if( n_spread%100 == 0){  cout << "Iterations\t" << iterations << "\tIteration\t" << n_spread << endl; }
 //    if( n_spread%100 == 0){  testing_covariance << "Iterations\t" << iterations << "\tIteration\t" << n_spread << endl; }
-
 
     hFake_new->Reset();
     hMiss_new->Reset();
@@ -5042,7 +5560,9 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     // (3) Fill with Poissonian distribution.
     //-- MC distributions.
 
+//cout << "===Response===\t" << hResponse->Integral() << endl;
     FillAnew_2D( hResponse, hResponse_new, rand);
+//cout << "===Response===\t" << hResponse_new->Integral() << endl;
 
     //    testing_covariance << "new/old\t" << hFake_new->Integral()/hFake->Integral() << "\t" << hMiss_new->Integral()/hMiss->Integral() << "\t" << hResponse_new->Integral()/hResponse->Integral() << "\n\n";
 
@@ -5069,8 +5589,11 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     cout << "hMeasured\t" 		<< hMeasured_new->GetNbinsX() 	<< "\t" 
 				<< hMeasured_new->GetBinLowEdge( 1 ) 	<< "\t" 
 				<< hMeasured_new->GetXaxis()->GetBinUpEdge( hMeasured_new->GetNbinsX() ) 		<< endl;*/
-    cout << "hMeasured_new->Add( hRes_X, 1.);" << endl;
+//    cout << "hMeasured_new->Add( hRes_X, 1.);" << endl;
     hMeasured_new->Add( hRes_X, 1.); 
+//    cout << "\t===Bin\tmeas:\t" << hMeasured_new->GetNbinsX() << "\t" << hRes_X->GetNbinsX() << endl;
+
+//    for(int bin = 1; bin <= hMeasured_new->GetNbinsX(); bin++){ cout << "\t=X=Bin\t" << bin << "\t" << hMeasured_new->GetBinLowEdge( bin ) << "\t" << hRes_X->GetBinLowEdge( bin ) << endl;  }
 
     /*
     TCanvas *can____;
@@ -5099,8 +5622,26 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     cout << "hTruth\t" 		<< hTruth_new->GetNbinsX() 	<< "\t" 
 				<< hTruth_new->GetBinLowEdge( 1 ) 	<< "\t" 
 				<< hTruth_new->GetXaxis()->GetBinUpEdge( hTruth_new->GetNbinsX() ) 		<< endl;*/
-    cout << "hTruth_new->Add( hRes_Y, 1.); " << endl;
+//    cout << "hTruth_new->Add( hRes_Y, 1.); " << endl;
+
+//    for( int bin = 0; bin <= hTruth_new->GetNbinsX(); bin++){	cout << "\tXXX\tbin\t" << bin << "\t" << hTruth_new->GetBinContent( bin ) << "\t" << hRes_Y->GetBinContent( bin ) << endl;  }
+
     hTruth_new->Add( hRes_Y, 1.); 
+//    cout << "\t===Bin\ttrue:\t" << hTruth_new->GetNbinsX() << "\t" << hRes_Y->GetNbinsX() << endl;
+/*
+    for(int bin = 1; bin <= hTruth_new->GetNbinsX(); bin++){
+      cout << "\t=Y=Bin\t" << 
+	bin << "\t" << 
+	hTruth_new->GetBinLowEdge( bin ) << "\t" << 
+	hRes_Y->GetBinLowEdge( bin ) << "\t" <<
+	( hTruth_new->GetBinLowEdge( bin ) - hRes_Y->GetBinLowEdge( bin )) / hRes_Y->GetBinLowEdge( bin ) << endl;
+    }
+*/
+/*
+   for( int bin = 0; bin <= hTruth_new->GetNbinsX(); bin++){
+      cout << "\tXXX\tbin\t" << bin << "\t" << hTruth_new->GetBinContent( bin ) << endl;
+    }
+*/
     //    hTruth_new = (TH1D*)hRes_Y->Clone("hTruth_new");
 
     //--------------------------------------------------------------------------//
@@ -5122,27 +5663,37 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     //-----------------------//
 
     //-- The code below draws the varied distributions and compares them to the actual fakes/measured/truth distributions.
-    if( n_spread < 10 ){
+    if( n_spread < 1000 ){
 
       canMiss->cd();
-      hMiss_new->SetLineColor( getColor(n_spread) );
-      hMiss_new->SetLineStyle( n_spread );
+      hMiss_new->SetLineColor( kYellow - 3 );
+      hMiss_new->SetLineStyle( 2 );
       hMiss_new->DrawClone("histsame");
 
       canFake->cd();
-      hFake_new->SetLineColor( getColor(n_spread) );
-      hFake_new->SetLineStyle( n_spread );
+      hFake_new->SetLineColor( kYellow - 3 );
+      hFake_new->SetLineStyle( 2 );
       hFake_new->DrawClone("histsame");
 
       canMeasured->cd();
-      hMeasured_new->SetLineColor( getColor(n_spread) );
-      hMeasured_new->SetLineStyle( n_spread );
+      hMeasured_new->SetLineColor( kYellow - 3 );
+      hMeasured_new->SetLineStyle( 2 );
       hMeasured_new->DrawClone("histsame");
 
       canTruth->cd();
-      hTruth_new->SetLineColor( getColor(n_spread) );
-      hTruth_new->SetLineStyle( n_spread );
+      hTruth_new->SetLineColor( kYellow - 3 );
+      hTruth_new->SetLineStyle( 2 );
       hTruth_new->DrawClone("histsame");
+
+      canRes_meas->cd();
+      hRes_X->SetLineColor( kYellow - 3 );
+      hRes_X->SetLineStyle( 2 );
+      hRes_X->DrawClone("histsame");
+
+      canRes_true->cd();
+      hRes_Y->SetLineColor( kYellow - 3 );
+      hRes_Y->SetLineStyle( 2 );
+      hRes_Y->DrawClone("histsame");
     }
 
     //-- Create a new RooUnfold response object.
@@ -5174,25 +5725,33 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     //-----------------//
     //-- S = R * U + F //
     //-----------------//
-    hSmear = (TH1D*) response_new->ApplyToTruth( hUnfold );
-    //cout << "Smear\t" 	<< hSmear->GetNbinsX() 	<< "\t" << hSmear->GetBinLowEdge( 1 ) 	<< "\t" << hSmear->GetXaxis()->GetBinUpEdge( hSmear->GetNbinsX() ) << endl;  
-    cout << "hSmear->Add( hFake_new );" << endl;
+    hSmear = (TH1D*) response_new->ApplyToTruth( hUnfold ); 
     hSmear->Add( hFake_new );
 
-
-    //cout << "\nDone\n\n\n\n";
+//    SetDnDx( hSmear );
 
     //-- Draw the smeared distribution.
-    if( n_spread <= 10){
+    if( n_spread <= 1000){
       canData->cd();
-      hSmear->SetName( TString::Format("hSmear_%i", n_spread) );
-      hSmear->SetTitle( TString::Format("hSmear_%i", n_spread) );
-      hSmear->SetLineColor( getColor( n_spread ) );
-      hSmear->SetLineStyle( n_spread );
-      hSmear->Draw("histsame");
 
-      hUnfold->SetMarkerStyle( 26 );
-      hUnfold->Draw("psame");
+      pad_abs_->cd();
+
+      TH1D* hSmear_copy;
+      GetSubHistogram( hSmear, hSmear_copy, Eplotmin_, 2100.);  
+      SetDnDx( hSmear_copy );
+      hSmear_copy->Scale( 1./ (1.2* 1E5) );
+
+      hSmear_copy->SetName( TString::Format("hSmear_%i", n_spread) );
+      hSmear_copy->SetTitle( TString::Format("hSmear_%i", n_spread) );
+      hSmear_copy->SetLineColor( kGreen - 3 );
+      hSmear_copy->SetLineStyle( 2 );
+      hSmear_copy->DrawCopy("histsame");
+
+      hSmear_copy->Divide(hData_subhisto);
+      pad_ratio_->cd();
+      hSmear_copy->Draw("histsame");
+
+      if( n_spread == 0 ){ leg_data->AddEntry( hSmear_copy, "Backsmeared (var.)", "l" ); }
     }
 
     //-- Store histogram in THnSparse, bin-by-bin.
@@ -5214,18 +5773,71 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     }
   } // Loop over algorithm.
 
+  
+
   //-----------------------------------------------------//
   //-- (CHECK) Save canvasses with varied distributions. //
   //-----------------------------------------------------//
 
+  canData->SetLogy();
+  pad_abs_->cd();
+
+  TH1D* hSmear_first_copy;
+  GetSubHistogram( hSmear, hSmear_first_copy, Eplotmin_, 2100.);
+  SetDnDx( hSmear_first_copy );
+  hSmear_first_copy->SetLineColor( kRed );
+  hSmear_first_copy->SetMarkerColor( kRed );
+  hSmear_first_copy->SetMarkerStyle( 26 );
+  hSmear_first_copy->Scale( 1./ (1.2* 1E5) );  
+  hSmear_first_copy->DrawCopy("histsame");
+
+  leg_data->AddEntry( hSmear_first_copy, "Backsmeared data", "l" );
+  leg_data->Draw();
+
+  pad_ratio_->cd();
+  hSmear_first_copy->Divide( hData_subhisto );  
+  hSmear_first_copy->Draw("histsame");
+
   canData->SaveAs( TString::Format( folder_ + "canData_%i_iterations_deltaPhiMax_0%i_etaband_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ )  ) );  
   canData->SaveAs( TString::Format( folder_ + "canData_%i_iterations_deltaPhiMax_0%i_etaband_0%i.pdf", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );  
+
+  canFake->SetLogy();
+//  hFake->DrawCopy("phistsame");
   canFake->SaveAs( TString::Format( folder_ + "canFake_%i_iterations_deltaPhiMax_0%i_etaband_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
   canFake->SaveAs( TString::Format( folder_ + "canFake_%i_iterations_deltaPhiMax_0%i_etaband_0%i.pdf", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+
+  canTruth->SetLogy();
+  hTruth->DrawCopy("phistsame");
   canTruth->SaveAs( TString::Format( folder_ + "canTruth_%i_iterations_deltaPhiMax_0%i_etaband_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
   canTruth->SaveAs( TString::Format( folder_ + "canTruth_%i_iterations_deltaPhiMax_0%i_etaband_0%i.pdf", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+
+  canMiss->SetLogy();
+//  hFake->DrawCopy("phistsame");
+  canMiss->SaveAs( TString::Format( folder_ + "canMiss_%i_iterations_deltaPhiMax_0%i_etaband_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+  canMiss->SaveAs( TString::Format( folder_ + "canMiss_%i_iterations_deltaPhiMax_0%i_etaband_0%i.pdf", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+
+  canRes_meas->SetLogy();
+//  hFake->DrawCopy("phistsame");
+  canRes_meas->SaveAs( TString::Format( folder_ + "canRes_meas_%i_iterations_deltaPhiMax_0%i_etaband_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+  canRes_meas->SaveAs( TString::Format( folder_ + "canRes_meas_%i_iterations_deltaPhiMax_0%i_etaband_0%i.pdf", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+
+  canRes_true->SetLogy();
+//  hFake->DrawCopy("phistsame");
+  canRes_true->SaveAs( TString::Format( folder_ + "canRes_true_%i_iterations_deltaPhiMax_0%i_etaband_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+  canRes_true->SaveAs( TString::Format( folder_ + "canRes_true_%i_iterations_deltaPhiMax_0%i_etaband_0%i.pdf", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+
+
+  canMeasured->SetLogy();
+  hMeasured->SetLineColor( kBlack );
+  hMeasured->SetLineStyle( 1 );
+  hMeasured->SetLineWidth( 3 );
+  hMeasured->SetMarkerStyle( 22 );
+  hMeasured->DrawCopy("phistsame");
   canMeasured->SaveAs( TString::Format( folder_ + "canMeasured_%i_iterations_deltaPhiMax_0%i_etaband_0%i.C", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
   canMeasured->SaveAs( TString::Format( folder_ + "canMeasured_%i_iterations_deltaPhiMax_0%i_etaband_0%i.pdf", 	iterations, static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_ ) ) );
+
+  can_evolution_of_data->SetLogy();
+  can_evolution_of_data->SaveAs( folder_ + "/Evolution_smeared.pdf");
 
   //-------------------------------------------------//
   // (5) Extract the average from the distributions. //
@@ -5321,7 +5933,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
       double ncol = hAverage_smear_sq->GetBinContent( col );
 
       hCorrelation_denom->SetBinContent( row, col, sqrt( ncol*nrow ) );
-      if( sqrt(ncol*nrow) < 1. ){ cout << "Small corr.\t" << col << "\t" << row << "\t" << sqrt( ncol*nrow )<< "\t" << ncol << "\t" << nrow << endl; }
+      //if( sqrt(ncol*nrow) < 1. ){ cout << "Small corr.\t" << col << "\t" << row << "\t" << sqrt( ncol*nrow )<< "\t" << ncol << "\t" << nrow << endl; }
 
 //      testing_covariance <<"correlation\t(row, col)\t" << row << "\t" << col << "\t" << sqrt( ncol*nrow ) << endl; 
     }
@@ -5376,12 +5988,12 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   for(int i = 0; i < nPoisson; i++){
 
    //(CHECK) What does the distribution look like?
-   /*
+   
    if( i < 10 ){
      hDistr = (TH1D*)hAverage_distribution->Clone(TString::Format("hE_mu_%i", iterations) );
      hDistr->Reset();
    }
-   */
+   
 
     if( i%500 == 0 ){ cout << "Unfolder::Calculate_smearedBackError_covariance - (7)\t" << i <<  endl; }
 
@@ -5419,7 +6031,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     }
 
     //(CHECK) Save the 1D and 2D distributions.
-    /*
+    
     if( i < 0 ){ 
 
       cout << "\t" << i << "th average" << endl;
@@ -5432,13 +6044,17 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
       double maximumPlot = hCov->GetMaximum();
       double minimumPlot = GetMinimumValue( hCov );
 
+      hCov->GetXaxis()->LabelsOption("h");
+      hCov->GetYaxis()->LabelsOption("h");
+
       hCov->GetZaxis()->SetRangeUser(minimumPlot * 0.9, maximumPlot * 1.1);
       can_currentCov->SetLogz();
+
       hCov->Draw("colz");
       can_currentCov->Print( folder_ + "covariance_evolution.gif+10" );
       can_currentCov->SaveAs( folder_ + "covariance_evolution.C" );
     }
-    */
+    
   }
 
   //--------------------------------------------------------------------------------//
@@ -5465,7 +6081,7 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
     for(int col = 1; col <= hCovariance_matrix->GetNbinsY(); col++){
       double x[nPoisson], y[nPoisson];
 
-      //testing_covariance  << "\t(row, col)\t(" << row << " ,\t" << col << ")\t"; 
+
       double binval = 0.;
       int poisson = 0;
       for(; poisson < nPoisson; poisson++){
@@ -5475,10 +6091,12 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
 	//if( binval == sparse_val && poisson > 0 ){ cout << "\t\t\t---\t" << binval << "\t" << poisson << "\t" << row << "\t" << col << endl; }
 
-	//testing_covariance <<binval/( static_cast<double>(poisson) + 1. ) << "\t";
+//	testing_covariance <<binval/( static_cast<double>(poisson) + 1. ) << "\t";
 	x[poisson] = poisson+1;
 	y[poisson] = binval/( static_cast<double>(poisson) + 1.);
       }
+
+//      testing_covariance  << "\t(row, col)\t(" << row << " ,\t" << col << ")\t" << binval << endl; 
 
       //-- Add data to the diagonal of the matrix.
       if( row == col ){ binval += hData->GetBinContent( row ); }
@@ -5532,6 +6150,12 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 */
   hDiff->Add( hSmear, -1.);	
 
+/*  testing_covariance << "bin diff" << endl;
+  for(int bin = 0; bin <= hDiff->GetNbinsX(); bin++ ){
+
+    testing_covariance << bin << "\t" << hDiff->GetBinContent(bin) << "\t" << hData->GetBinContent(bin) << endl;
+  }
+*/
   TMatrixD *mCovariance = RooUnfoldResponse::H2M( hCovariance_matrix, hCovariance_matrix->GetNbinsX(), hCovariance_matrix->GetNbinsY() );
 
   //-- Save a copy of the true covariance matrix.
@@ -5549,12 +6173,21 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
   GetSubHistogram( hCovariance_matrix_drawn, hCovariance_matrix_drawn, Ethresh_, 2100.);
   Prepare_2Dplot( hCovariance_matrix_drawn, "E [GeV]", "E [GeV]", 504, 504);
   Prepare_2Dplot( hCovariance_matrix, "E [GeV]", "E [GeV]", 504, 504);
+
+  hCovariance_matrix->GetXaxis()->LabelsOption("h");
+  hCovariance_matrix->GetYaxis()->LabelsOption("v");
+
   hCovariance_matrix_drawn->Draw("colz");
   hCovariance_matrix_drawn->GetZaxis()->SetRangeUser(
     GetMinimumValue( hCovariance_matrix_drawn ) * 0.9,
     hCovariance_matrix_drawn->GetMaximum()*1.1 );
 
   DrawWithNegativeLog( hCovariance_matrix_drawn, can_cov );
+
+
+
+  Finish_canvas(can_cov);
+
 
   can_cov->SaveAs(folder_ + TString::Format("hCov_%i_iterations_%i_GeV_deltaPhiMax_0%i_etaband_0%i.pdf", 
 	iterations, static_cast<int>( Ethresh_), static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
@@ -5572,6 +6205,23 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
   can_cov->SaveAs(folder_ + TString::Format("/vDiff_%i_iterations_%i_GeV_deltaPhiMax_0%i_etaband_0%i.pdf", 
 	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
+
+
+  TH1D* hDiff_rel = (TH1D*)hDiff->Clone( "relative_difference");
+  for(int bin = 0; bin <= hDiff_rel->GetNbinsX(); bin++){
+
+    hDiff_rel->SetBinContent( bin, 
+	hDiff_rel->GetBinContent(bin)/hData->GetBinContent(bin)
+	);
+  }
+
+  TCanvas* can_diff_rel = new TCanvas( TString::Format("can_diff_rel_%i", iterations), TString::Format("can_diff_rel_%i", iterations), 1.  );
+  can_diff_rel->Draw("hist");
+   can_diff_rel->SaveAs(folder_ + TString::Format("/hDiff_diff_rel_%i_iterations_%i_GeV_deltaPhiMax_0%i_etaband_0%i.C", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
+  can_diff_rel->SaveAs(folder_ + TString::Format("/hDiff_diff_rel_%i_iterations_%i_GeV_deltaPhiMax_0%i_etaband_0%i.pdf", 
+	iterations, static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) ); 
+   
 
   //------------------------//
   //-- Invert the matrix. --//
@@ -5636,12 +6286,16 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
 
   can_cov->SetLogz();
 
-  cout << "CHI2/NDF for " << iterations << " iterations is " << chi2 << "/" << vDiff->GetNoElements() << " = " <<  chi2/vDiff->GetNoElements() << "\t" << MC_files_[0] << endl;
+  cout << "\nCHI2/NDF for " << iterations << " iterations is " << chi2 << "/" << vDiff->GetNoElements() << " = " <<  chi2/vDiff->GetNoElements() << "\t" << MC_files_[0] << endl;
   cout << "Newbinslength\t" << nbins_newlength << "\t" << Ecut_ << endl;
+  cout << "renorm_\t" << renorm_ << endl;
 
   for(int idata = 1; idata <= hData->GetNbinsX(); idata++){
     cout << idata << "\tdata\t" << hData->GetBinContent( idata ) << endl;
   }
+
+
+
 
   return chi2/ ( vDiff->GetNoElements() ) ;
 }
@@ -5765,77 +6419,111 @@ void Unfolder::PlotStartingDistributions_comparingEmin(TString distribution){
 
   TCanvas *can_startingDistributions;
   PrepareCanvas(can_startingDistributions, "can_startingDistributions");
-  TLegend *legend = new TLegend( 0.55, 0.55, 0.95, 0.95);
+  TLegend *legend = new TLegend( 0.55, 0.65, .95, 0.95);
 
   TString distributionname;
   if (distribution == "fake"){ 		distributionname = "hCastorJet_fake_all"; }
   if (distribution == "detector"){ 	distributionname = "hCastorJet_energy"; }
   if (distribution == "generator"){ 	distributionname = "hGenJet_energy"; }
-  if (distribution == "miss"){ 	distributionname = "hCastorJet_miss_all"; }
+  if (distribution == "miss"){ 		distributionname = "hCastorJet_miss_all"; }
+  if (distribution == "match_meas"){	distributionname = "match_meas";}
+  if (distribution == "match_true"){	distributionname = "match_true";}
 
-  TString drawoptions = "ph";
+  TString drawoptions = "phist";
 
-    int file = 0;
+  int file = 0;
 
-    vector<double> etaband;
+  vector<double> etaband;
       etaband.push_back(0.0);
       etaband.push_back(0.2);
       etaband.push_back(0.5);
 
 
-    vector<double> deltaPhiMax;
-//      deltaPhiMax.push_back(0.2);
+  vector<double> deltaPhiMax;
+      deltaPhiMax.push_back(0.2);
 //      deltaPhiMax.push_back(0.4);
       deltaPhiMax.push_back(0.5);
 
-    vector<TString> matching;
+  vector<TString> matching;
       matching.push_back("_matchE");
 //      matching.push_back("_matchPhi");
 
-    vector<TString> match_symbol;
+  vector<TString> match_symbol;
       match_symbol.push_back("E");
       match_symbol.push_back("#varphi");
 
-    vector<TString> model;
+  vector<TString> model;
       model.push_back("");
-      model.push_back("Pythia84C_");
+//      model.push_back("Pythia84C_");
 
-    vector<TString> model_legend;
+  vector<TString> model_legend;
       model_legend.push_back("p6");
       model_legend.push_back("p8");
 
-    vector<int> model_events;
+  vector<int> model_events;
       model_events.push_back( 547922 );
       model_events.push_back( 670215 );
 
-    vector<double> Emin;
+  vector<double> Emin;
 //      Emin.push_back(0.);
       Emin.push_back(150.);
 
-    vector<int> markers;
+  vector<int> markers;
       markers.push_back( 20 );
       markers.push_back( 22 );
       markers.push_back( 29 );
       markers.push_back( 21 );
 
-    for(int _model = 0; _model < model.size(); _model++){
-      for(int _eta = 0; _eta < etaband.size(); _eta++){
-        for(int _phi = 0; _phi < deltaPhiMax.size(); _phi++){
-	  for(int _Emin = 0; _Emin < Emin.size(); _Emin++){
+  for(int _model = 0; _model < model.size(); _model++){
+    for(int _eta = 0; _eta < etaband.size(); _eta++){
+      for(int _phi = 0; _phi < deltaPhiMax.size(); _phi++){
+	for(int _Emin = 0; _Emin < Emin.size(); _Emin++){
    	    for(int _match = 0; _match < matching.size(); _match++, file++){
 
               TString filename_ = TString::Format( "/user/avanspil/Castor_Analysis/ak5ak5_" + model[_model] + "displaced_unfold_Emin_%f_deltaPhiMax_%f_etaband_%f" + matching[_match] + ".root", Emin[_Emin], deltaPhiMax[_phi], etaband[_eta] ) ;
 	    
+	      cout << "\n=*=\t" << filename_ << endl;
 	      TFile* _file= TFile::Open( filename_, "read" );
+
+	      TString setup_label = TString::Format( model[_model] + "displaced_unfold_Emin_%i_deltaPhiMax_0%i_etaband_0%i" + matching[_match] , 
+		static_cast<int>(Emin[_Emin]), 
+		static_cast<int>(10. * deltaPhiMax[_phi]), 
+		static_cast<int>(10. * etaband[_eta]));
+	      PlotResponseMatrix( filename_, setup_label );
 
 	      TString histname = TString::Format( distributionname + "_Emin_%i_deltaPhiMax_0%i_etaband_0%i" + matching[_match] + "_" + model[_model], 
 		static_cast<int>(Emin[_Emin]), 
 		static_cast<int>(10. * deltaPhiMax[_phi]), 
 		static_cast<int>(10. * etaband[_eta]));
 
-    	      TH1D* hDistribution = (TH1D*)_file->Get( distributionname );
+    	      //== Extracting the distribution.
+  	      TH1D* hDistribution = (TH1D*)_file->Get( distributionname );
 
-	      hDistribution->Scale( 1. / model_events[_model] );
+	      if( !distributionname.Contains("match") ){
+		hDistribution = (TH1D*)_file->Get( distributionname );
+	      }
+	      else{
+	        RooUnfoldResponse* response = (RooUnfoldResponse*)_file->Get("response");
+	        TH2D* hResponse = (TH2D*)response->Hresponse();
+	        if( distributionname = "match_meas" ){
+	          hDistribution = (TH1D*)hResponse->ProjectionX();
+	        }
+	        else if( distributionname = "match_true" ){
+	          hDistribution = (TH1D*)hResponse->ProjectionY();
+	        }
+	      }
+
+	      //== Scaling.
+              int total_events_nocuts;
+	      TTree *tree_numbers = (TTree*)_file->Get("useful_numbers");
+	      TString branch_str = (set_of_tags_[ "scalefactors" ])[ MC_files_[0] ];
+
+//	      tree_numbers->SetBranchAddress(branch_str, &total_events_nocuts);
+//	tree_numbers->GetEntry( 0 );
+
+ 	      double xsec = 1.;
+	      xsec = xsec_[MC_files_[0]];
+//	      hDistribution->Scale( xsec/ 995000.);	
 
 	      hDistribution->SetTitle( histname );
 	      hDistribution->SetName( histname );
@@ -5844,32 +6532,34 @@ void Unfolder::PlotStartingDistributions_comparingEmin(TString distribution){
 	      // Linecolor = model -- linestyle = match -- markerstyle = etaband -- markercolor = deltaphi
 	      hDistribution->SetLineColor( getColor( _model+1 ) ); 
 
-	      hDistribution->SetLineStyle( _match + 1 ); 
+	      hDistribution->SetLineStyle( file + 1 ); 
+	      hDistribution->SetLineColor( getColor(file + 1) ); 
  
-              hDistribution->SetMarkerStyle( markers[_eta] );
+              hDistribution->SetMarkerStyle( file + 20 );
 
-              hDistribution->SetMarkerColor( getColor( _phi+4 ) );
+              hDistribution->SetMarkerColor( getColor( file+1 ) );
 
 	      hDistribution->SetMarkerSize( 1.8 );
 	      hDistribution->GetXaxis()->SetNdivisions( 504 );
-	      hDistribution->GetXaxis()->SetTitle("E (GeV)");
-              if( file == 0 ){  hDistribution->GetYaxis()->SetRangeUser(0.9 * 1./static_cast<double>(model_events[_model]), 1.1); }
+	      hDistribution->GetXaxis()->SetTitle("E_{" + distribution + "}[GeV]");
+	      hDistribution->GetYaxis()->SetTitle("#frac{d#sigma}{dE}[GeV]");
+//              if( file == 0 ){  hDistribution->GetYaxis()->SetRangeUser(0.9 * xsec/995000., 1.1); }
 
-
-
+	      can_startingDistributions->cd();
 	      hDistribution->DrawClone( drawoptions );
 	      drawoptions = "phsame";
 	      //legend->AddEntry( hDistribution, TString::Format( distribution + "#Delta #varphi_{max} = 0.%i, E_{min} = %i GeV, #eta = 0.%i" + matching[_match],
-	      legend->AddEntry( hDistribution, TString::Format( distribution + " (E_{min} = %i GeV, 0.%i, 0.%i, " + match_symbol[_match] + ", " + model_legend[_model] + ")", 
-		static_cast<int>( Emin[_Emin]), 
+	      legend->AddEntry( hDistribution, TString::Format( " #Delta#varphi_{max}=0.%i, #eta_{acc}=0.%i", 
 		static_cast<int>(10. * deltaPhiMax[_phi] ), 
 		static_cast<int>(10. * etaband[_eta] ) ), "lp" );
 	      legend->SetFillColor( 0 );
-	    }
-	  }
-        }
-      }
-    }
+
+
+	    } // Match.
+	  } // Emin.
+        } // Deltaphi.
+      } // Eta.
+    } // Model.
    
   legend->Draw();
 
@@ -5911,6 +6601,10 @@ void Unfolder::PlotStartingDistributions_comparingEmin(TString distribution){
 
 
 
+
+
+
+
 void Unfolder::PlotStartingDistributions_MCfiles(TString distribution){
   cout << "Unfolder::PlotStartingDistributions_MCfiles\t" << distribution << endl;
 
@@ -5924,6 +6618,8 @@ void Unfolder::PlotStartingDistributions_MCfiles(TString distribution){
   if (distribution == "generator"){ 	distributionname = "hGenJet_energy"; }
   if (distribution == "miss")	{ 	distributionname = "hCastorJet_miss_all"; }
   if (distribution == "eta"){		distributionname = "hGenJet_eta"; }
+  if (distribution == "match_meas"){	distributionname = "match_meas";}
+  if (distribution == "match_true"){	distributionname = "match_true";}
 
   TString drawoptions = "hist";
 
@@ -5932,12 +6628,25 @@ void Unfolder::PlotStartingDistributions_MCfiles(TString distribution){
     TFile* _file = new TFile( MC_files_[file_], "Read");
     TString histname = TString::Format( distributionname + "_%i", file_ );
 
-    TH1D* hDistribution = (TH1D*)_file->Get( distributionname );
+    //== Extracting the distribution.
+    TH1D* hDistribution;
+    if( !distributionname.Contains("match") ){
+      hDistribution = (TH1D*)_file->Get( distributionname );
+    }
+    else{
+      RooUnfoldResponse* response = (RooUnfoldResponse*)_file->Get("response");
+      TH2D* hResponse = (TH2D*)response->Hresponse();
+      if( distributionname = "match_meas" ){
+        hDistribution = (TH1D*)hResponse->ProjectionX();
+      }
+      else if( distributionname = "match_true" ){
+        hDistribution = (TH1D*)hResponse->ProjectionY();
+      }
+    }
 
 //    hDistribution->Scale(1. / model_events[_model] );
     TString scalefactor_string = (set_of_tags_["scalefactors"])[ MC_files_[ file_ ] ];
-    double scalefactor = scalefactor_string.Atof();
-    hDistribution->Scale( 1./ scalefactor );
+
     hDistribution->SetTitle( histname );
     hDistribution->SetName( histname );
     hDistribution->SetLineWidth( 3 );
@@ -5948,7 +6657,7 @@ void Unfolder::PlotStartingDistributions_MCfiles(TString distribution){
 
     hDistribution->GetXaxis()->SetNdivisions( 504 );
     if( distribution == "eta" ){ hDistribution->GetXaxis()->SetTitle("#eta"); }
-    else{ hDistribution->GetXaxis()->SetTitle("E (GeV)"); }
+    else{ hDistribution->GetXaxis()->SetTitle("E [GeV]"); }
 
 
     hDistribution->DrawClone( drawoptions );
@@ -6030,7 +6739,7 @@ void Unfolder::Chi2diff_test_data(TString variable, TString file, int method){
   TH1D* hist_result; 
   TH1D* hist_reference, *hist_previous; 
   TString htitle;
-  TLegend *legend = new TLegend(0.50, 0.45, 0.95, 0.95);
+  TLegend *legend = new TLegend(0.55, 0.65, 0.95, 0.95);
     legend->SetFillColor(0);
   int iterations_ = 50, iterations_start = 1;
   int actual_iterations = 0;
@@ -6070,12 +6779,12 @@ void Unfolder::Chi2diff_test_data(TString variable, TString file, int method){
     TString drawoptions = "apc";
 
     vector<double> etaband;
-//      etaband.push_back(0.0);
-//      etaband.push_back(0.2);
+      etaband.push_back(0.0);
+      etaband.push_back(0.2);
       etaband.push_back(0.5);
 
     vector<double> deltaPhiMax;
-//      deltaPhiMax.push_back(0.2);
+      deltaPhiMax.push_back(0.2);
 //      deltaPhiMax.push_back(0.4);
       deltaPhiMax.push_back(0.5);
 
@@ -6110,11 +6819,13 @@ void Unfolder::Chi2diff_test_data(TString variable, TString file, int method){
       markers.push_back( 29 );
       markers.push_back( 21 );
 
+    int file_ = 0;
+
     for(int _model = 0; _model < model.size(); _model++){
       for(int _eta = 0; _eta < etaband.size(); _eta++){
         for(int _phi = 0; _phi < deltaPhiMax.size(); _phi++){
 	  for(int _Emin = 0; _Emin < Emin.size(); _Emin++){
-   	    for(int _match = 0; _match < matching.size(); _match++){
+   	    for(int _match = 0; _match < matching.size(); _match++, file_++){
 
               TString filename_ = TString::Format( "/user/avanspil/Castor_Analysis/ak5ak5_" + model[_model] + "displaced_unfold_Emin_%f_deltaPhiMax_%f_etaband_%f" + matching[_match] + ".root", Emin[_Emin], deltaPhiMax[_phi], etaband[_eta] ) ;
 
@@ -6190,14 +6901,18 @@ void Unfolder::Chi2diff_test_data(TString variable, TString file, int method){
 	      chi2_diff->SetLineWidth( 3 );
 
 	      // Linecolor = model -- linestyle = Emin -- markerstyle = etaband -- markercolor = deltaphi
-	      chi2_diff->SetLineColor( getColor( _model+1 ) ); 
-	      chi2_diff->SetLineStyle( _Emin + 1 );  
-              chi2_diff->SetMarkerStyle( markers[_eta] );
-              chi2_diff->SetMarkerColor( getColor( marker_color[_phi] ) );
+	      chi2_diff->SetLineColor( getColor( file_+1 ) ); 
+	      chi2_diff->SetLineStyle( file_ + 1 );  
+              chi2_diff->SetMarkerStyle( file_ + 20 );
+              chi2_diff->SetMarkerColor( getColor( file_+1 ) );
+	      chi2_diff ->SetMarkerColor( getColor( file_+1 ) );
+	      chi2_diff->SetMarkerColor( getColor( file_+1 ) );
+	      chi2_diff->SetMarkerColor( getColor( file_+1 ) );
+	      chi2_diff->SetMarkerSize( 1.8 );
 
 	      chi2_diff->SetMarkerSize( 1.25 );
 	      chi2_diff->GetXaxis()->SetNdivisions( 504 );
-	      chi2_diff->GetXaxis()->SetTitle("E (GeV)");
+	      chi2_diff->GetXaxis()->SetTitle("E [GeV]");
 
               chi2_diff->GetXaxis()->SetTitle("N_{it.}");
               chi2_diff->GetYaxis()->SetTitle("#Delta#chi^{2}/NDF");
@@ -6205,11 +6920,12 @@ void Unfolder::Chi2diff_test_data(TString variable, TString file, int method){
 		cout << "Drawn with " << drawoptions << endl;
 
 	      drawoptions = "pcsame";
+cout << "file\t" << filename_ << endl;
 
-	    legend->AddEntry( chi2_diff, TString::Format( " (E_{min} = %i GeV, 0.%i, 0.%i, " + match_symbol[_match] + ", " + model_legend[_model] + ")", 
-	      static_cast<int>( Emin[_Emin]), 
-	      static_cast<int>(10. * deltaPhiMax[_phi] ), 
-	      static_cast<int>(10. * etaband[_eta] ) ), "lp" );
+	      legend->AddEntry( chi2_diff, TString::Format( " #Delta#varphi_{max}=0.%i, #eta_{acc}=0.%i", 
+		static_cast<int>(10. * deltaPhiMax[_phi] ), 
+		static_cast<int>(10. * etaband[_eta] ) ), "lp" );
+	      legend->SetFillColor( 0 );
   	    }
 	  }
 	}
@@ -6268,11 +6984,12 @@ void Unfolder::Chi2diff_test_data(TString variable, TString file, int method){
 void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int iterations){
   pad_->cd();
 
-  TLegend* legend = new TLegend( 0.60, 0.7, 0.95, 0.9  );
+  TLegend* legend = new TLegend( 0.60, 0.5, 1. - pad_->GetRightMargin(), 1. - pad_->GetTopMargin()  );
   legend->SetFillColor( kWhite );
 
+
   TH1D* hAverage, *hFirst;
-  TString drawoptions = "histsame";
+  TString drawoptions = "hist";
   double models = 0.;
 
   TH1D* hGen, *hDet;
@@ -6289,7 +7006,7 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
 
     if( variable == "all") { Get_DetEnergy( -1 , hData); }
     if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }
-    hData->GetYaxis()->SetTitle("#frac{dN}{dE}");
+    hData->GetYaxis()->SetTitle("#frac{dN}{dE} [1/GeV]");
 
     Get_DetUnfolded( MC_ , hData, iterations, variable);
     SetDnDx( hData );
@@ -6303,16 +7020,23 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
   }
 
   hAverage->Scale( 1./models );
+  cout << "\t===Average\t" << hAverage->Integral() << endl;
 
   hFirst = (TH1D*)hAverage->Clone("First");
 
   hAverage->SetLineWidth(2);
   hAverage->SetMarkerColor( 1 );
   hAverage->SetLineColor( 1 );
-  hAverage->GetXaxis()->SetTitle("E (GeV)");
+  hAverage->GetXaxis()->SetTitle("E [GeV]");
+  hAverage->GetYaxis()->SetTitle("#frac{d#sigma}{dE}[mb/GeV]");
+
+  pad_->cd();
+  Prepare_1Dplot( hAverage );	// Set title and label size.
   hAverage->Draw("ephist");
   legend->AddEntry( hAverage, "Model average", "ep"  );
   
+    drawoptions = "psame";
+
   for(int bin = 0; bin <= hDet->GetNbinsX(); bin++){ cout << bin << "\t" << hDet->GetBinContent( bin ) << endl; }
 
   TH1D* hModel_dep = (TH1D*)hDet->Clone("hModelDep");
@@ -6347,26 +7071,27 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
     hData->Add( hAverage );
     */
 
-    if( variable == "all") { Get_DetEnergy( -1 , hData); }
-    if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }
+    Get_DetEnergy( -1 , hData); 
 
     Get_DetUnfolded( MC_ , hData, iterations, variable);
     SetDnDx( hData );
 
+    cout << "MC\t" << hData->Integral() << "\t" << drawoptions << endl;
+
+    pad_->cd();
     hData->SetLineColor( getColor( MC_+2) );
     hData->SetMarkerColor( getColor( MC_+2 ) );
     hData->SetMarkerStyle( 24 + MC_ );
     hData->SetLineWidth( 2 );
+    hData->Draw( drawoptions );
+
+    legend->AddEntry( hData, legend_info_gen_[ MC_files_[MC_] ], "ep"  );
 
     for(int bin = 0; bin <= hData->GetNbinsX(); bin++){ cout << bin << "\t" << hData->GetBinContent( bin ) << endl; }
-
-    hData->Draw( drawoptions );
-    drawoptions = "histsame";
-    legend->AddEntry( hData, legend_info_[ MC_files_[MC_] ], "ep"  );
   }
 
 
-  hAverage->Draw( drawoptions );
+//  hAverage->Draw( drawoptions );
 //  hAverage->GetYaxis()->SetRangeUser(0., 2.);
   legend->Draw();
   pad_->SetLogy();
@@ -6394,21 +7119,19 @@ void Unfolder::Plot_Unfolded_modelDependence(TPad* & pad_, TString variable, int
 void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variable, int iterations){
   pad_->cd();
 
-
-  cout << "Unfolder::Plot_Unfolded_Ratio\t" << iterations << "\titerations" << endl;
-
   TH1D* hAverage, *hFirst;
-  TString drawoptions = "edatasame";
+  TString drawoptions = "hist";
+  double models = 0.;
 
   TH1D* hGen, *hDet;
-  double models = 0.;
 
   for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
     //-- Generator level.
     if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
-    //-- Generator level.
     models++;
 
+    cout << "Working on\t" << MC_files_[MC_] << endl;
+    
     //-- Data unfolded.
     TH1D* hData;
 
@@ -6416,6 +7139,7 @@ void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variabl
     if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }
 
     Get_DetUnfolded( MC_ , hData, iterations, variable);
+    SetDnDx( hData );
     if( MC_ == 0 ){ 
       hAverage = (TH1D*)hData->Clone("Average");
       hDet = (TH1D*)hData->Clone("hModeldep");
@@ -6426,20 +7150,24 @@ void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variabl
   }
 
   hAverage->Scale( 1./models );
+  cout << "\t===Average\t" << hAverage->Integral() << endl;
 
   hFirst = (TH1D*)hAverage->Clone("First");
 
-  hAverage->Divide( hFirst );
   hAverage->SetLineWidth(2);
   hAverage->SetMarkerColor( 1 );
   hAverage->SetLineColor( 1 );
-  hAverage->GetXaxis()->SetTitle("E (GeV)");
-  hAverage->GetYaxis()->SetTitle("Ratio");
+  hAverage->GetXaxis()->SetTitle("E [GeV]");
+
+  pad_->cd();
+  Prepare_1Dplot( hAverage );	// Set title and label size.
+  hAverage->GetXaxis()->SetTitleOffset(
+	hAverage->GetXaxis()->GetTitleOffset() * 2 );
+  hAverage->Divide( hFirst );
   hAverage->Draw("ephist");
-
   
+    drawoptions = "psame";
 
-  hDet->Divide( hFirst );
   for(int bin = 0; bin <= hDet->GetNbinsX(); bin++){ cout << bin << "\t" << hDet->GetBinContent( bin ) << endl; }
 
   TH1D* hModel_dep = (TH1D*)hDet->Clone("hModelDep");
@@ -6456,13 +7184,12 @@ void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variabl
     }
   }  
 
-  
-
 
   //-- Model dependence.
   for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
     //-- Generator level.
     if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
+
     //-- Generator level.
 
     TH1D* hGen, *hDet, *hData;
@@ -6475,27 +7202,29 @@ void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variabl
     hData->Add( hAverage );
     */
 
-    if( variable == "all") { Get_DetEnergy( -1 , hData); }
-    if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }
+    Get_DetEnergy( -1 , hData); 
 
     Get_DetUnfolded( MC_ , hData, iterations, variable);
+    SetDnDx( hData );
 
+    cout << "MC\t" << hData->Integral() << "\t" << drawoptions << endl;
+
+    pad_->cd();
     hData->SetLineColor( getColor( MC_+2) );
     hData->SetMarkerColor( getColor( MC_+2 ) );
     hData->SetMarkerStyle( 24 + MC_ );
+    hData->SetLineWidth( 2 );
     hData->Divide( hFirst );
-
-    for(int bin = 0; bin <= hData->GetNbinsX(); bin++){ cout << bin << "\t" << hData->GetBinContent( bin ) << endl; }
-
     hData->Draw( drawoptions );
-    drawoptions = "edatasame";
+    for(int bin = 0; bin <= hData->GetNbinsX(); bin++){ cout << bin << "\t" << hData->GetBinContent( bin ) << endl; }
   }
 
 
-  hAverage->Draw( drawoptions );
-  hAverage->GetYaxis()->SetRangeUser(0., 2.);
+//  hAverage->Draw( drawoptions );
+  hAverage->GetYaxis()->SetRangeUser(0., 3.);
   pad_->Update();
 }
+
 
 
 
@@ -6516,7 +7245,7 @@ void Unfolder::Plot_Unfolded_Ratio_modelDependence(TPad* & pad_, TString variabl
 void Unfolder::Plot_Unfolded_positionDependence(TPad* & pad_, TString variable, int iterations){
   pad_->cd();
 
-  TLegend* legend = new TLegend( 0.60, 0.7, 0.95, 0.9  );
+  TLegend* legend = new TLegend( 0.60, 0.5, 1. - pad_->GetRightMargin(), 1. - pad_->GetTopMargin()  );
   legend->SetFillColor(kWhite );
 
 
@@ -6529,23 +7258,27 @@ void Unfolder::Plot_Unfolded_positionDependence(TPad* & pad_, TString variable, 
 
   //-- Unfolding
   Get_DetUnfolded( 0 , hData, iterations, variable);
-cout << "Unfolding position\t" << MC_files_[0] << endl;
+  cout << "Unfolding position\t" << MC_files_[0] << "\t" << hData->Integral() << endl;
 
   SetDnDx( hData );
 
   hData->SetMarkerColor( kBlack );
   hData->SetLineColor( kBlack );
-  hData->GetXaxis()->SetTitle("E (GeV)");
+  hData->GetXaxis()->SetTitle("E [GeV]");
+  hData->GetYaxis()->SetTitle("#frac{dN}{dE} [1/GeV]");
+  pad_->cd();
+
+  Prepare_1Dplot( hData );
   hData->Draw( drawoptions );
-  drawoptions = "histsame";
-  legend->AddEntry( hData, legend_info_[ MC_files_[0] ], "ep"  );  
+  drawoptions = "psame";
+  legend->AddEntry( hData, legend_info_gen_[ MC_files_[0] ], "ep"  );  
 
   //-- Model dependence.
   for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
     //-- Generator level.
     if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "position" ){ continue; }
     //-- Generator level.
-cout << "Unfolding position\t" << MC_files_[MC_] << endl;
+
 
     TH1D* hGen, *hDet;
 
@@ -6561,9 +7294,10 @@ cout << "Unfolding position\t" << MC_files_[MC_] << endl;
     hData->SetMarkerStyle( 24 + MC_ );
     hData->SetLineWidth( 2 );
    
+    pad_->cd();
     hData->       Draw( drawoptions );
-    drawoptions = "histsame";
-    legend->AddEntry( hData, legend_info_[ MC_files_[MC_] ], "ep"  );
+    drawoptions = "psame";
+    legend->AddEntry( hData, legend_info_gen_[ MC_files_[MC_] ], "ep"  );
   }
 
   legend->Draw();
@@ -6573,6 +7307,155 @@ cout << "Unfolding position\t" << MC_files_[MC_] << endl;
 
 
 
+
+void Unfolder::PlotStartingDistributions_ratio(TString distribution){
+  cout << "Unfolder::PlotStartingDistributions_comparingEmin\t" << distribution << endl;
+
+  TCanvas *can_startingDistributions;
+  PrepareCanvas(can_startingDistributions, "can_startingDistributions_" + distribution);
+  TLegend *legend = new TLegend( 0.55, 0.65, .95, 0.95);
+
+  TString distributionname_unmatched, distributionname_all;
+  if (distribution == "fake"){ 		distributionname_unmatched = "hCastorJet_fake_all"; distributionname_all = "hCastorJet_energy"; }
+  if (distribution == "miss"){ 		distributionname_unmatched = "hCastorJet_miss_all"; distributionname_all = "hGenJet_energy"; }
+
+  TString drawoptions = "phist";
+
+  int file = 0;
+
+  vector<double> etaband;
+      etaband.push_back(0.0);
+      etaband.push_back(0.2);
+      etaband.push_back(0.5);
+
+
+  vector<double> deltaPhiMax;
+      deltaPhiMax.push_back(0.2);
+//      deltaPhiMax.push_back(0.4);
+      deltaPhiMax.push_back(0.5);
+
+  vector<TString> matching;
+      matching.push_back("_matchE");
+//      matching.push_back("_matchPhi");
+
+  vector<TString> match_symbol;
+      match_symbol.push_back("E");
+      match_symbol.push_back("#varphi");
+
+  vector<TString> model;
+      model.push_back("");
+//      model.push_back("Pythia84C_");
+
+  vector<TString> model_legend;
+      model_legend.push_back("p6");
+      model_legend.push_back("p8");
+
+  vector<int> model_events;
+      model_events.push_back( 547922 );
+      model_events.push_back( 670215 );
+
+  vector<double> Emin;
+//      Emin.push_back(0.);
+      Emin.push_back(150.);
+
+  vector<int> markers;
+      markers.push_back( 20 );
+      markers.push_back( 22 );
+      markers.push_back( 29 );
+      markers.push_back( 21 );
+
+  vector<TH1D*> histlist;
+  TH1D* hFirst;
+  int setup = 0;
+
+  for(int _model = 0; _model < model.size(); _model++){
+    for(int _eta = 0; _eta < etaband.size(); _eta++){
+      for(int _phi = 0; _phi < deltaPhiMax.size(); _phi++){
+	for(int _Emin = 0; _Emin < Emin.size(); _Emin++){
+   	    for(int _match = 0; _match < matching.size(); _match++, file++){
+
+              TString filename_ = TString::Format( "/user/avanspil/Castor_Analysis/ak5ak5_" + model[_model] + "displaced_unfold_Emin_%f_deltaPhiMax_%f_etaband_%f" + matching[_match] + ".root", Emin[_Emin], deltaPhiMax[_phi], etaband[_eta] ) ;
+	    
+	      cout << "\n=*=\t" << filename_ << endl;
+	      TFile* _file= TFile::Open( filename_, "read" );
+
+	      TString setup_label = TString::Format( model[_model] + "displaced_unfold_Emin_%i_deltaPhiMax_0%i_etaband_0%i" + matching[_match] , 
+		static_cast<int>(Emin[_Emin]), 
+		static_cast<int>(10. * deltaPhiMax[_phi]), 
+		static_cast<int>(10. * etaband[_eta]));
+	      PlotResponseMatrix( filename_, setup_label );
+
+	      TString histname = TString::Format( distributionname_unmatched + "_Emin_%i_deltaPhiMax_0%i_etaband_0%i" + matching[_match] + "_" + model[_model], 
+		static_cast<int>(Emin[_Emin]), 
+		static_cast<int>(10. * deltaPhiMax[_phi]), 
+		static_cast<int>(10. * etaband[_eta]));
+
+    	      //== Extracting the distribution.
+  	      TH1D* hUnmatched = (TH1D*)_file->Get( distributionname_unmatched );
+  	      TH1D* hAll = (TH1D*)_file->Get( distributionname_all );
+
+	      //== Scaling.
+              int total_events_nocuts;
+	      TTree *tree_numbers = (TTree*)_file->Get("useful_numbers");
+	      TString branch_str = (set_of_tags_[ "scalefactors" ])[ MC_files_[0] ];
+
+	      hUnmatched->SetTitle( histname );
+	      hUnmatched->SetName( histname );
+	      hUnmatched->SetLineWidth( 3 );
+
+	      // Linecolor = model -- linestyle = match -- markerstyle = etaband -- markercolor = deltaphi
+	      hUnmatched->SetLineColor( getColor( _model+1 ) ); 
+
+	      hUnmatched->SetLineStyle( file + 1 ); 
+	      hUnmatched->SetLineColor( getColor(file + 1) ); 
+ 
+              hUnmatched->SetMarkerStyle( file + 20 );
+
+              hUnmatched->SetMarkerColor( getColor( file+1 ) );
+
+	      hUnmatched->SetMarkerSize( 1.8 );
+	      hUnmatched->GetXaxis()->SetNdivisions( 504 );
+	      hUnmatched->GetXaxis()->SetTitle("E_{" + distribution + "}[GeV]");
+	      hUnmatched->GetYaxis()->SetTitle("Ratio unmatched");
+
+	      can_startingDistributions->cd();
+
+	      hUnmatched->Divide( hAll );
+	      hUnmatched->GetYaxis()->SetRangeUser(0.9*1e-3, 1.);
+	      Prepare_1Dplot( hUnmatched );
+
+	      if( setup == 0 ){
+		hFirst = (TH1D*)hUnmatched->Clone("First");
+		hFirst->Draw("hist");
+		setup++;	
+	      }
+	      else{
+	        hUnmatched->DrawClone( "histsame" );
+	      }
+	      histlist.push_back( hUnmatched );
+
+	      SetRangeToIncludeAll( hFirst, histlist );
+
+	      //legend->AddEntry( hUnmatched, TString::Format( distribution + "#Delta #varphi_{max} = 0.%i, E_{min} = %i GeV, #eta = 0.%i" + matching[_match],
+	      legend->AddEntry( hUnmatched, TString::Format( " #Delta#varphi_{max}=0.%i, #eta_{acc}=0.%i", 
+		static_cast<int>(10. * deltaPhiMax[_phi] ), 
+		static_cast<int>(10. * etaband[_eta] ) ), "lp" );
+	      legend->SetFillColor( 0 );
+
+
+	    } // Match.
+	  } // Emin.
+        } // Deltaphi.
+      } // Eta.
+    } // Model.
+   
+  legend->Draw();
+
+  can_startingDistributions->SetLogy();
+  can_startingDistributions->SaveAs( TString::Format(folder_ + "can_ratio_" + distribution + "_Emin_%i.C", static_cast<int>( Ethresh_ ) ) );
+  can_startingDistributions->SaveAs( TString::Format(folder_ + "can_ratio_" + distribution + "_Emin_%i.pdf", static_cast<int>( Ethresh_) ) );
+
+}
 
 
 
@@ -6597,13 +7480,15 @@ void Unfolder::Plot_Unfolded_JESDependence(TPad* & pad_, TString variable, int i
 
   SetDnDx( hData );
 
+  pad_->cd();
   hFirst = (TH1D*)hData->Clone("First");
-
   hData->SetMarkerColor( kBlack );
-  hData->GetXaxis()->SetTitle("E (GeV)");
-  hData->GetYaxis()->SetTitle("#frac{dN}{dE}");
+  hData->GetXaxis()->SetTitle("E [GeV]");
+  hData->GetYaxis()->SetTitle("#frac{dN}{dE} [1/GeV]");
+  Prepare_1Dplot( hData );
+  hData->GetXaxis()->SetRangeUser(300., 1800.);
   hData->Draw( drawoptions );
-  drawoptions = "histsame";
+  drawoptions = "psame";
   legend->AddEntry( hData, legend_info_[ MC_files_[0] ], "ep"  );  
 
   Get_DetUnfolded( 0 , hJESup, iterations, variable); 
@@ -6621,9 +7506,9 @@ void Unfolder::Plot_Unfolded_JESDependence(TPad* & pad_, TString variable, int i
     hJESdown->SetMarkerStyle( 26 );
     hJESdown->SetLineWidth( 2 );
  
+  pad_->cd();
   hJESup->Draw( drawoptions );
   hJESdown->Draw( drawoptions );
-
 
   pad_->SetLogy();
   pad_->Update();
@@ -6654,22 +7539,24 @@ void Unfolder::Plot_Unfolded_Ratio_JESDependence(TPad* & pad_, TString variable,
   //-- Unfolding
   Get_DetUnfolded( 0 , hData, iterations, variable);
 
-  SetDnDx( hData );
-
-  hData->SetMarkerColor( kBlack );
-  hData->GetXaxis()->SetTitle("E (GeV)");
-  hData->GetYaxis()->SetTitle("#frac{dN}{dE}");
-  hData->GetYaxis()->SetRangeUser(0., 2.);
-
+  pad_->cd();
   hFirst = (TH1D*)hData->Clone("First");
-  hFirst->Divide( hData );
-  hFirst->Draw( drawoptions );
+  hData->SetMarkerColor( kBlack );
+  hData->GetXaxis()->SetTitle("E [GeV]");
+  hData->GetYaxis()->SetTitle("Ratio");
 
-  drawoptions = "histsame";
+  hData->Divide( hFirst );
+  Prepare_1Dplot( hData );
+  hData->GetXaxis()->SetRangeUser(300., 1800.);
+  hData->GetYaxis()->SetRangeUser(0., 4.);
+  hData->GetXaxis()->SetTitleOffset( hData->GetXaxis()->GetTitleOffset() * 2 );
+
+  hData->Draw( drawoptions );
+  drawoptions = "psame";
   legend->AddEntry( hData, legend_info_[ MC_files_[0] ], "ep"  );  
 
   Get_DetUnfolded( 0 , hJESup, iterations, variable); 
-    SetDnDx( hJESup );
+    hJESup->Divide( hFirst );
     hJESup->SetLineColor( getColor( 2) );
     hJESup->SetMarkerColor( getColor( 2 ) );
     hJESup->SetMarkerStyle( 25  );
@@ -6677,22 +7564,18 @@ void Unfolder::Plot_Unfolded_Ratio_JESDependence(TPad* & pad_, TString variable,
 
 
   Get_DetUnfolded( 0 , hJESdown, iterations, variable); 
-    SetDnDx( hJESdown );
+    hJESdown->Divide( hFirst );
     hJESdown->SetLineColor( getColor( 3) );
     hJESdown->SetMarkerColor( getColor( 3 ) );
     hJESdown->SetMarkerStyle( 26 );
     hJESdown->SetLineWidth( 2 );
  
-  hJESup->Divide( hData );
+  pad_->cd();
   hJESup->Draw( drawoptions );
-
-  hJESdown->Divide( hData );
   hJESdown->Draw( drawoptions );
-
 
   pad_->Update();
 }
-
 
 
 
@@ -6718,12 +7601,16 @@ void Unfolder::Plot_measured_JESDependence(TPad* & pad_, TString variable, int i
 
   hFirst = (TH1D*)hData->Clone("First");
 
+  pad_->cd();
   hData->SetMarkerColor( kBlack );
   hData->SetLineColor( kBlack );
-  hData->GetXaxis()->SetTitle("E (GeV)");
-  hData->GetYaxis()->SetTitle("#frac{dN}{dE}");
+  hData->GetXaxis()->SetTitle("E [GeV]");
+  hData->GetYaxis()->SetTitle("#frac{dN}{dE} [1/GeV]");
+
+  Prepare_1Dplot( hData );
+  hData->GetXaxis()->SetRangeUser(300., 1800.);
   hData->Draw( drawoptions );
-  drawoptions = "histsame";
+  drawoptions = "psame";
   legend->AddEntry( hData, legend_info_[ MC_files_[0] ], "ep"  );  
 
     SetDnDx( hJESup );
@@ -6739,6 +7626,7 @@ void Unfolder::Plot_measured_JESDependence(TPad* & pad_, TString variable, int i
     hJESdown->SetMarkerStyle( 26 );
     hJESdown->SetLineWidth( 2 );
  
+  pad_->cd();
   hJESup->Draw( drawoptions );
   hJESdown->Draw( drawoptions );
 
@@ -6768,15 +7656,21 @@ void Unfolder::Plot_measured_Ratio_JESDependence(TPad* & pad_, TString variable,
   SetDnDx( hData );
 
   hData->SetMarkerColor( kBlack );
-  hData->GetXaxis()->SetTitle("E (GeV)");
-  hData->GetYaxis()->SetTitle("#frac{dN}{dE}");
-  hData->GetYaxis()->SetRangeUser(0., 2.);
+  hData->GetXaxis()->SetTitle("E [GeV]");
+  hData->GetYaxis()->SetTitle("Ratio");
+  hData->GetYaxis()->SetRangeUser(0., 3.);
+  hData->GetXaxis()->SetRangeUser(300., 1800.);
 
+  pad_->cd();
+//  hFirst->GetXaxis()->SetRangeUser(150., 1800.);
+//  hFirst->GetYaxis()->SetRangeUser(0., 3.);
   hFirst = (TH1D*)hData->Clone("First");
   hFirst->Divide( hData );
+  Prepare_1Dplot( hFirst );
+  hFirst->GetXaxis()->SetTitleOffset( hFirst->GetXaxis()->GetTitleOffset() * 2 );
   hFirst->Draw( drawoptions );
 
-  drawoptions = "histsame";
+  drawoptions = "psame";
   legend->AddEntry( hData, legend_info_[ MC_files_[0] ], "ep"  );  
 
   SetDnDx( hJESup );
@@ -6792,6 +7686,7 @@ void Unfolder::Plot_measured_Ratio_JESDependence(TPad* & pad_, TString variable,
   hJESdown->SetMarkerStyle( 26 );
   hJESdown->SetLineWidth( 2 );
  
+  pad_->cd();
   hJESup->Divide( hData );
   hJESup->Draw( drawoptions );
 
@@ -6809,14 +7704,11 @@ void Unfolder::Plot_measured_Ratio_JESDependence(TPad* & pad_, TString variable,
 void Unfolder::Plot_Unfolded_Ratio_positionDependence(TPad* & pad_, TString variable, int iterations){
   pad_->cd();
 
-
-
   TH1D *hFirst, *hData;
   TString drawoptions = "ephist";
 
   //-- Detector level energy extraction.
-  if( variable == "all") { Get_DetEnergy( -1 , hData); }
-  if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }   
+  Get_DetEnergy( -1 , hData);   
 
   //-- Unfolding
   Get_DetUnfolded( 0 , hData, iterations, variable);
@@ -6824,13 +7716,16 @@ void Unfolder::Plot_Unfolded_Ratio_positionDependence(TPad* & pad_, TString vari
   hFirst = (TH1D*)hData->Clone("First");
 
   hData->Divide( hFirst );
-  hData->GetYaxis()->SetRangeUser(0., 2.);
+  hData->GetYaxis()->SetRangeUser(0., 3.);
   hData->SetMarkerColor( kBlack );
   hData->SetLineColor( kBlack );
-  hData->GetXaxis()->SetTitle("E (GeV)");
+  hData->GetXaxis()->SetTitle("E [GeV]");
   hData->GetYaxis()->SetTitle("Ratio");
+  pad_->cd();
+  Prepare_1Dplot( hData );
+  hData->GetXaxis()->SetTitleOffset( hData->GetXaxis()->GetTitleOffset() * 2);
   hData->Draw( drawoptions );
-  drawoptions = "edatasame";
+  drawoptions = "psame";
 
   //-- Model dependence.
   for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
@@ -6843,39 +7738,52 @@ void Unfolder::Plot_Unfolded_Ratio_positionDependence(TPad* & pad_, TString vari
     //-- Data unfolded.
     TH1D* hData;
 
-    if( variable == "all") { Get_DetEnergy( -1 , hData); }
-    if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }
-
-    cout << "\t\thData\t" << hData->Integral() << "\t" << datafile_ << endl;
-
+    Get_DetEnergy( -1 , hData); 
     Get_DetUnfolded( MC_ , hData, iterations, variable);
     hData->SetLineColor( getColor( MC_+2) );
     hData->SetMarkerColor( getColor( MC_+2 ) );
     hData->SetMarkerStyle( 24 + MC_ );
    
+    pad_->cd();
     hData->Divide( hFirst);
     hData->       Draw( drawoptions );
-    drawoptions = "edatasame";
+    drawoptions = "psame";
   }
  
-  hFirst->GetYaxis()->SetRangeUser(0., 2.);
+  hFirst->GetYaxis()->SetRangeUser(0., 3.);
   pad_->Update();
 }
 
 
 
 
+/*=================================================================//
+	
+	1.	Plot the unfolded data
+	2.	Calculate and draw the systematic uncertainties
+		I.	Model + position
+		II.	Model + position + JES
+	3.	Draw Gen. level distribution from MC samples
+	4.	Draw Gen. level distribution from standalone sample
+
+//=================================================================*/
+
+
+
 void Unfolder::Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variable, int iterations){
   cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics\t" << iterations << endl;
 
+  ofstream systematics_txt;
+  systematics_txt.open("systematics.txt");
+
+  //== Prepare canvas and pads.
   TPad* pad_abs_, *pad_ratio_;
   PrepareCanvas(can_, "Systematics");
-  cout << "Canvas prepared" << endl;
   SplitCanvas(can_, pad_abs_, pad_ratio_);
 
+  //== Prepare histograms.
   TH1D* hAverage, *hFirst;
   TString drawoptions = "ephist";
-
   TH1D* hGen, *hGen_ratio, *hDet, *hReference, *hMC, *hMC_ratio;
 
   //-- Reference histogram.
@@ -6885,25 +7793,45 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variabl
     Get_DetEnergy( 0, hMC ); }
   if( variable == "lead"){ Get_DetEnergy_lead( -1 , hReference); }
 
+  //-- Normalize hReference (DATA) to xsec by dividing by its luminosity.
+  hReference->Scale( 1./ lumi_ );  
+  hReference->GetYaxis()->SetTitle( "#frac{d#sigma}{dE} [mb/GeV]" );
 
-  Get_DetUnfolded( 0 , hReference, iterations, variable);
-
+  Get_DetUnfolded( 0 , hReference, iterations, variable);	// Unfold hReference with the Response from MC sample 0.
   SetDnDx( hReference );
 
   double Emax = hReference->GetXaxis()->GetBinUpEdge( hReference->GetNbinsX()-1 );
   //-- This is going to be the upper limit: cut off a little more.
-//  Emax -= hReference->GetXaxis()->GetBinWidth( hReference->GetNbinsX()-1 ) * 0.01;
 
   SetSubhistogram_max( Emax );
 
   //-- Legend.
-  TLegend* legend = new TLegend( 0.65, 0.65, 0.95, 0.95);
+  TLegend* legend = new TLegend( 0.65, 0.40, 0.95, 0.95);
+  legend->AddEntry( hReference, TString::Format("Data"), "lp");
 
-  legend->AddEntry( hReference, TString::Format("Unfolded data, %i it.", iterations), "lp");
+  //== Luminosity uncertainty: fixed 3.6%
+  double lumi_dep = 0.036;
+
+  //== JES comparison.
+  TCanvas *can_jes = new TCanvas("can", "can", 600, 600);
+  TPad* pad_abs2_, *pad_ratio2_;  
+  SplitCanvas(can_jes, pad_abs2_, pad_ratio2_);
+  pad_abs2_->cd();
+  hReference->DrawCopy("reference");
+
+  pad_ratio2_->cd();
+  TH1D* href_clone = (TH1D*)hReference->Clone("hRef_clone");
+  href_clone->Divide( hReference );
+  href_clone->Draw("hist");
+
+cout << "\t\t\t$$$\t" << href_clone->GetTitle() << endl;
+
+  
 
   /******************************************************************************************
   * Begin by averaging the models and taking the difference between average and each model. *
   ******************************************************************************************/
+
   float models = 0.;
   std::vector<TH1D*> vModels;
   //-- Calculate average of model dependence.
@@ -6915,8 +7843,9 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variabl
     //-- Data unfolded.
     TH1D* hData;
 
-    if( variable == "all") { Get_DetEnergy( -1 , hData); }
-    if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }
+    //-- Extract and properly scale data.
+    Get_DetEnergy( -1 , hData);
+    hData->Scale( 1./ lumi_ );
 
     Get_DetUnfolded( MC_ , hData, iterations, variable);
     SetDnDx( hData );
@@ -6932,8 +7861,6 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variabl
   }
 
   hAverage->Scale( 1./models );
-
-  cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics\tDoing models" << endl; 
 
   //-- We have the model dependence average.
   //-- Loop over all bins and check which model returns the biggest difference with the average (above and below). 
@@ -6974,20 +7901,20 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variabl
   **********************************/ 
 
   TH1D *hJESup, *hJESdown;
-  Get_DetEnergy_JESup( -1 , hJESup);
+  Get_DetEnergy_JESup( -1 , hJESup);	// Extract data distribution.
+  hJESup->Scale( 1./ lumi_ );	// Scale to xsection.
   Get_DetUnfolded( 0 , hJESup, iterations, variable);
-  SetDnDx( hJESup ); 
-  hJESup->Add( hReference, -1);
-  hJESup->Divide( hReference );
+  SetDnDx( hJESup ); 			// Divide by binwidth.
+  hJESup->Add( hReference, -1);		// Difference with unfolded data.
+  hJESup->Divide( hReference );		// dN/N
 
-  Get_DetEnergy_JESdown( -1 , hJESdown);
+  Get_DetEnergy_JESdown( -1 , hJESdown);// Extract data distribution.
+  hJESdown->Scale( 1./ lumi_ );	// Scale to xsection.
   Get_DetUnfolded( 0 , hJESdown, iterations, variable);
-  SetDnDx( hJESdown ); 
-  hJESdown->Add( hReference, -1);
-  hJESdown->Scale( -1. );
-  hJESdown->Divide( hReference );
-
-cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral() << endl;
+  SetDnDx( hJESdown ); 			// Divide by binwidth.
+  hJESdown->Add( hReference, -1);	// Difference with binwidth.
+  hJESdown->Scale( -1. );		// Turn negative value into positive value.
+  hJESdown->Divide( hReference );	// dN/N
 
   /******************************************
   * Continue with the position uncertainty. *
@@ -7005,6 +7932,10 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     TH1D* hSystematics_down_all = (TH1D*)hDet->Clone("hSystematics_down");
       hSystematics_down->Reset();
 
+    // Lumi. only.
+    TH1D* hSystematics_lumi = (TH1D*)hDet->Clone("hSystematics_lumi");
+      hSystematics_lumi->Reset();
+
   //-- Position dependence.
   for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
     //-- Generator level.
@@ -7014,8 +7945,8 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     //-- Data unfolded.
     TH1D* hData;
 
-    if( variable == "all") { Get_DetEnergy( -1 , hData); }
-    if( variable == "lead"){ Get_DetEnergy_lead( -1 , hData); }
+    Get_DetEnergy( -1 , hData); 
+    hData->Scale( 1./lumi_ );
 
     Get_DetUnfolded( MC_ , hData, iterations, variable);
     hData->SetLineColor( getColor( MC_+2) );
@@ -7024,16 +7955,14 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     SetDnDx( hData );
 
     if( (MC_files_[MC_]).Contains("up") ) { 
-      cout << "\tUP\t" << endl;
       hData->Add( hReference, -1. );
       hData->Divide( hReference );
     }
     else if( (MC_files_[MC_]).Contains("down") ){
-      cout << "\tDOWN\t" << endl;
       hData->Add( hReference, -1. );
+      hData->Scale( -1. );
       hData->Divide( hReference );
     }
-
 
     //-- Add error from model and position uncertainty.
     if( (MC_files_[MC_]).Contains("up") ){    
@@ -7042,12 +7971,17 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
 
         double model_dep = hModel_dep_high->GetBinContent( bin );
         double position_dep = hData->GetBinContent( bin );
-        double total = sqrt( model_dep*model_dep + position_dep*position_dep  );
+        double total = sqrt( 
+		model_dep*model_dep + 
+		position_dep*position_dep  +
+		lumi_dep*lumi_dep  );
         hSystematics_up->SetBinContent( bin, total ); 
 
 	double JES_dep = hJESup->GetBinContent( bin );
         total = sqrt( total*total + JES_dep*JES_dep ); 
         hSystematics_up_all->SetBinContent( bin, total ); 
+
+	systematics_txt << "UP\t" << bin << "\t" << hData->GetBinLowEdge(bin ) << "\t" << hData->GetBinLowEdge(bin +1) << "\t" << model_dep*100 << "\t" << position_dep*100 << "\t" << JES_dep*100 << "\t" << total*100 << endl;
       }
     }
     if( (MC_files_[MC_]).Contains("down") ){    
@@ -7056,12 +7990,18 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
 
         double model_dep = hModel_dep_low->GetBinContent( bin );
         double position_dep = hData->GetBinContent( bin );
-        double total = sqrt( model_dep*model_dep + position_dep*position_dep );
+        double total = sqrt( 
+		model_dep*model_dep + 
+		position_dep*position_dep  +
+		lumi_dep*lumi_dep  );
         hSystematics_down->SetBinContent( bin, total );  
 
 	double JES_dep = hJESdown->GetBinContent( bin ); 
         total = sqrt( total*total + JES_dep*JES_dep );
         hSystematics_down_all->SetBinContent( bin, total );  
+
+	systematics_txt << "Down\t" << bin << "\t" << hData->GetBinLowEdge(bin ) << "\t" << hData->GetBinLowEdge(bin +1) << "\t" << model_dep*100 << "\t" << position_dep*100 << "\t" << JES_dep*100 << "\t" << total*100 << endl;
+
       }
     }
     drawoptions = "edatasame";
@@ -7074,9 +8014,6 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
 //  hReference->GetXaxis()->SetRangeUser(Ecut_, 2100.);
   TH1D* hReference_ratio = (TH1D*)hReference->Clone("hReference_ratio");
   hReference_ratio->Divide( hReference );
-
-
-
 
 
   /*
@@ -7100,6 +8037,9 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
   const Int_t n = hReference_ratio->GetNbinsX();
   // x-axis and the values.
   Double_t x[2*n], y[2*n];
+
+  // Systematic uncertainty lumi.
+  Double_t ex_lumi[2*n], ey_lumi[2*n];
 
   // Systematic uncertainty without JES.
   Double_t exl[2*n], eyl[2*n], exh[2*n], eyh[2*n];
@@ -7128,8 +8068,6 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
 		+ 1./b* (log(b * binwidth) )
 		- 1./b* (log( 1. - exp( -1. * b * binwidth) ));
 
-//    cout << "\t\t\t\t\t\t" << bin_lowedge << "\t" << 1./b* (log(b * binwidth) ) << "\t" << 1./b* (log( 1. - exp( -1. * b * binwidth) )) << endl;
-
     x_data[bin] = xlw;
     y_data[bin] = hReference->GetBinContent( bin+1 );
     y_ratio[bin] = 1.;
@@ -7139,25 +8077,23 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     eyh_data[bin] = hReference->GetBinError( bin+1);
     eyl_ratio[bin] = hReference->GetBinError( bin+1)/hReference->GetBinContent( bin+1 );
     eyh_ratio[bin] = hReference->GetBinError( bin+1)/hReference->GetBinContent( bin+1 );
-/*
-    cout << hReference->GetBinLowEdge( bin+1 ) << "\t"
-	 << hReference->GetBinCenter( bin+1 ) << "\t"
-	 << xlw << "\t"
-	 << y_data[bin]	<< "\t"
-	 << y_ratio[bin] << "\t" 
-	 << binwidth << endl;
-*/
+
   }
 
    TGraphAsymmErrors *gr_data = new TGraphAsymmErrors(n,x_data,y_data,exl_data,exh_data,eyl_data,eyh_data);
      gr_data->SetLineWidth( 2 );
      gr_data->SetMarkerSize( 1.25 );
      gr_data->SetMarkerStyle( 20 );
+     gr_data->SetTitle("Graph_data");
+     gr_data->SetName("Graph_data");
+
 
    TGraphAsymmErrors *gr_ratio = new TGraphAsymmErrors(n,x_data,y_ratio,exl_data,exh_data,eyl_ratio,eyh_ratio);
      gr_ratio->SetLineWidth( 2 );
      gr_ratio->SetMarkerSize( 1.25 );
      gr_ratio->SetMarkerStyle( 20 );
+     gr_ratio->SetTitle("Graph_ratio");
+     gr_ratio->SetName("Graph_ratio");
 
   for(int bin = 0; bin < n; bin++){
 /*
@@ -7173,6 +8109,13 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     y[2*bin] = hReference_ratio->GetBinContent( bin+1 );
     x[2*bin+1] = hReference_ratio->GetXaxis()->GetBinUpEdge( bin+1 );
     y[2*bin+1] = hReference_ratio->GetBinContent( bin+1 );
+
+    //-- Error band lumi.
+    ey_lumi[2*bin] = 0.036 ;
+    ex_lumi[2*bin] = hReference_ratio->GetBinContent( bin+1 );
+
+    ey_lumi[2*bin+1] = 0.036 ;
+    ex_lumi[2*bin+1] = hReference_ratio->GetBinWidth( bin+1 )/2;
 
     //-- Error band without JES.
     eyl[2*bin] = hSystematics_down->GetBinContent( bin+1 ) ;
@@ -7196,7 +8139,7 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     exl_all[2*bin+1] = hReference_ratio->GetBinWidth( bin+1 )/2;
     exh_all[2*bin+1] = hReference_ratio->GetBinWidth( bin+1 )/2;
 
-///cout << "\t\tbin\t" << bin << "\t[ " << x[2*bin] << " , " << x[2*bin+1] << " ]" << endl;
+
   }
 
   //-- Draw.
@@ -7206,32 +8149,48 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
   //-- Ratio.
    TGraphAsymmErrors *gr = new TGraphAsymmErrors(2*n,x,y,exl_all,exh_all,eyl_all,eyh_all);
    gr->SetTitle("TGraphAsymmErrors All");
-   int ci_all = TColor::GetColor("#33FFFF");
+   int ci_all = TColor::GetColor("#C0C0C0");
    gr->SetMarkerColor(ci_all);
    gr->SetFillColor( ci_all );
    gr->SetMarkerStyle(21);
 
 
    gr->GetHistogram()->GetXaxis()->SetRangeUser(Ecut_, Emax_);
-   gr->GetHistogram()->GetXaxis()->SetTitle("E (GeV)");
-   gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 3.);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   gr->GetHistogram()->GetYaxis()->SetTitle("Ratio");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 3.35);
+
+   Prepare_1Dplot( gr );
+
    gr->Draw("AE3");
 
    //-- Draw smaller errors on top of bigger errors.
    gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,eyl,eyh);
-   gr->SetTitle("TGraphAsymmErrors Example");
-   int ci = TColor::GetColor("#009900");
+   gr->SetTitle("TGraphAsymmErrors No JES");
+   int ci = TColor::GetColor("#696969");
    gr->SetMarkerColor(ci);
    gr->SetFillColor( ci );
    gr->SetMarkerStyle(21);
 
    gr->GetHistogram()->GetXaxis()->SetRangeUser(Ecut_, Emax_);
-   gr->GetHistogram()->GetXaxis()->SetTitle("E (GeV)");
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 2.);
+   gr->Draw("PE3same");
+
+   //-- Draw lumi errors on top of bigger errors.
+   gr = new TGraphAsymmErrors(2*n,x,y,ex_lumi,ex_lumi,ey_lumi,ey_lumi);
+   gr->SetTitle("TGraphAsymmErrors Lumi");
+   int ci_lumi = TColor::GetColor("#FF007F");
+   gr->SetMarkerColor(ci_lumi);
+   gr->SetFillColor( ci_lumi );
+   gr->SetMarkerStyle(21);
+
+   gr->GetHistogram()->GetXaxis()->SetRangeUser(Ecut_, Emax_);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
    gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 2.);
    gr->Draw("PE3same");
 
    hReference_ratio->SetMarkerColor( kBlack );
-//   hReference_ratio->Draw( "edatasame" );
    gr_ratio->Draw("epsame");
 
 
@@ -7254,6 +8213,15 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     y[2*bin] = hReference->GetBinContent( bin+1 );
     x[2*bin+1] = hReference->GetXaxis()->GetBinUpEdge( bin+1 );
     y[2*bin+1] = hReference->GetBinContent( bin+1 );
+
+
+    //-- Error band lumi.
+    ey_lumi[2*bin] = 0.036 * y[2*bin] ;
+    ex_lumi[2*bin] = hReference_ratio->GetBinContent( bin+1 );
+
+    ey_lumi[2*bin+1] = 0.036 * y[2*bin] ;
+    ex_lumi[2*bin+1] = hReference_ratio->GetBinWidth( bin+1 )/2;
+
 
     //-- Error band without JES.
     eyl[2*bin] = hSystematics_down->GetBinContent( bin+1 ) * y[2*bin] ;
@@ -7287,39 +8255,67 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
    gr = new TGraphAsymmErrors(2*n,x,y,exl_all,exh_all,eyl_all,eyh_all);
    gr->SetFillColor(ci_all);
    gr->GetHistogram()->GetXaxis()->SetRangeUser(Ecut_, Emax_);
-   gr->GetHistogram()->GetXaxis()->SetTitle("E (GeV)");
-   gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.9, hReference->GetMaximum() * 1.1 );
-   gr->GetHistogram()->GetYaxis()->SetTitle("#frac{dN}{dE}");
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+
+   gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.85 / lumi_, hReference->GetMaximum() * 1.1 );
+   gr->GetHistogram()->GetYaxis()->SetTitle("#frac{d#sigma}{dE} [mb/GeV]");
+
+   //== Only Y-axis needed.
+   Prepare_1Dplot( gr );
+
    gr->Draw("AE3");
 
-   legend->AddEntry( gr, "Syst. errors", "f");
+   legend->AddEntry( gr, "Syst. errors (All)", "f");
 
    //-- Draw graph with smaller errors on top of graph with bigger errors.
    gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,eyl,eyh);
    gr->SetFillColor(ci);
    gr->GetHistogram()->GetXaxis()->SetRangeUser(Ecut_, Emax_);
-   gr->GetHistogram()->GetXaxis()->SetTitle("E (GeV)");
-   gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.9, hReference->GetMaximum() * 1.1 );
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.9/ lumi_, hReference->GetMaximum() * 1.1 );
    gr->GetHistogram()->GetYaxis()->SetTitle("#frac{dN}{dE}");
    gr->Draw("PE3same");
 
-   legend->AddEntry( gr, "Syst. errors (no JES)", "f");
+   legend->AddEntry( gr, "Syst. errors (w/o energy scale)", "f");
+
+   //-- Draw graph with smaller errors on top of graph with bigger errors.
+   gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,ey_lumi,ey_lumi);
+   gr->SetFillColor(ci_lumi);
+   gr->GetHistogram()->GetXaxis()->SetRangeUser(Ecut_, Emax_);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.9/ lumi_, hReference->GetMaximum() * 1.1 );
+   gr->GetHistogram()->GetYaxis()->SetTitle("#frac{dN}{dE}");
+   gr->Draw("PE3same");
+
+   legend->AddEntry( gr, "Syst. errors (lumi)", "f");
 
    hReference->SetMarkerColor( kBlack );
 //   hReference->Draw( "edatasame" );
 
    gr_data->Draw("epsame");
 
-  // Scale generator level distribution.
+
+  //-- Scale and draw generator level distribution.
   int color_ = 0;
+  int line_ = 1;
   drawoptions = "histsame";
   for(int MC_ = 0; MC_ < MC_files_.size(); MC_++){
+    cout << "\n\n\n\n== Unfolder ==\t" << MC_files_[MC_] << endl;
+
     TH1D* hGen;
+    //-- Only continue if the MC is one of the following (excludes position samples).
     if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && 
 	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual" &&  
 	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "shift_MPI_or_Tune" &&
 	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "model_" ){ continue; }
 
+    cout << "== Unfolder =\txsec\t" << xsec_[ MC_files_[MC_] ] << endl;    
+
+    if( xsec_[ MC_files_[MC_] ] !=  xsec_[ MC_files_[MC_] ] ){ continue; }
+    if( xsec_[ MC_files_[MC_] ] ==  0. ){ continue; }
+
+    cout << "== Unfolder =\tLooking at\t" << MC_files_[MC_] << endl;
+   
     color_++ ;
     if( color_ == 1 || color_ == 3 || color_ == 7) color_++;
 
@@ -7330,6 +8326,9 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     else{ // There are several gen. distributions, take the one uninfluenced by the cuts on detector level.
       Get_PureGenEnergy( MC_, hGen ); }
     scaletodata_ = false;
+
+    hGen->SetTitle( TString::Format("hGenJet_energy_%i", MC_) );
+    hGen->SetName( TString::Format("hGenJet_energy_%i", MC_) );
 
     //-- Skip to next file if histogram does not exist.
     if( hGen->Integral() != hGen->Integral() ){ continue; }   
@@ -7342,19 +8341,26 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
     }
 
     //-- Multiply the distribution to the total number of measured data.
-    hGen->Scale( 7388000. );
+    //-- Set underflow bin to the same value to avoid dive to zero at low bin.
+    hGen->SetBinContent( 0, hGen->GetBinContent(1) );
+    hGen->GetXaxis()->SetRangeUser( Ecut_, Emax);
+
+    cout << "\t\t===\tMC_files_[MC_]\t" << MC_files_[MC_] << endl;
+    cout << "\t\t===\t" << hGen->GetBinContent(1) << "\t" << hGen->GetBinContent(0) << endl;
    
     //-- Set line properties.
     hGen->SetLineColor( getColor(color_) );
-    hGen->SetLineStyle( 2 );
+    hGen->SetLineStyle( line_++ );
     hGen->SetLineWidth( 3 );
 
     //-- Set ratio of distribution.
-    hGen_ratio = (TH1D*)hGen->Clone("hGen_ratio");
+    hGen_ratio = (TH1D*)hGen->Clone( TString::Format("hGen_ratio_%i", MC_) );
     hGen_ratio->Divide( hReference );
 
     pad_abs_->cd();
     hGen->Draw( drawoptions);
+
+cout << "\t\t\t$$$\t" << hGen->GetTitle() << endl;
     
     pad_ratio_->cd();
     hGen_ratio->Draw( drawoptions);
@@ -7368,34 +8374,33 @@ cout << "Jesup and down\t" << hJESup->Integral() << "\t" << hJESdown->Integral()
       legend->AddEntry( hGen, legend_file , "l");
     }
   }
-  
-   /*
-   TH1D* hSectorDependent;
-   SectorDependent_unfolding( hSectorDependent );
-   hSectorDependent->SetLineStyle( 3 );
-   hSectorDependent->SetMarkerStyle( 24 );
-   
-   hSectorDependent->SetLineWidth( 2 );
-   hSectorDependent->SetLineColor( kBlack ); 
-   
-   pad_abs_->cd();   
-   hSectorDependent->DrawClone("plsame");
-   legend->AddEntry( hSectorDependent, "unf. per sector (p6)", "lp");
-   cout << "Drawn" << hSectorDependent->GetMinimum() << "\t" << hSectorDependent->GetMaximum() << endl;
-
-   pad_ratio_->cd();
-   hSectorDependent->Divide( hReference );
-   hSectorDependent->Draw("plsame");
-   cout << "Drawn" << hSectorDependent->GetMinimum() << "\t" << hSectorDependent->GetMaximum() << endl;
-   */
 
    pad_abs_->cd();
    legend->SetFillColor(0);
    legend->Draw();
 
+    can_->cd();
+
+    //== Text.
+/*
+    TLatex tex;
+    tex.SetTextFont(43);
+
+    tex.SetTextSize(20);
+
+    tex.DrawLatex( can_->GetLeftMargin(), 	1. - can_->GetTopMargin()	   ,"#bf{CMS Preliminary (12 nb^{-1})}");
+    tex.DrawLatex( can_->GetLeftMargin() + 0.3, 1. - can_->GetTopMargin()	   ,"#bf{pp (7 TeV)}");
+    tex.DrawLatex( can_->GetLeftMargin(), 1. - can_->GetTopMargin() - 0.40 ,"Anti-k_{T} jets (R=0.5)");
+    tex.DrawLatex( can_->GetLeftMargin(), 1. - can_->GetTopMargin() - 0.45 ,"-6.6 < #eta < -5.2");
+    tex.DrawLatex( can_->GetLeftMargin(), 1. - can_->GetTopMargin() - 0.45 ,"-6.6 < #eta < -5.2");
+*/
+    Finish_canvas( can_ );
+
    can_->SaveAs( TString::Format( folder_ + "Totaldependence_%iit_deltaphi_0%i_etaband_0%i.C", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) );
    can_->SaveAs( TString::Format( folder_ + "Totaldependence_%iit_deltaphi_0%i_etaband_0%i.pdf", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) ); 
 
+
+   systematics_txt.close();
 }
 
 
@@ -7458,7 +8463,7 @@ void Unfolder::Plot_DistributionsResponseObject(int files){
     hMeasured->Divide( hTruth );
     hMeasured->GetYaxis()->SetRangeUser(0., 2.);
     hMeasured->Draw( drawoptions_ratio );
-    hMeasured->GetXaxis()->SetTitle("E (GeV)");
+    hMeasured->GetXaxis()->SetTitle("E [GeV]");
     hMeasured->GetYaxis()->SetTitle("Ratio");
     drawoptions_ratio = "histsame";
  
@@ -7466,6 +8471,8 @@ void Unfolder::Plot_DistributionsResponseObject(int files){
 
   pad_abs_->cd();
   legend->Draw();
+
+
 
   can_->SaveAs( TString::Format(folder_ + "/Compare_truth_" + compared_files_label + "_measured_deltaphi_0%i_etaband_0%i.C", static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) )  );
   can_->SaveAs( TString::Format(folder_ + "/Compare_truth_" + compared_files_label + "_measured_deltaphi_0%i_etaband_0%i.pdf", static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_) ) );
@@ -7476,7 +8483,7 @@ void Unfolder::Plot_DistributionsResponseObject(int files){
 
 
 //-- Compare the etaDiff distributions between the different MC samples.
-void Unfolder::PlotEtaDiff(){
+void Unfolder::Plot_EtaDiff(){
 
  TString canvasname = TString::Format("Compare_eta_diff_Emin_%i_deltaPhiMax_0%i_etaband_0%i", static_cast<int>( Ethresh_ ), static_cast<int>( 10. * deltaPhiMax_ ), static_cast<int>( 10. * etawidth_ ) );
 
@@ -7578,7 +8585,7 @@ void Unfolder::Plot_Unfolded_JES(){
     hDet = (TH1D*)hData->Clone( TString::Format( "Unfolded") );
 
     SetDnDx( hData );
-    hData->GetXaxis()->SetTitle("E (GeV)");
+    hData->GetXaxis()->SetTitle("E [GeV]");
     hData->GetYaxis()->SetTitle("#frac{dN}{dE}");
     hData->	Draw("ephist");
     hData->GetXaxis()->SetNdivisions(504);
@@ -7673,7 +8680,7 @@ void Unfolder::Plot_Measured_JES(){
     hDet = (TH1D*)hData->Clone( TString::Format( "Unfolded") );
 
     SetDnDx( hData );
-    hData->GetXaxis()->SetTitle("E (GeV)");
+    hData->GetXaxis()->SetTitle("E [GeV]");
     hData->GetYaxis()->SetTitle("#frac{dN}{dE}");
     hData->	Draw("ephist");
     hData->GetXaxis()->SetNdivisions(504);
@@ -7792,34 +8799,70 @@ void Unfolder::Fit_unfolded_distribution( TF1* &analytical){
 void Unfolder::Plot_JER(){
  cout << "Unfolder::Plot_JER" << endl;
 
+ for(int file = 0; file < MC_files_.size(); file++){
 
- TCanvas* can = new TCanvas( "canvas_JER", "canvas_JER", 800., 800. );
- TFile * _file0 = new TFile( "/user/avanspil/Castor_Analysis/ak5ak5_isolated_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_matchE.root", "Read"); 
+   TFile* _file0 = TFile::Open( MC_files_[file] , "READ");
+   TCanvas* can = new TCanvas( "canvas_JER", "canvas_JER", 800., 800. );
 
- TH1D* hJER = (TH1D*)_file0->Get("hJER");
-   hJER->SetLineWidth( 2 );
- TH1D* hJER_had = (TH1D*)_file0->Get("hJER_had");
-   hJER_had->SetLineWidth( 2 );
-   hJER_had->SetLineStyle( 2 );
-   hJER_had->SetLineColor( getColor( 2 ) );
+   TH1D* hJER = (TH1D*)_file0->Get("hJER");
+     hJER->SetLineWidth( 2 );
+     hJER->GetXaxis()->SetTitle("JES");
+     hJER->GetXaxis()->SetRangeUser(-1., 1.5);
 
- TH1D* hJER_em = (TH1D*)_file0->Get("hJER_em");
-   hJER_em->SetLineWidth( 2 );
-   hJER_em->SetLineStyle( 3);
-   hJER_em->SetLineColor( getColor( 3 ) );
+   TH1D* hJER_had = (TH1D*)_file0->Get("hJER_had");
+     hJER_had->SetLineWidth( 2 );
+     hJER_had->SetLineStyle( 2 );
+     hJER_had->SetLineColor( getColor( 2 ) );
 
- TH1D* hJER_other = (TH1D*)_file0->Get("hJER_other");
-   hJER_other->SetLineWidth( 2 );
-   hJER_other->SetLineStyle( 4 );
-   hJER_other->SetLineColor( getColor( 4 ) );
+   TH1D* hJER_em = (TH1D*)_file0->Get("hJER_em");
+     hJER_em->SetLineWidth( 2 );
+     hJER_em->SetLineStyle( 3);
+     hJER_em->SetLineColor( getColor( 3 ) );
 
- hJER->Draw("hist");
- hJER_had->Draw("histsame");
- hJER_em->Draw("histsame");
- hJER_other->Draw("histsame");
+   TH1D* hJER_other = (TH1D*)_file0->Get("hJER_other");
+     hJER_other->SetLineWidth( 2 );
+     hJER_other->SetLineStyle( 4 );
+     hJER_other->SetLineColor( getColor( 4 ) );
 
- can->SaveAs( folder_ + "Comparison_JER.C");
- can->SaveAs( folder_ + "Comparison_JER.pdf");
+   hJER->Draw("hist");
+   hJER_had->Draw("histsame");
+   hJER_em->Draw("histsame");
+   hJER_other->Draw("histsame");
+
+    TLegend *leg = new TLegend( 
+	1. - can->GetRightMargin() - 0.25,
+	1. - can->GetTopMargin() - 0.2,
+	1. - can->GetRightMargin(),
+	1. - can->GetTopMargin() );
+
+    leg->SetFillColor( kWhite );
+
+    leg->AddEntry( hJER, "All jets", "l");
+    leg->AddEntry( hJER_had, "Had. jets", "l");
+    leg->AddEntry( hJER_em, "EM. jet", "l");
+    leg->AddEntry( hJER_other, "other", "l");
+
+    leg->Draw();
+
+    TLatex Tl; Tl.SetTextFont(43); Tl.SetTextSize(35);
+    Tl.DrawText( 
+	0.075,
+	hJER->GetMaximum() * 0.5, 
+	legend_info_[ MC_files_[file]] );
+
+    TString setup;
+    if( MC_files_[file].Contains("isolated") ) setup = "isolated";
+    else if( MC_files_[file].Contains("calibrated") ) setup = "calibrated";
+
+
+
+    TString savenameC = TString::Format( folder_ + "JES_" + printLabel_[ MC_files_[file] ] + "_" + setup + ".C") ;
+    TString savenamepdf = TString::Format( folder_ + "JES_" + printLabel_[ MC_files_[file] ] + "_" + setup + ".pdf") ;
+
+    can->SaveAs( savenameC );
+    can->SaveAs( savenamepdf);
+
+  }
 
 
 }
@@ -7828,7 +8871,10 @@ void Unfolder::Plot_JER(){
 
 void Unfolder::Plot_Isolation(){
 
-  TFile *_file0 = TFile::Open( MC_files_[0], "Read"); 
+
+ for(int file = 0; file < MC_files_.size(); file++){
+
+   TFile* _file0 = TFile::Open( MC_files_[file] , "READ");
 
   //-- Plot 2D EI versus nTowers.
 
@@ -7939,7 +8985,7 @@ void Unfolder::Plot_Isolation(){
   can_1D_absolute->SetLogx();
   can_1D_absolute->SetLogy();
 
-  TH1D* EI = (TH1D*)_file0->Get("hIsolationEnergy_1D");
+  TH1D* EI = (TH1D*)_file0->Get("hIsolationEnergy_1D_log");
 
   EI->Scale( 1./EI->Integral() );
   EI->GetXaxis()->SetNdivisions(405);
@@ -7948,10 +8994,87 @@ void Unfolder::Plot_Isolation(){
   EI->GetYaxis()->SetTitle("#frac{1}{N}.#frac{dN}{dE}");
   EI->Draw("hist");  
 
+  TLatex Tl; Tl.SetTextFont(43); Tl.SetTextSize(35);
+  Tl.DrawText( 
+	1e-2,
+	0.5 , 
+	legend_info_[ MC_files_[file]] );
 
-  can_1D_absolute->SaveAs(folder_ + "EI_absolute.C");
-  can_1D_absolute->SaveAs(folder_ + "EI_absolute.pdf");
+  TString setup;
+  if( MC_files_[file].Contains("isolated") ) setup = "isolated";
+  else if( MC_files_[file].Contains("calibrated") ) setup = "calibrated";
 
+  TString savenameC = TString::Format( folder_ + "EI_" + printLabel_[ MC_files_[file] ] + "_" + setup + ".C") ;
+  TString savenamepdf = TString::Format( folder_ + "EI_" + printLabel_[ MC_files_[file] ] + "_" + setup + ".pdf") ;
+
+  can_1D_absolute->SetLogx();
+
+  can_1D_absolute->SaveAs( savenameC );
+  can_1D_absolute->SaveAs( savenamepdf);
+
+  
+  //-- Relative value: EGEN
+  cout << "//-- Relative value: EGEN" << endl;
+
+  can_1D_relative = new TCanvas( "EI_relative", "EI_relative", 800, 500 );
+  PrepareCanvas(can_1D_relative, "EI_relative");
+  can_1D_relative->SetLogx();
+  can_1D_relative->SetLogy();
+
+  TH1D* EI_egen = (TH1D*)_file0->Get("hIsolationEnergy_Egen_log");
+
+  EI_egen->Scale( 1./EI_egen->Integral() );
+  EI_egen->GetXaxis()->SetNdivisions(405);
+  EI_egen->GetXaxis()->SetTitle("E_{I}/E_{gen}");
+  EI_egen->GetYaxis()->SetRangeUser( GetMinimumValue( EI )*0.9, 1.);
+  EI_egen->GetYaxis()->SetTitle("#frac{1}{N}.#frac{dN}{dE}");
+  EI_egen->Draw("hist");  
+
+  Tl.SetTextFont(43); Tl.SetTextSize(35);
+  Tl.DrawText( 
+	1e-2,
+	0.5 , 
+	legend_info_[ MC_files_[file]] );
+
+  savenameC = TString::Format( folder_ + "EI_gen_" + printLabel_[ MC_files_[file] ] + "_" + setup + ".C") ;
+  savenamepdf = TString::Format( folder_ + "EI_gen_" + printLabel_[ MC_files_[file] ] + "_" + setup + ".pdf") ;
+
+  can_1D_relative->SetLogx();
+
+  can_1D_relative->SaveAs( savenameC );
+  can_1D_relative->SaveAs( savenamepdf);
+
+  //-- Relative value: EDET
+  cout << "//-- Relative value: EDET" << endl;
+
+  can_1D_relative = new TCanvas( "EI_relative", "EI_relative", 800, 500 );
+  PrepareCanvas(can_1D_relative, "EI_relative");
+  can_1D_relative->SetLogx();
+  can_1D_relative->SetLogy();
+
+  TH1D* EI_edet = (TH1D*)_file0->Get("hIsolationEnergy_Edet_log");
+
+  EI_edet->Scale( 1./EI_edet->Integral() );
+  EI_edet->GetXaxis()->SetNdivisions(405);
+  EI_edet->GetXaxis()->SetTitle("E_{I}/E_{det}");
+  EI_edet->GetYaxis()->SetRangeUser( GetMinimumValue( EI )*0.9, 1.);
+  EI_edet->GetYaxis()->SetTitle("#frac{1}{N}.#frac{dN}{dE}");
+  EI_edet->Draw("hist");  
+
+  Tl.SetTextFont(43); Tl.SetTextSize(35);
+  Tl.DrawText( 
+	1e-2,
+	0.5 , 
+	legend_info_[ MC_files_[file]] );
+
+  savenameC = TString::Format( folder_ + "EI_det_" + printLabel_[ MC_files_[file] ] + "_" + setup + ".C") ;
+  savenamepdf = TString::Format( folder_ + "EI_det_" + printLabel_[ MC_files_[file] ] + "_" + setup + ".pdf") ;
+
+  can_1D_relative->SetLogx();
+
+  can_1D_relative->SaveAs( savenameC );
+  can_1D_relative->SaveAs( savenamepdf);
+  }
 }
 
 
@@ -8173,169 +9296,156 @@ cout	<< "\n0\t" << events0
 
 
 
-void Unfolder::SectorDependent_unfolding( TH1D* &hSectorDependent ){
-  cout << "\nUnfolder::SectorDependent_unfolding" << endl;
 
-  // Initiate data and MC files.
 
-  TFile* _fileMC = TFile::Open( MC_files_[0], "Read");
-  TFile* _fileData = TFile::Open( datafile_, "Read");
 
-  cout << "\nUnfolder::SectorDependent_unfolding - files" << endl;
 
-  // Declare histogram where all unfolded spectra will be added together.
 
-  TH1D* JetEnergySpectrum = (TH1D*)_fileData->Get("hCastorJet_energy");
-  JetEnergySpectrum->Scale( 0. );	//-- Multiply by zero to empty.
+void Unfolder::Plot_CastorJetID(){
 
-  cout << "\nUnfolder::SectorDependent_unfolding - empty histo" << JetEnergySpectrum->GetNbinsX() << endl;
+  vector<TString> jetIDs;
+  jetIDs.push_back("ehad");
+  jetIDs.push_back("eem");
+  jetIDs.push_back("nTowers");
+  jetIDs.push_back("sigmaz");
+  jetIDs.push_back("width");
+  jetIDs.push_back("depth");
+  jetIDs.push_back("fhot");
+  jetIDs.push_back("fem");
+  jetIDs.push_back("phi");
 
-  // Extract TH2D.
-  TH2D* hCastorJet_energy_sectors = (TH2D*)_fileData->Get("hCastorJet_energy_sectors");
+  TFile* data_ = TFile::Open(datafile_, "Read");
 
-  cout << "\nUnfolder::SectorDependent_unfolding - 2D" << endl;
-      cout << "File\t" << datafile_ << endl;
-      cout << "Name\t" << hCastorJet_energy_sectors->GetName();
-      cout << "Bins\t" << hCastorJet_energy_sectors->GetNbinsX() << "\t" << hCastorJet_energy_sectors->GetNbinsY() << endl;
+  for(vector<TString>::iterator var = jetIDs.begin(); var != jetIDs.end(); ++var){
 
-  // Declare canvas on which to draw all unfolded spectra: should be the same.
+    TString variable = *var;
+    TCanvas *can;
+    PrepareCanvas( can, TString::Format( variable ) );
 
-  TCanvas *can_ ;
-  PrepareCanvas( can_, "All sectors unfolded");
-  TString drawoptions = "hist";
-  int color = 1;
+    TString drawoptions = "hist";
+    int color = 1;
 
-  // Loop over sectors.
- 
-  for(int sector = 0; sector < 16; sector++){
+    TLegend *leg = new TLegend( 
+	1. - can->GetRightMargin() - 0.3,
+	1. - can->GetTopMargin() - 0.3,
+	1. - can->GetRightMargin(),
+	1. - can->GetTopMargin()  );
+    leg->SetFillColor( kWhite );
 
-    // Extract response object.
-    RooUnfoldResponse* response_ = (RooUnfoldResponse*)_fileMC->Get( TString::Format("response_sector%i", sector) );
+     int file_ = 0; 	// Define here so value can be used afterwards.
+     for(; file_ < MC_files_.size(); file_++){
 
-    cout << "\nUnfolder::SectorDependent_unfolding - response sector " << sector << endl;
-    cout << "\nUnfolder::SectorDependent_unfolding -  " << response_->Hfakes()->Integral() << "\t" << response_->Hfakes()->GetEntries() << endl;
-    cout << "\nUnfolder::SectorDependent_unfolding -  " << response_->Hresponse()->Integral() << "\t" << response_->Hresponse()->GetEntries() << endl;
+	if( 	(set_of_tags_["mc_type"])[MC_files_[file_]] != "model" && 
+		(set_of_tags_["mc_type"])[MC_files_[file_]] != "actual"){ continue; }
 
-    // Extract histogram.
-    cout << "Bins\t" << hCastorJet_energy_sectors->GetNbinsX() << "\t" << hCastorJet_energy_sectors->GetNbinsY() << endl;
-    TH1D* hist_data = (TH1D*)hCastorJet_energy_sectors->ProjectionX( TString::Format("Energy_spectrum_%i", sector), sector+1, sector+1);
+	cout << ">>> File\t" << MC_files_[file_] << endl;
 
-    cout << "\nUnfolder::SectorDependent_unfolding - 1D " << sector << endl;
-    cout << hist_data->GetNbinsX() << endl;
+	TFile* _file = TFile::Open( MC_files_[file_], "Read");
+	TH1D* hist = (TH1D*)_file->Get( variable );
 
-    // Unfold.
-    RooUnfoldBayes unfold_bayes(response_, hist_data, 30);
-    TH1D* hUnfold = (TH1D*) unfold_bayes.Hreco( RooUnfold::kCovariance ); 
-    
-    SetDnDx( hUnfold );
-    hUnfold->GetYaxis()->SetRangeUser(0.1, 6e3);
+	hist->Scale( 1./hist->Integral() );
+	hist->SetLineColor( getColor( color ) );
+	hist->SetLineStyle ( color++ );
+	hist->SetLineWidth ( 2 );
+	hist->Draw( drawoptions );
+	drawoptions = "histsame";
 
-    // Draw.
-    can_->SetLogy();
-    can_->cd();
-    hUnfold->SetLineWidth(2);
-    hUnfold->SetLineColor( getColor(color++) );
-    hUnfold->Draw(drawoptions);
-    drawoptions = "histsame";
-    
-    JetEnergySpectrum->Add( hUnfold );
-     
+	leg->AddEntry( hist, legend_info_gen_[MC_files_[file_]] , "l" );
+     }
+     //== Data.
+	cout << ">>> File\t" << datafile_ << "\t>>> variable\t" << variable << endl;
+     TH1D* hist = (TH1D*)data_->Get( variable );  
+     if( hist ){ cout << "ole" << endl; }  
+     hist->Scale( 1./hist->Integral() );
+     hist->SetLineColor( getColor( color ) );
+     hist->SetLineStyle ( color++ );
+     hist->SetLineWidth ( 2 );
+     hist->Draw( drawoptions );    
+     leg->AddEntry( hist, "Data" , "l" );
+
+     leg->Draw();
+
+     can->SetLogy();
+
+     can->SaveAs( TString::Format( folder_ + "CastorJetID_" + variable + ".pdf" ) );
+     can->SaveAs( TString::Format( folder_ + "CastorJetID_" + variable + ".C" ) );
+
+
   }
-  can_->SaveAs("Sector_unfolded.pdf");
-  
-  hSectorDependent = (TH1D*)JetEnergySpectrum->Clone("hSectorDependent_unfolding");
-
 }
 
 
 
 
 
-void Unfolder::Draw_Gen_Pythia8(){
 
-  //-- Initiate canvas.
-  TCanvas* can_;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+To lazy to build a separate makefile/executable for just a single counting function.
+*/
+void Unfolder::Cut_efficiency(){
+
+   TFile* _file0 = TFile::Open("/localgrid/avanspil/Castor_Analysis/CMSSW_4_2_10_patch2/src/UACastor/CastorTree/Analysis/20160318_ak5_Data_STRIPPED_TREE.root", "Read");
+
+   int total_events, survive_cleaning, survive_BSC, survive_HF, survive_vertex;
+   int count_total = 0, count_cleaning = 0, count_BSC = 0, count_HF = 0, count_vertex = 0;
+
+   TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
+
+   //== All events.
+   TString branch_total = "total_events";
+   tree_numbers->SetBranchAddress(branch_total, &total_events);  
+
+   //== Passed cleaning cuts.
+   TString branch_cleaning = "survive_cleaning";
+   tree_numbers->SetBranchAddress(branch_cleaning, &survive_cleaning);   
+
+   //== Passed BSC.
+   TString branch_BSC = "survive_BSC";
+   tree_numbers->SetBranchAddress(branch_BSC, &survive_BSC);
   
-  TLegend *leg = new TLegend(
-  	1. - can_->GetLeftMargin() - 0.4, 
-	1. - can_->GetTopMargin() - 0.25,
-	1. - can_->GetLeftMargin(),
-	1. - can_->GetTopMargin() );
-
-  TPad* pad_abs_, *pad_ratio_;
-  PrepareCanvas(can_, "Pythia8");
-  cout << "Canvas prepared" << endl;
-  SplitCanvas(can_, pad_abs_, pad_ratio_);
+   //== Passed HF.
+   TString branch_HF = "survive_HF";
+   tree_numbers->SetBranchAddress(branch_HF, &survive_HF);
   
-  TH1D* hReference, *hGen;
-  int pythia8s = 0;
-  TString drawoptions  = "hist";
-
-  
-  
-  //-- Loop over files, hold on to those with Pythia8 in the name.
-  
-  for(int file_ = 0; file_ < MC_files_.size(); file_++){
-  
-    if( (set_of_tags_["mc_type"])[MC_files_[file_]] != "model" && 
-	(set_of_tags_["mc_type"])[MC_files_[file_]] != "actual" &&  
-	(set_of_tags_["mc_type"])[MC_files_[file_]] != "shift_MPI_or_Tune" &&
-	(set_of_tags_["mc_type"])[MC_files_[file_]] != "model_" ){ continue; }  
-  
-    if(  !MC_files_[file_].Contains("ythia8") &&  !MC_files_[file_].Contains("Tune4")){ continue; }
-    pythia8s++;
-  
-    TFile* _fileMC = TFile::Open( MC_files_[file_], "Read");
-    
-    cout << "file_\t" << MC_files_[file_] << endl;
- 
-    // Extract the right distribution.
-    scaletodata_ = true;
-    if( (set_of_tags_["mc_type"])[MC_files_[file_]] == "shift_MPI_or_Tune" ){ // There is only one gen. distribution, since there are no cuts on detector level.
-      Get_GenEnergy( file_, hGen ); }
-    else{ // There are several gen. distributions, take the one uninfluenced by the cuts on detector level.
-      Get_PureGenEnergy( file_, hGen ); }
-    scaletodata_ = false;
-    
-    SetDnDx( hGen );
-       
-    hGen->Scale( 7388000. );
-       
-    
-    if( pythia8s == 1 ){ hReference = (TH1D*)hGen->Clone("Reference"); }
-    
-  
-    pad_abs_->cd();
-    
-    hGen->SetLineColor( getColor( pythia8s ) );
-    hGen->SetLineStyle( pythia8s );
-    hGen->SetLineWidth( 3 );
-    hGen->DrawClone( drawoptions );
-    
-    pad_ratio_->cd();
-    hGen->Divide( hReference );
-    hGen->Draw( drawoptions );    
-    
-    drawoptions = "histsame";
+   //== Passed vertex.
+   TString branch_vertex = "survive_vertex";
+   tree_numbers->SetBranchAddress(branch_vertex, &survive_vertex);
 
 
-    TString legend_file = legend_info_gen_[MC_files_[file_]];
-    leg->AddEntry( hGen, legend_file, "l" );
-          
-  }
-  pad_abs_->SetLogy();  
+   for( int entry = 0; entry < tree_numbers->GetEntries(); entry++){
+     tree_numbers->GetEntry( entry );
 
-  can_->cd();
+     count_total 	+= total_events;
+     count_cleaning	+= survive_cleaning;
+     count_BSC 		+= survive_BSC;
+     count_HF 		+= survive_HF;
+     count_vertex 	+= survive_vertex;
+   }
 
-  leg->Draw();
-  can_->SaveAs( folder_ + "/Pythia8_comparison.pdf");
-    can_->SaveAs( folder_ + "/Pythia8_comparison.C");
+   ofstream cut_efficiency;
+   cut_efficiency.open("Cut_efficiency.txt");
 
-  
-  
+   cut_efficiency << std::setprecision(4) << "Total\t" << count_total 		<< "\t" << double(count_total)/double(count_total) * 100. 	<<  " \%" << endl;
+   cut_efficiency << std::setprecision(4) << "Cleanign\t" << count_cleaning 	<< "\t" << double(count_cleaning)/double(count_total) * 100. 	<< " \%" <<"\t" << double(count_cleaning)/double(count_total) * 100. 	<<  " \%" << endl;
+   cut_efficiency << std::setprecision(4) << "BSC\t" << count_BSC 		<< "\t" << double(count_BSC)/double(count_total) * 100. 	<< " \%" <<"\t" << double(count_BSC)/double(count_cleaning) * 100.  	<<  " \%" << endl;
+   cut_efficiency << std::setprecision(4) << "HF\t" << count_HF 		<< "\t" << double(count_HF)/double(count_total) * 100. 		<< " \%" <<"\t" << double(count_HF)/double(count_BSC) * 100.  		<<  " \%" << endl;
+   cut_efficiency << std::setprecision(4) << "Vertex\t" << count_vertex 	<< "\t" << double(count_vertex)/double(count_total) * 100. 	<< " \%" <<"\t" << double(count_vertex)/double(count_HF) * 100.  	<<  " \%" << endl;
 
-
-
-
+  cut_efficiency.close();
 }
+
+

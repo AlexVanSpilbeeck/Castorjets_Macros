@@ -54,6 +54,7 @@
 #include "Unfolder.cpp"
 
 
+
 //#include "Function_Rebin.h"
 
 //#ifndef FUNCTION_FIRSTPLOT_H
@@ -469,6 +470,8 @@ int main(int argc, char* argv[]){
      xsec[MCfile] = 71.4;
 
      //=== Pythia8 (4C), with MPI ===
+     //== This is exactly the same as the Pythia8 CMSSW sample, no need for it to be separately plotted.
+/*
      MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160202_Tune4C_MPI_on_softQCD_5000000events_presetTune.root" );
      filenames.push_back( MCfile );
      legendEntries.push_back("Pythia8 4C (MPI)");
@@ -482,8 +485,96 @@ int main(int argc, char* argv[]){
      scalefactors[MCfile] = "succesful_events";
      mc_type[MCfile] = "shift_MPI_or_Tune";    
      xsec[MCfile] = 71.4;
+*/
+
+     //=== Pythia8 (CUET), with MPI ===
+     MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160329_TuneCUETP8M1-NNPDF23LO_MPI_on_softQCD_100000events_presetTune.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("Pythia8 CUETP8M1-NNPDF2.3LO (MPI)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Pythia8CUETP8M1_MPI");    
+     printLabel[MCfile] = "Pythia8CUETP8M1_MPI";
+     legends[MCfile] = "Pythia8.212 CUETP8M1-NNPDF2.3LO (MPI)";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune";    
+     xsec[MCfile] = 71.4;
+
+  MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160329_TuneCUETP8M1-NNPDF23LO_MPI_off_softQCD_100000events_presetTune.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("Pythia8 CUETP8M1-NNPDF2.3LO (no MPI)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Pythia8CUETP8M1_noMPI");    
+     printLabel[MCfile] = "Pythia8CUETP8M1_noMPI";
+     legends[MCfile] = "Pythia8.212 CUETP8M1-NNPDF2.3LO (no MPI)";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune";    
+     xsec[MCfile] = 71.4;
+/*
+     //=== Pythia8 (CUET CTEQ6L), with MPI ===
+  MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160330_TuneCUETP8S1-CTEQ6L1_MPI_on_softQCD_1000000events_presetTune.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("Pythia8 CUETP8S1-CTEQ6L1 (MPI)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Pythia8CUETP8S1-CTEQ6L1_MPI");    
+     printLabel[MCfile] = "Pythia8CUETP8S1-CTEQ6L1_MPI";
+     legends[MCfile] = "Pythia8.145 CUETP8S1-CTEQ6L1 (MPI)";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune";    
+     xsec[MCfile] = 71.4;
 
 
+  MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160330_TuneCUETP8S1-CTEQ6L1_MPI_off_softQCD_1000000events_presetTune.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("Pythia8 CUETP8S1-CTEQ6L1 (no MPI)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Pythia8CUETP8S1-CTEQ6L1_noMPI");    
+     printLabel[MCfile] = "Pythia8CUETP8S1-CTEQ6L1_noMPI";
+     legends[MCfile] = "Pythia8.145 CUETP8S1-CTEQ6L1 (no MPI)";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune";    
+     xsec[MCfile] = 71.4;
+
+     //=== Pythia8 (CUET HERAPDF), with MPI ===
+  MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160330_TuneCUETP8S1-HERAPDF_MPI_on_softQCD_1000000events_presetTune.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("Pythia8 CUETP8S1-HERAPDF6L1 (MPI)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Pythia8CUETP8S1-HERAPDF_MPI");    
+     printLabel[MCfile] = "Pythia8CUETP8S1-HERAPDF_MPI";
+     legends[MCfile] = "Pythia8.145 CUETP8S1-HERAPDF (MPI)";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune";    
+     xsec[MCfile] = 71.4;
+
+     MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160330_TuneCUETP8S1-HERAPDF_MPI_off_softQCD_1000000events_presetTune.root" );
+     filenames.push_back( MCfile );
+     legendEntries.push_back("Pythia8 CUETP8S1-HERAPDF6L1 (no MPI)");
+     colours.push_back(getColor(color_index++));
+     linestyle.push_back( style_of_line++);
+     fileLabel.push_back("Pythia8CUETP8S1-HERAPDF_noMPI");    
+     printLabel[MCfile] = "Pythia8CUETP8S1-HERAPDF_noMPI";
+     legends[MCfile] = "Pythia8.145 CUETP8S1-HERAPDF (no MPI)";
+     legends_gen[MCfile] = legends[MCfile];
+     calibration_tag[MCfile] = "MC";	
+     scalefactors[MCfile] = "succesful_events";
+     mc_type[MCfile] = "shift_MPI_or_Tune";    
+     xsec[MCfile] = 71.4;
+*/
      //==== Template to add more models/MC generators/... ====
      /*
      MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160121_pythia8145_Tune4C_MPI_off_softQCD_100000events_presetTune.root" );
@@ -1647,8 +1738,8 @@ int main(int argc, char* argv[]){
 //     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 12);
 
      cout << "\n\t===Model dependence" << endl;
-     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 30);
-     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 30);
+//     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 30);
+//     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 30);
 //     my_first_unfolder.DoublePaddedComparison_JESDependence("all", 30);
 //     my_first_unfolder.DoublePaddedComparison_JESmeasured("all", 30);
 
@@ -1656,6 +1747,7 @@ int main(int argc, char* argv[]){
 	//-- Plot all systematics in absolute and ratio.
      TCanvas* can_30it;
 //     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_30it, "all", 30);
+//     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_30it, "all", 5);
 
 //     my_first_unfolder.Hist_DetLevel();
 
@@ -1663,9 +1755,9 @@ int main(int argc, char* argv[]){
 //     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics( can_50it, "all", 50);
 
 	//-- Plot the unfolded distribution after an increasing number of Bayesian iterations.
-     my_first_unfolder.DoublePaddedComparison_unfolding("all", 30);	
+//     my_first_unfolder.DoublePaddedComparison_unfolding("all", 30);	
 
-     my_first_unfolder.Plot_Unfolded();
+//     my_first_unfolder.Plot_Unfolded();
 /*
      my_first_unfolder.Plot_Unfolded_JES();
      my_first_unfolder.Plot_Measured_JES();
@@ -1712,6 +1804,10 @@ int main(int argc, char* argv[]){
 
 //     TF1* analytical;
 //     my_first_unfolder.Fit_unfolded_distribution(analytical);
+
+     //== Plot stability and purity of unfolding.
+     my_first_unfolder.Plot_Stability( 0 );
+     my_first_unfolder.Plot_Purity( 0 );
    }
 
   return(0); 

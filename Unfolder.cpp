@@ -14,6 +14,7 @@
 #include <TGraphErrors.h>
 #include <TH1.h>
 #include <TH2.h>
+#include <TH3.h>
 #include <THnSparse.h>
 #include <TLatex.h>
 #include <TLegend.h>
@@ -61,19 +62,19 @@
 
 #include "CMS_lumi.C"
 
-#include "Function_average_histogram.h"
-#include "Function_changeBinEdges.h"
-#include "Function_CorrectSectorNumber.h"
-#include "Function_FinishCanvas.C"
-#include "Function_Prepare1Dplot.h"
-#include "Function_Prepare2Dplot.h"
-#include "Function_PrepareCanvas.h"
-#include "Function_Rebin.h"
-#include "Function_SetRangeToIncludeAll.h"
+#include "Functions/Function_average_histogram.h"
+#include "Functions/Function_changeBinEdges.h"
+#include "Functions/Function_CorrectSectorNumber.h"
+#include "Functions/Function_FinishCanvas.C"
+#include "Functions/Function_Prepare1Dplot.h"
+#include "Functions/Function_Prepare2Dplot.h"
+#include "Functions/Function_PrepareCanvas.h"
+#include "Functions/Function_Rebin.h"
+#include "Functions/Function_SetRangeToIncludeAll.h"
 #include "GetSubHistogram.h"
 #include "Correct_Sector.h"
 //#include "Function_make_Tex.h"
-#include "NonZeroMinimum.h"
+#include "Functions/Function_NonZeroMinimum.h"
 	
 //#define normalise_1 true
 
@@ -144,6 +145,8 @@ class Unfolder{
    void Plot_Unfolded_Ratio(TPad* &pad_, TString variable, int iterations = 0);
    void Plot_Unfolded_Ratio_statistics(TPad* &pad_, TString variable, int iterations = 0);
    void Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variable, int iterations);
+   void Plot_Unfolded_Ratio_allSystematics_normData(TCanvas* can_, TString variable, int iterations);
+   void Plot_Unfolded_Ratio_allSystematics_pT(TCanvas* can_, TString variable, int iterations, TString plot_as, TString which_models);
 
    //== Systematic uncertainties: plotted on a double padded canvas (abs. and ratio), and the two functions.
    void DoublePaddedComparison_positionDependence(TString variable, int iterations = 0);
@@ -198,12 +201,12 @@ class Unfolder{
    void Systematics_CompareDetLevel();
    void Systematics_CompareGenLevel();
 
-
    void Get_Njets(int file_, TH2D* &hist_);
 
-
-
-
+   //== Conversion between energy and pT.
+   void Convert_E_to_pt(TH1D* &hist_);
+   void Calculate_averageEta_perEgen(int file_, TH1D* &hist_);
+   void Convert_E_to_xF(TH1D* &hist_);
 
    void Unfolding_data(TString variable = "lead", int iterations_ = 10);
 
@@ -221,6 +224,9 @@ class Unfolder{
    //== Response matrix proper.
    void PlotResponseMatrix(int file_, TString setup );
    void PlotResponseMatrix(TString file_, TString setup );
+   
+   //== Plot average eta vs. egen
+   void Plot_averageEta_perEgen(int file_);
 
    //== Derived from response matrix.
    void PlotFromResponseMatrix(int file_, TString axis_1, TString axis_2);
@@ -243,8 +249,6 @@ class Unfolder{
    void Get_UnfoldSmearError( TH1D* vUnfold, TH1D* &vSmeared, int file_, TString variable, int iterations );
    void Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations, TString variable, int method , double &chi2);
 
-
-
    //== Initialization functions.
    void Initialize_xsec( std::map<TString, double> );
    void Trigger_efficiency( double trigger_eff );
@@ -252,8 +256,9 @@ class Unfolder{
    void PrepareTitles( map<TString, TString> xtitle ,  map<TString, TString> ytitle ,  map<TString, TString> htitle);
 
 
-
-
+   //Concerning resolution.
+   void Determine_resolution( TString setup );
+   void Determine_resolution_eDet( TString setup );
 
 
 
@@ -273,8 +278,12 @@ void Plot_GenLevels_();
 
 
   private:
+   
    double lumi_;
+   double eBeam_;
    double trigger_efficiency_correction_;
+
+   double norm_cut_;	//== This is used to normalize the backsmearing fakes.
 
 
    vector<TString> MC_files_;
@@ -310,6 +319,8 @@ void Plot_GenLevels_();
    map<TString, double> xsec_;
 
    void MakeDoublePaddedComparison(TCanvas * &can, vector<TH1D*>, TLegend *leg);
+   void MakeDoublePaddedComparison(TCanvas * &can_, TPad* &pad_abs_, TPad* &pad_ratio_, vector<TH1D*> histos, TLegend *legend);
+
    double Chi2_test( TH1D* hist_data, TH1D* hist_MC);
    double Det_to_gen_scale(int file);
    bool BadNumerals( TH1D* hist );
@@ -344,6 +355,8 @@ Unfolder::Unfolder( vector<TString> MC_files, TString datafile, std::map< TStrin
   gStyle->SetStatStyle(0);
   gStyle->SetTitleStyle(0);
   gStyle->SetOptStat(0);
+  gStyle->SetLegendBorderSize(0);
+  gStyle->SetPalette(1);
 
   MC_files_ = MC_files;
   datafile_ = datafile;
@@ -357,6 +370,7 @@ Unfolder::Unfolder( vector<TString> MC_files, TString datafile, std::map< TStrin
 
   lumi_ =  1.23115 * 1e5;
   lumi_ = lumi_*1/0.982;
+  eBeam_ = 3500.;
 
   int  new_dir = mkdir( ("Plots/" + folder).Data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
 
@@ -738,8 +752,10 @@ void Unfolder::Hist_DetLevel(){
   PrepareCanvas( can, "Detector_Level_Energy" );
   vector<TH1D*> histos;
 
-  TLegend*leg = new TLegend( 0.75, 0.55, 0.93, .93);
-    leg->SetFillColor( kWhite );
+  TLegend*leg = new TLegend( 
+	1. - can->GetRightMargin()-0.3, 1. - can->GetTopMargin() - 0.4,
+	1.-can->GetRightMargin(), 	1.-can->GetTopMargin()*4./3.);
+  leg->SetFillColor(0);
 
   bool done_data = false;
 
@@ -750,7 +766,7 @@ void Unfolder::Hist_DetLevel(){
     //-- Data.
     if( file == MC_files_.size() ){
       file_ = -1;
-      drawoptions = "datasame";
+      drawoptions = "epsame";
       legendoptions = "p";
       done_data = true;
     }
@@ -761,8 +777,8 @@ void Unfolder::Hist_DetLevel(){
 	  (set_of_tags_["mc_type"])[MC_files_[file_]] != "model_"   ) { continue; }
     }
 
-    Get_DetEnergy_unCalib( file_ , hist_ );     hist_->GetXaxis()->SetRangeUser( 150., 2100./1.5 );
-//    Get_DetEnergy( file_ , hist_ );
+//    Get_DetEnergy_unCalib( file_ , hist_ );     hist_->GetXaxis()->SetRangeUser( 150., 2100./1.5 );
+    Get_DetEnergy( file_ , hist_ );
 
 
     if( !hist_) continue;
@@ -776,14 +792,16 @@ void Unfolder::Hist_DetLevel(){
     hist_->SetLineColor( getColor( file_ +1) );
     hist_->SetLineWidth( 3 );
     hist_->SetMarkerColor( getColor( file_ +1) );
-    hist_->SetMarkerSize( 1 );
+    hist_->SetMarkerSize( 1.5 );
     hist_->GetYaxis()->SetTitle( "N" );
 
 //    SetDnDx( hist_ );
     Prepare_1Dplot( hist_ );
 
     if( file_ != -1) {histos.push_back( hist_ ); }
-    if( file_ == -1) {histos.insert( histos.begin(), hist_) ; }
+    if( file_ == -1) {
+      hist_->SetLineColor( 0 );
+      histos.insert( histos.begin(), hist_) ; }
 
     TString legend_info;
     if( file_ == -1 ){ legend_info = "Data"; }
@@ -794,10 +812,12 @@ void Unfolder::Hist_DetLevel(){
     if( done_data ){ break; }
   }
 
-  MakeDoublePaddedComparison(can, histos, leg );
+  TPad* pad_abs_, *pad_ratio_;
+  MakeDoublePaddedComparison(can, pad_abs_, pad_ratio_, histos, leg );
 
   can->cd();
-  Finish_canvas( can );
+
+  Finish_canvas( pad_abs_ );
  
   can->SaveAs( TString::Format( folder_ + "DetectorLevelEnergy" + label_ + ".C") );
   can->SaveAs( TString::Format( folder_ + "DetectorLevelEnergy" + label_ + ".pdf") );
@@ -975,6 +995,11 @@ void Unfolder::Scale_to_Ntotal(int file_, TH1D* &hist_){
    TFile *_file0;
    TString drawoptions = "";
    TString branch_str = "castor_150GeV_events";   
+   TString branch_data = "castor_150GeV_events";   
+
+   if( (set_of_tags_["mc_type"])[MC_files_[file_]] == "shift_MPI_or_Tune" ){
+     branch_str = "castor_150GeV_events_MC";
+   }
 
    //Extract number of events from MC file.
    if( file_ < MC_files_.size() ){	_file0 = new TFile( MC_files_[file_], "Read"); }
@@ -987,7 +1012,7 @@ void Unfolder::Scale_to_Ntotal(int file_, TH1D* &hist_){
    TFile* _fileData = new TFile( datafile_, "Read");
    int total_events_data;
    TTree *tree_numbers_data = (TTree*)_fileData->Get("useful_numbers");
-   tree_numbers_data->SetBranchAddress(branch_str, &total_events_data);
+   tree_numbers_data->SetBranchAddress(branch_data, &total_events_data);
    tree_numbers_data->GetEntry( 0 );
 
    hist_->Scale( double(total_events_data)/double(total_events_MC));
@@ -1361,8 +1386,8 @@ void Unfolder::Plot_Unfolded(){
     double min_val, max_val;
     TString drawoptions = "hist";
     bool first_iteration = true;
-    int it_incr = 3;
-    int it_max = 30;
+    int it_incr = 500;
+    int it_max = 5000;
 
     for( int iterations = 1; iterations <= it_max; iterations += it_incr, color_++){
           
@@ -1565,6 +1590,7 @@ void Unfolder::Plot_Ratio( TPad* & pad_, TString variable){
 //    Get_Distribution( (file_-1) , hDistr, variable );
     hDistr->GetXaxis()->SetTitle( xtitle_[variable] );
     hDistr->GetXaxis()->SetNdivisions( 504 );
+    hDistr->GetYaxis()->SetNdivisions(205);
     hDistr->Scale( 1./hDistr->Integral() );
 
     if( firstDistr ){
@@ -1577,6 +1603,7 @@ void Unfolder::Plot_Ratio( TPad* & pad_, TString variable){
       hFirst->GetYaxis()->SetLabelSize( (hFirst->GetYaxis()->GetLabelSize())*1.5 );
       hFirst->GetYaxis()->SetLabelSize( (hFirst->GetYaxis()->GetLabelSize())*1.5 );
       hFirst->GetYaxis()->SetLabelOffset( hFirst->GetYaxis()->GetLabelOffset() );
+
 
       hFirst->GetXaxis()->SetLabelFont(42);
       hFirst->GetXaxis()->SetLabelSize( ( hFirst->GetXaxis()->GetLabelSize())*1.5 );
@@ -1716,6 +1743,7 @@ void Unfolder::Plot_covariance(int file_, int iterations){
 
   TH1D* hist_;
   Get_DetEnergy( 0, hist_ );
+  hist_->Scale(1./lumi_);
   RooUnfoldResponse* response;
   response = (RooUnfoldResponse*)_file0->Get("response"); 
 
@@ -1732,22 +1760,55 @@ void Unfolder::Plot_covariance(int file_, int iterations){
   covariance_h->GetZaxis()->SetRangeUser( min_covariance * 0.9, max_covariance * 1.1);
   Prepare_2Dplot( covariance_h );
 
-  covariance_h->GetXaxis()->SetTitle("E_{det} [GeV]");
-  covariance_h->GetYaxis()->SetTitle("E_{gen} [GeV]");
 
   //== We need to change the bins of the covariance matrix. 
   //== We use the response matrix as template.
   TH2D* hTemplate = (TH2D*)response->Hresponse();
   ChangeBinEdges( covariance_h, covariance_h, hTemplate);
 
-
   Prepare_2Dplot( covariance_h );
+  covariance_h->GetXaxis()->SetTitle("E [GeV]");
+  covariance_h->GetYaxis()->SetTitle("E [GeV]");
 
   DrawWithNegativeLog( covariance_h, can_cov );
   
   can_cov->SetLogz();
 
-  Finish_canvas(can_cov);
+  //Finish_canvas(can_cov, "rightish");
+
+   TLatex *   tex = new TLatex(0.12,0.92,"Pythia6 (Z2*)");
+   tex->SetTextAlign(13);
+   tex->SetTextFont(43);
+   tex->SetTextSize(35);
+   tex->SetLineWidth(2);
+   tex->Draw();
+
+   tex = new TLatex(0.96,0.935,"(0.12 nb^{-1}) 7 TeV");
+tex->SetNDC();
+   tex->SetTextAlign(31);
+   tex->SetTextFont(42);
+   tex->SetTextSize(0.05454545);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.5622857,0.8500625,"CMS");
+tex->SetNDC();
+   tex->SetTextFont(61);
+   tex->SetTextSize(0.06);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.5622857,0.80,"Preliminary");
+tex->SetNDC();
+   tex->SetTextAlign(13);
+   tex->SetTextFont(52);
+   tex->SetTextSize(0.0456);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.12,0.935,"anti-k_{t} (R=0.5) (-6.6<#eta<-5.2)");
+tex->SetNDC();
+   tex->SetTextFont(42);
+   tex->SetTextSize(0.048);
+   tex->SetLineWidth(2);
+   tex->Draw();
   
   can_cov->SaveAs( folder_ + TString::Format("Covariance_UnfoldMatrix_%i.pdf", iterations) );
   can_cov->SaveAs( folder_ + TString::Format("Covariance_UnfoldMatrix_%i.C", iterations) );  
@@ -1845,12 +1906,14 @@ void Unfolder::Unfold_and_smear(int file_, TH1D* &hist_, int MC_, int iterations
 
   //-- MC.
   TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
-  tree_numbers->SetBranchAddress("castor_300GeV_events", &total_events_nocuts);
+//  tree_numbers->SetBranchAddress("castor_300GeV_events", &total_events_nocuts);
+  tree_numbers->SetBranchAddress("castor_events_nocuts ", &total_events_nocuts);
   tree_numbers->GetEntry( 0 );
 
   //-- Data.
   TTree *tree_numbers_data = (TTree*)_file_det->Get("useful_numbers");
-  tree_numbers_data->SetBranchAddress("castor_300GeV_events", &total_events_nocuts_data);
+//  tree_numbers_data->SetBranchAddress("castor_300GeV_events", &total_events_nocuts_data);
+  tree_numbers_data->SetBranchAddress("castor_events_nocuts ", &total_events_nocuts_data);
   tree_numbers_data->GetEntry( 0 );
 
   hFake->Scale( static_cast<double>(total_events_nocuts_data )/static_cast<double>( total_events_nocuts) );
@@ -2575,7 +2638,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   TString htitle;
   TLegend *leg = new TLegend(0.65, 0.45, 0.95, 0.95);
     leg->SetFillColor(0);
-  int iterations_ = 30, iterations_start = 30;
+  int iterations_ = 30, iterations_start = 1;
   int actual_iterations = 0;
 
   int file_to_unfold = -1;
@@ -2637,7 +2700,7 @@ void Unfolder::ClosureTest_data(TString variable, TString file, int method){
   for(int file_ = 0; file_ < MC_files_.size(); file_++){
     cout << "\n===Opening file\t" << file << "\t" << printLabel_[ MC_files_[file_] ] << endl;
 
-   if( (printLabel_[ MC_files_[file_] ]) != file ){
+   if( file_ != 0 ){
      continue; 
    }
 
@@ -3122,8 +3185,27 @@ void Unfolder::MakeDoublePaddedComparison(TCanvas * &can_, vector<TH1D*> histos,
 }
 
 
+
+void Unfolder::MakeDoublePaddedComparison(TCanvas * &can_, TPad* &pad_abs_, TPad* &pad_ratio_, vector<TH1D*> histos, TLegend *legend){
+  cout << "===\tUnfolder::MakeDoublePaddedComparison\t===" << endl;
+
+
+  PrepareCanvas(can_, "Comparison_UnfoldedEnergy_Data_and_MC");
+
+  SplitCanvas(can_, pad_abs_, pad_ratio_);
+
+//  Hist_GenLevel(pad_abs_, true);
+  Plot_Absolute(pad_abs_, histos);
+  Plot_Ratio(pad_ratio_, histos);
+
+  pad_abs_->cd();
+  legend->Draw();
+  pad_abs_->Update();
+}
+
+
 void Unfolder::Plot_Absolute( TPad* & pad_, vector<TH1D*> histos){
-  cout << "----- Plot Absolute Value ---" << endl;
+  cout << "----- Plot Absolute Value ---\t\tPlot_Absolute( TPad* & pad_, vector<TH1D*> histos)" << endl;
 
   double min_val, max_val;
   TH1D* hDistr, *hFirst;
@@ -3131,6 +3213,12 @@ void Unfolder::Plot_Absolute( TPad* & pad_, vector<TH1D*> histos){
   int nDistr = 0;
   TString drawoptions = "pehist";
   TString legendoptions = "l";
+
+  TH1D* hData = histos[0];  
+  for(int bin = 1; bin <=hData->GetNbinsX(); bin++){
+    cout << "%%%\tBin\t" << bin << "\t" << hData->GetBinError( bin ) << "\t" << hData->GetBinContent( bin ) << "\t" << hData->GetBinError( bin )/hData->GetBinContent( bin ) << endl;
+
+  }
 
   for(int hist_ = 0; hist_ < histos.size(); hist_++){
 
@@ -3171,25 +3259,26 @@ void Unfolder::Plot_Absolute( TPad* & pad_, vector<TH1D*> histos){
 
 
 void Unfolder::Plot_Ratio( TPad* & pad_, vector<TH1D*> histos){
-  cout << "----- Plot Relative Value ---" << endl;
+  cout << "----- Plot Relative Value ---\t\tPlot_Ratio( TPad* & pad_, vector<TH1D*> histos)" << endl;
 
   double min_val, max_val;
   TH1D* hDistr, *hFirst, *hFirst_abs;
   bool firstDistr = true, passed_data = false;
   int nDistr = 0;
-  TString drawoptions = "phist";
+  TString drawoptions = "pehist";
 
   for(int hist_ = 0; hist_ < histos.size(); hist_++){
 
     hDistr = (TH1D*) histos[hist_]->Clone( TString::Format("Ratio_%i", hist_) );
 
     Rebin_to( hDistr, 50);
-    hDistr->GetXaxis()->SetNdivisions( 504 );
+    hDistr->GetXaxis()->SetNdivisions( 510 );
     hDistr->GetYaxis()->SetTitle("Ratio");
 
     hDistr->GetYaxis()->SetLabelSize( (hDistr->GetYaxis()->GetLabelSize())*1.5 );
     hDistr->GetYaxis()->SetLabelOffset( (hDistr->GetYaxis()->GetLabelOffset())*1.5 );
     hDistr->GetYaxis()->SetTitleSize( hDistr->GetYaxis()->GetTitleSize()*1.5 );
+    hDistr->GetYaxis()->SetNdivisions(205);
 
     hDistr->GetXaxis()->SetLabelSize(
       hDistr->GetXaxis()->GetLabelSize() *
@@ -4682,19 +4771,27 @@ void Unfolder::Analyze_response(TH2D* hResponse_selection, TH2D* hGenE_selection
 
 void Unfolder::PlotResponseMatrix(int file_, TString setup ){
 
+  cout << "\tUnfolder::PlotResponseMatrix" << endl;
+
   TCanvas *can;
   PrepareCanvas_2D(can, "Response_matrix_" + printLabel_[ MC_files_[file_] ] );
 
+  cout << "\tUnfolder::PlotResponseMatrix\tPrepped canvas" << endl;
+
   TH2D* hRes;
   Get_ResponseMatrix( file_, hRes );
+
+  cout << "\tUnfolder::PlotResponseMatrix\tGot matrix" << endl;
+
   Prepare_2Dplot( hRes );
+
+  cout << "\tUnfolder::PlotResponseMatrix\tPrepped matrix" << endl;
 
   hRes->GetXaxis()->SetTitle("E_{det} [GeV]");
   hRes->GetYaxis()->SetTitle("E_{gen} [GeV]");
 //  SetD2nDxDy( hRes );
 
   hRes->Draw("colz");
-
   
   TLatex Tl; 
   Tl.SetTextFont(43); 
@@ -4704,7 +4801,7 @@ void Unfolder::PlotResponseMatrix(int file_, TString setup ){
 	can->GetLeftMargin(),
 	1. - can->GetTopMargin(), legend_info_gen_[ MC_files_[file_]] );
 
-  Finish_canvas( can );
+  Finish_canvas( can, "rightish" );
 
   can->SetLogz();
 
@@ -4713,6 +4810,8 @@ void Unfolder::PlotResponseMatrix(int file_, TString setup ){
 
   //== Repeat with the response matrix as stored in RooUnfold if possible.
   if( setup == "unfold"){
+
+    cout << "\tUnfolder::PlotResponseMatrix\tUNFOLD" << endl;
 
     TFile* _file0 = TFile::Open( MC_files_[file_], "Read");
     RooUnfoldResponse* response = (RooUnfoldResponse*)_file0->Get("response");
@@ -4733,7 +4832,41 @@ void Unfolder::PlotResponseMatrix(int file_, TString setup ){
 	can->GetLeftMargin(),
 	1. - can->GetTopMargin(), legend_info_gen_[ MC_files_[file_]] );
 
-    Finish_canvas( can );
+//    Finish_canvas( can, "rightish");
+
+   TLatex *   tex = new TLatex(0.12,0.92,"Pythia6 (Z2*)");
+   tex->SetTextAlign(13);
+   tex->SetTextFont(43);
+   tex->SetTextSize(35);
+   tex->SetLineWidth(2);
+   tex->Draw();
+
+   tex = new TLatex(0.96,0.935,"(0.12 nb^{-1}) 7 TeV");
+tex->SetNDC();
+   tex->SetTextAlign(31);
+   tex->SetTextFont(42);
+   tex->SetTextSize(0.05454545);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.5622857,0.8500625,"CMS");
+tex->SetNDC();
+   tex->SetTextFont(61);
+   tex->SetTextSize(0.06);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.5622857,0.80,"Preliminary");
+tex->SetNDC();
+   tex->SetTextAlign(13);
+   tex->SetTextFont(52);
+   tex->SetTextSize(0.0456);
+   tex->SetLineWidth(2);
+   tex->Draw();
+      tex = new TLatex(0.12,0.935,"anti-k_{t} (R=0.5) (-6.6<#eta<-5.2)");
+tex->SetNDC();
+   tex->SetTextFont(42);
+   tex->SetTextSize(0.048);
+   tex->SetLineWidth(2);
+   tex->Draw();
  
     can->SetLogz();
 
@@ -5347,7 +5480,7 @@ void Unfolder::CovarianceMatrix( TH1D* hUnfold, TH1D* hSmeared, TMatrixD& cov_){
 double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfold, RooUnfoldResponse* response, int iterations){
 
   cout << "\n\t\t===Unfolder::Calculate_smearedBackError_covariance\titerations\t" << iterations << endl;
-  int nPoisson = 1000;
+  int nPoisson = 10000;
   int file_ = -1;
   int MC_ = 0;
 
@@ -5382,11 +5515,13 @@ double Unfolder::Calculate_smearedBackError_covariance(TH1D* hData, TH1D* hUnfol
       TFile* _file0 = _file_unfold;
 
       TTree *tree_numbers = (TTree*)_file0->Get("useful_numbers");
-      tree_numbers->SetBranchAddress("castor_300GeV_events", &total_events_nocuts);
+//      tree_numbers->SetBranchAddress("castor_300GeV_events", &total_events_nocuts);
+      tree_numbers->SetBranchAddress("castor_events_nocuts", &total_events_nocuts);
       tree_numbers->GetEntry( 0 );
 
       TTree *tree_numbers_data = (TTree*)_file_det->Get("useful_numbers");
-      tree_numbers_data->SetBranchAddress("castor_300GeV_events", &total_events_nocuts_data);
+//      tree_numbers_data->SetBranchAddress("castor_300GeV_events", &total_events_nocuts_data); 
+      tree_numbers_data->SetBranchAddress("castor_events_nocuts", &total_events_nocuts_data);
       tree_numbers_data->GetEntry( 0 );
 
       renorm_ = static_cast<double>(total_events_nocuts_data)/static_cast<double>(total_events_nocuts);
@@ -7858,6 +7993,7 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics(TCanvas* can_, TString variabl
   TPad* pad_abs2_, *pad_ratio2_;  
   SplitCanvas(can_jes, pad_abs2_, pad_ratio2_);
   pad_abs2_->cd();
+  hReference_copy->SetLineWidth(1);
   hReference_copy->Draw("][hist");
   //hReference->DrawCopy("reference");
 
@@ -8377,10 +8513,12 @@ cout << "\t\t\t$$$\t" << href_clone->GetTitle() << endl;
 
     TH1D* hGen;
     //-- Only continue if the MC is one of the following (excludes position samples).
-    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && 
+    if( ((set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && 
 	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual" &&  
 	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "shift_MPI_or_Tune" &&
-	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "model_" ){ continue; }
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "model_") ){ continue; }
+
+//    if( !MC_files_[MC_].Contains( "ythia") ){ continue; }
 
     cout << "== Unfolder =\txsec\t" << xsec_[ MC_files_[MC_] ] << endl;    
 
@@ -8425,7 +8563,7 @@ cout << "\t\t\t$$$\t" << href_clone->GetTitle() << endl;
     //== Get the integral of the area plotted.
     TH1D* hGen_copy = (TH1D*)hGen->Clone("copy");
     GetSubHistogram( hGen_copy, hGen_copy, Eplot_lowest, 3500. );
-    hGen_copy->Draw("histsame");
+    //hGen_copy->Draw("histsame");
     xsec_txt << "Integral\t" << legend_info_gen_[MC_files_[MC_]] << "\t" << hGen->Integral() << "\t" << hGen_copy->Integral() << "\t" << endl;   
 
 
@@ -9212,6 +9350,10 @@ void Unfolder::ScaleToData( int MC, double &scale ){
 
 
 
+
+
+
+
 void Unfolder::Plot_GenLevels_(){
   cout << "\nUnfolder::Plot_GenLevels_()" << endl;
 
@@ -9555,6 +9697,8 @@ void Unfolder::Plot_Stability(int file_){
   PrepareCanvas( can_, "Stability" );
   hStability->Draw("hist");
 
+  Finish_canvas( can_ );
+
   can_->SaveAs(folder_ + "Stability.C");
   can_->SaveAs(folder_ + "Stability.pdf"); 
 }
@@ -9585,6 +9729,2028 @@ void Unfolder::Plot_Purity(int file_){
   PrepareCanvas( can_, "Purity" );
   hPurity->Draw("hist");
 
+  Finish_canvas( can_ );
+
   can_->SaveAs(folder_ + "Purity.C");
   can_->SaveAs(folder_ + "Purity.pdf"); 
+}
+
+
+
+
+
+void Unfolder::Plot_averageEta_perEgen(int file_){
+
+  TH3D* h3D_;
+  TFile* _file = TFile::Open( MC_files_[file_], "READ");
+  gStyle->SetPalette(1);
+  TCanvas* can;   PrepareCanvas_2D(can, "can_3D");
+  TCanvas* can2;  PrepareCanvas(can2, "can_2D");
+
+  //== Matched gen. jets only.
+
+  // 3D plot.
+  h3D_ = (TH3D*)_file->Get("hEgen_Edet_eta");
+  h3D_->Draw("box");
+  can->SaveAs(folder_ + "3D_plot_box.C");
+  can->SaveAs(folder_ + "3D_plot_box.pdf");
+
+  h3D_->Draw("iso");
+  can->SaveAs(folder_ + "3D_plot_iso.C");
+  can->SaveAs(folder_ + "3D_plot_iso.pdf");
+
+  // 2D plot: egen - eta.
+  TH2D* hXZ = (TH2D*)h3D_->Project3D("xz");
+  Prepare_2Dplot( hXZ );
+  hXZ->Draw("colz");
+  can->SetLogz();
+  can->SaveAs(folder_ + "Egen_eta_matched.C");
+  can->SaveAs(folder_ + "Egen_eta_matched.pdf");
+
+  // 1D plot: <eta> vs. egen
+  TH1D* hZ = (TH1D*)hXZ->ProjectionY();
+
+  for(int bin_egen = 1; bin_egen <= hXZ->GetNbinsY(); bin_egen++){
+    double eta_total = 0.;
+    double events_total = 0;
+    for(int bin_eta = 1; bin_eta <= hXZ->GetNbinsX(); bin_eta++){
+      double nevents = hXZ->GetBinContent( bin_eta, bin_egen );
+      double eta_value = hXZ->GetXaxis()->GetBinCenter( bin_eta  );
+
+      eta_total += nevents * eta_value;
+      events_total += nevents;
+    }
+    double eta_average = eta_total/events_total;
+
+    hZ->SetBinContent( bin_egen, eta_average );
+  }
+
+  can2->cd();
+  Prepare_1Dplot( hZ );
+  hZ->GetYaxis()->SetRangeUser(-6.6, -5.2);
+  hZ->DrawClone("hist");
+  can2->SaveAs(folder_ + "Average_eta_per_Egen_matched.C");
+  can2->SaveAs(folder_ + "Average_eta_per_Egen_matched.pdf");
+
+  //=================
+  //== All gen. jets.
+  //=================
+  can->cd();
+  TH2D* hEgen_eta = (TH2D*)_file->Get("hEgen_eta");
+  hEgen_eta->Draw("colz");
+  can->SaveAs(folder_ + "Egen_eta_all.C");
+  can->SaveAs(folder_ + "Egen_eta_all.pdf");
+
+  for(int bin_egen = 1; bin_egen <= hEgen_eta->GetNbinsX(); bin_egen++){
+    double eta_total = 0.;
+    double events_total = 0;
+    for(int bin_eta = 1; bin_eta <= hEgen_eta->GetNbinsY(); bin_eta++){
+      double nevents = hEgen_eta->GetBinContent( bin_egen, bin_eta );
+      double eta_value = hEgen_eta->GetYaxis()->GetBinCenter( bin_eta  );
+
+      eta_total += nevents * eta_value;
+      events_total += nevents;
+    }
+    double eta_average = eta_total/events_total;
+
+    hZ->SetBinContent( bin_egen, eta_average );
+  }
+
+  can2->cd();
+  Prepare_1Dplot( hZ );
+  hZ->SetLineColor( kRed );
+  hZ->SetLineStyle( 2 );
+  hZ->Draw("histsame");
+  can2->SaveAs(folder_ + "Average_eta_per_Egen_all.C");
+  can2->SaveAs(folder_ + "Average_eta_per_Egen_all.pdf");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void Unfolder::Calculate_averageEta_perEgen(int file_, TH1D* &hist_){
+
+
+  cout << "\n//===//Calculate eta per E" << endl;
+
+  TFile* _file = TFile::Open( MC_files_[file_], "READ");
+
+  //=================
+  //== All gen. jets.
+  //=================
+
+  TH2D* hEgen_eta = (TH2D*)_file->Get("hEgen_eta");
+  TH1D* hZ = (TH1D*)hEgen_eta->ProjectionY();
+ 
+
+  for(int bin_egen = 1; bin_egen <= hEgen_eta->GetNbinsX(); bin_egen++){
+    cout << endl;
+    double eta_total = 0.;
+    double events_total = 0;
+    for(int bin_eta = 1; bin_eta <= hEgen_eta->GetNbinsY(); bin_eta++){
+      cout << "(" << bin_egen << "," << bin_eta << ")\t";
+      double nevents = hEgen_eta->GetBinContent( bin_egen, bin_eta );
+      double eta_value = hEgen_eta->GetYaxis()->GetBinCenter( bin_eta  );
+
+      eta_total += nevents * eta_value;
+      events_total += nevents;
+    }
+    double eta_average = eta_total/events_total;
+
+    hZ->SetBinContent( bin_egen, eta_average );
+  }
+
+  hist_ = hZ;
+
+  cout << "\n//===//Calculated eta per E" << endl;
+}
+
+
+
+
+
+
+
+void Unfolder::Convert_E_to_pt(TH1D* &hist_){
+  cout << "\n//===//Convert to pT" << endl;
+
+
+  //== The histogram contains <eta> as function of E.
+  TH1D* hEta_per_E, *hNewAxis;
+  Calculate_averageEta_perEgen( 0, hEta_per_E );
+
+  vector<double> binEdges;
+
+  for(int bin = 1; bin <= hist_->GetNbinsX(); bin++){
+  
+    double edge_in_E = hist_->GetBinLowEdge( bin );
+    double edge_in_pt = edge_in_E / cosh( hEta_per_E->GetBinContent(bin) );
+
+    binEdges.push_back( edge_in_pt );
+
+    cout << "E\t" << edge_in_E << "\tto\t" << edge_in_pt << "\t\teta\t" << hEta_per_E->GetBinContent( bin ) << "\t" <<  cosh(hEta_per_E->GetBinContent( bin )) << endl;
+  }
+  //== Don't forget upper edge of last bin.
+  {
+    double edge_in_E = hist_->GetXaxis()->GetBinUpEdge( hist_->GetNbinsX() );
+    double edge_in_pt = edge_in_E / cosh(hEta_per_E->GetBinContent( hist_->GetNbinsX()));    
+    binEdges.push_back( edge_in_pt );
+
+    cout << "E\t" << edge_in_E << "\tto\t" << edge_in_pt << "\t\teta\t" << hEta_per_E->GetBinContent( hist_->GetNbinsX()) << "\t" <<  cosh(hEta_per_E->GetBinContent( hist_->GetNbinsX())) << endl;
+
+  }
+
+  //== Convert vector to array.
+  double* pTbins = &binEdges[0];
+
+  //== Numbers of bins.
+  int nBins = binEdges.size()-1;
+
+  //== New histogram.
+  hNewAxis = new TH1D(	hist_->GetName(),	hist_->GetTitle(),	nBins, 	pTbins	);
+
+  //== Fill new histogram.
+  for(int bin = 1; bin <= hist_->GetNbinsX(); bin++){
+    double value = hist_->GetBinContent( bin );
+    double error = hist_->GetBinError( bin );
+    hNewAxis->SetBinContent( bin, value );
+    hNewAxis->SetBinError( bin, error );
+  }
+
+  hNewAxis->GetXaxis()->SetTitle("p_{T} [GeV]");
+  hist_ = hNewAxis;
+
+
+  cout << "\n//===//Converted to pT" << endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void Unfolder::Convert_E_to_xF(TH1D* &hist_){
+  cout << "\n//===//Convert to xF" << endl;
+
+
+  //== The histogram contains <eta> as function of E.
+  TH1D* hEta_per_E, *hNewAxis;
+
+  vector<double> binEdges;
+
+  for(int bin = 1; bin <= hist_->GetNbinsX(); bin++){
+  
+    double edge_in_E = hist_->GetBinLowEdge( bin );
+
+    binEdges.push_back( edge_in_E/eBeam_ );
+  }
+  //== Don't forget upper edge of last bin.
+  {
+    double edge_in_E = hist_->GetXaxis()->GetBinUpEdge( hist_->GetNbinsX() );
+    binEdges.push_back( edge_in_E/eBeam_ );
+  }
+
+  //== Convert vector to array.
+  double* xFbins = &binEdges[0];
+
+  //== Numbers of bins.
+  int nBins = binEdges.size()-1;
+
+  //== New histogram.
+  hNewAxis = new TH1D(	hist_->GetName(),	hist_->GetTitle(),	nBins, 	xFbins	);
+
+  //== Fill new histogram.
+  for(int bin = 1; bin <= hist_->GetNbinsX(); bin++){
+    double value = hist_->GetBinContent( bin );
+    double error = hist_->GetBinError( bin );
+    hNewAxis->SetBinContent( bin, value );
+    hNewAxis->SetBinError( bin, error );
+  }
+
+  hNewAxis->GetXaxis()->SetTitle("x_{F}");
+  hist_ = hNewAxis;
+
+
+  cout << "\n//===//Converted to xF" << endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*=================================================================//
+	
+	1.	Plot the unfolded data
+	2.	Calculate and draw the systematic uncertainties
+		I.	Model + position
+		II.	Model + position + JES
+	3.	Draw Gen. level distribution from MC samples
+	4.	Draw Gen. level distribution from standalone sample
+
+//=================================================================*/
+
+
+
+void Unfolder::Plot_Unfolded_Ratio_allSystematics_normData(TCanvas* can_, TString variable, int iterations){
+  cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics with pT\t" << iterations << endl;
+
+//  TString plot_as = "pT";	// Use <eta> to convert E -> pT
+//  TString plot_as = "xf";	// xF = E/sqrt(s)
+  TString plot_as = "E";
+
+
+  ofstream systematics_txt;
+  systematics_txt.open("systematics.txt");
+  ofstream xsec_txt;
+
+  double Eplot_lowest = 150.*pow(1.25, 3.);
+
+  //== Prepare canvas and pads.
+  TPad* pad_abs_, *pad_ratio_;
+  PrepareCanvas(can_, "Systematics");
+  SplitCanvas(can_, pad_abs_, pad_ratio_);
+
+  //== Prepare histograms.
+  TH1D* hAverage, *hFirst;
+  TString drawoptions = "phist";
+  TH1D* hGen, *hGen_ratio, *hDet, *hReference, *hMC, *hMC_ratio;
+
+  //-- Reference histogram.
+  if( variable == "all") { 
+    Get_DetEnergy( -1 , hReference); 
+    Get_GenEnergy_response( 0, hGen);
+    Get_DetEnergy( 0, hMC ); }
+  if( variable == "lead"){ Get_DetEnergy_lead( -1 , hReference); }
+
+
+  //==================
+  //-- The systematics.
+  TH1D* hSystematics_up = (TH1D*)hReference->Clone("hSystematics_up");
+    hSystematics_up->Reset();
+  TH1D* hSystematics_down = (TH1D*)hReference->Clone("hSystematics_down");
+    hSystematics_down->Reset();
+
+  // With JES.
+  TH1D* hSystematics_up_all = (TH1D*)hReference->Clone("hSystematics_up");
+    hSystematics_up->Reset();
+  TH1D* hSystematics_down_all = (TH1D*)hReference->Clone("hSystematics_down");
+    hSystematics_down->Reset();
+
+  // Lumi. only.
+  TH1D* hSystematics_lumi = (TH1D*)hReference->Clone("hSystematics_lumi");
+    hSystematics_lumi->Reset();
+
+  //-- Normalize hReference (DATA) to xsec by dividing by its luminosity.
+  hReference->Scale( 1./ lumi_ );  
+  hReference->GetYaxis()->SetTitle( "#frac{1}{N_{jets}^{(tot)}} N_{jets}" );
+  //==================
+
+
+  Get_DetUnfolded( 0 , hReference, iterations, variable);	// Unfold hReference with the Response from MC sample 0.
+  if( plot_as == "pT"){ Convert_E_to_pt( hReference ); }
+  else if( plot_as == "xf" ){ Convert_E_to_xF( hReference ); }
+  cout << "Converted" << endl;
+  SetDnDx( hReference );
+  GetSubHistogram( hReference, hReference, Eplot_lowest, 3500. );
+  hReference->Scale( 1./hReference->Integral() );
+  cout << "DnDx" << endl;
+
+
+  double Emax = hReference->GetXaxis()->GetBinLowEdge( hReference->GetNbinsX() );
+  //-- This is going to be the upper limit: cut off a little more.
+  SetSubhistogram_max( Emax );
+  
+  //== Get the integral of the area plotted.
+  TH1D* hReference_copy = (TH1D*)hReference->Clone("copy");
+  GetSubHistogram( hReference_copy, hReference_copy, Eplot_lowest, 3500. );
+//  hReference_copy->Draw("histsame");
+  xsec_txt << "Integral\tData\t" << hReference_copy->Integral() << "\t" << hReference_copy->Integral() << "\t" << endl;   
+
+  //-- Legend.
+  TLegend* legend = new TLegend( 0.65, 0.40, 0.95, 0.95);
+  legend->AddEntry( hReference, TString::Format("Data"), "lp");
+
+  //== Luminosity uncertainty: fixed 3.6%
+  double lumi_dep = 0.036;
+
+/*
+  //== JES comparison.
+  TCanvas *can_jes = new TCanvas("can", "can", 600, 600);
+  TPad* pad_abs2_, *pad_ratio2_;  
+  SplitCanvas(can_jes, pad_abs2_, pad_ratio2_);
+  pad_abs2_->cd();
+  hReference_copy->Draw("][hist");
+  //hReference->DrawCopy("reference");
+
+  pad_ratio2_->cd();
+  TH1D* href_clone = (TH1D*)hReference->Clone("hRef_clone");
+  href_clone->Divide( hReference );
+  href_clone->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+  href_clone->Draw("][hist");
+*/
+  cout << "//===//\tPrepared models" << endl;
+  
+
+  /******************************************************************************************
+  * Begin by averaging the models and taking the difference between average and each model. *
+  ******************************************************************************************/
+
+  float models = 0.;
+  std::vector<TH1D*> vModels;
+  //-- Calculate average of model dependence.
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+    //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
+    models++;
+    
+    //-- Data unfolded.
+    TH1D* hData;
+
+    //-- Extract and properly scale data.
+    Get_DetEnergy( -1 , hData);
+
+    Get_DetUnfolded( MC_ , hData, iterations, variable);
+    SetDnDx( hData );
+    GetSubHistogram( hData, hData, Eplot_lowest, 3500. );
+    hData->  Scale( 1./hData->Integral() );
+
+    if( plot_as == "pT"){ Convert_E_to_pt( hData ); }
+    else if( plot_as == "xf" ){ Convert_E_to_xF( hData ); }
+
+    if( MC_ == 0 ){ 
+      hAverage = (TH1D*)hData->Clone("Average");
+      hDet = (TH1D*)hData->Clone("hModeldep");
+    }
+    else{
+      hAverage->Add( hData );
+    }
+    vModels.push_back( hData );
+  }
+
+  hAverage->Scale( 1./models );
+
+  //-- We have the model dependence average.
+  //-- Loop over all bins and check which model returns the biggest difference with the average (above and below). 
+  TH1D* hModel_dep_high = (TH1D*)hAverage->Clone("hModel_dependence_up");
+  TH1D* hModel_dep_low = (TH1D*)hAverage->Clone("hModel_dependence_down");;
+  
+  for(int bin = 0; bin <= hAverage->GetNbinsX(); bin++){
+    double current_bin = hAverage->GetBinContent( bin );
+    double bin_min = current_bin, bin_max = current_bin;
+
+    for( int model = 0; model < vModels.size(); model++){
+      cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics\tAnalyzing model\t" << model <<  endl;
+      TH1D* hMod = vModels[model];
+      double model_bin = hMod->GetBinContent( bin );
+      if( model_bin > bin_max ){ bin_max = model_bin; }
+      if( model_bin < bin_min ){ bin_min = model_bin; }
+    }
+
+    //-- Store the difference between the highest/lowest distributions and the average as the model uncertaintu-y.
+
+    if( current_bin != 0. ){
+      hModel_dep_high->SetBinContent( bin, (bin_max - current_bin)/current_bin );
+      hModel_dep_low->SetBinContent( bin, (current_bin - bin_min)/current_bin );
+    }
+    else{
+      hModel_dep_high->SetBinContent( bin, 0. );
+      hModel_dep_low->SetBinContent( bin, 0. );
+    }
+  }
+
+  cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics\tPassed models" << endl; 
+
+
+
+
+ /******************************************************************************************
+  * Begin by averaging the positions and taking the difference between average and each model. *
+  ******************************************************************************************/
+
+  float pos = 0.;
+  std::vector<TH1D*> vPositions;
+  //-- Calculate average of model dependence.
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+    //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "position" ){ continue; }
+    pos++;
+    
+    //-- Data unfolded.
+    TH1D* hData;
+
+    //-- Extract and properly scale data.
+    Get_DetEnergy( -1 , hData);
+
+    Get_DetUnfolded( MC_ , hData, iterations, variable);
+    SetDnDx( hData );
+    GetSubHistogram( hData, hData, Eplot_lowest, 3500. );
+    hData->  Scale( 1./hData->Integral() );
+
+    if( plot_as == "pT"){ Convert_E_to_pt( hData ); }
+    else if( plot_as == "xf" ){ Convert_E_to_xF( hData ); }
+
+    if( MC_ == 0 ){ 
+      hAverage = (TH1D*)hData->Clone("Average");
+      hDet = (TH1D*)hData->Clone("hPosDep");
+    }
+    else{
+      hAverage->Add( hData );
+    }
+    vPositions.push_back( hData );
+  }
+
+  hAverage->Scale( 1./pos );
+
+  //-- We have the position dependence average.
+  //-- Loop over all bins and check which model returns the biggest difference with the average (above and below). 
+  TH1D* hPosition_dep_high = (TH1D*)hAverage->Clone("hPosition_dependence_up");
+  TH1D* hPosition_dep_low = (TH1D*)hAverage->Clone("hPosition_dependence_down");;
+  
+  for(int bin = 0; bin <= hAverage->GetNbinsX(); bin++){
+    double current_bin = hAverage->GetBinContent( bin );
+    double bin_min = current_bin, bin_max = current_bin;
+
+    for( int position = 0; position < vPositions.size(); position++){
+      cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics\tAnalyzing position\t" << position <<  endl;
+      TH1D* hMod = vPositions[position];
+      double position_bin = hMod->GetBinContent( bin );
+      if( position_bin > bin_max ){ bin_max = position_bin; }
+      if( position_bin < bin_min ){ bin_min = position_bin; }
+    }
+
+    //-- Store the difference between the highest/lowest distributions and the average as the position uncertaintu-y.
+
+    if( current_bin != 0. ){
+      hPosition_dep_high->SetBinContent( bin, (bin_max - current_bin)/current_bin );
+      hPosition_dep_low->SetBinContent( bin, (current_bin - bin_min)/current_bin );
+    }
+    else{
+      hPosition_dep_high->SetBinContent( bin, 0. );
+      hPosition_dep_low->SetBinContent( bin, 0. );
+    }
+  }
+
+  cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics\tPassed positions" << endl; 
+
+
+  /**********************************
+  * JES - unfold with Pythia6 (Z2*) *
+  **********************************/ 
+
+  TH1D *hJESup, *hJESdown;
+  Get_DetEnergy_JESup( -1 , hJESup);	// Extract data distribution.
+  Get_DetUnfolded( 0 , hJESup, iterations, variable);
+  /*if( plot_as == "pT"){ Convert_E_to_pt( hJESup ); }
+  else if( plot_as == "xf" ){ Convert_E_to_xF( hJESup ); }*/
+  SetDnDx( hJESup ); 			// Divide by binwidth.
+  GetSubHistogram( hJESup, hJESup, Eplot_lowest, 3500. );
+  hJESup->Scale( 1./ hJESup->Integral() );
+  hJESup->Add( hReference, -1);		// Difference with unfolded data.
+  hJESup->Divide( hReference );		// dN/N
+
+  Get_DetEnergy_JESdown( -1 , hJESdown);// Extract data distribution.
+  Get_DetUnfolded( 0 , hJESdown, iterations, variable);
+  /*if( plot_as == "pT"){ Convert_E_to_pt( hJESdown ); }
+  else if( plot_as == "xf" ){ Convert_E_to_xF( hJESdown ); }*/
+  SetDnDx( hJESdown ); 			// Divide by binwidth.
+  GetSubHistogram( hJESdown, hJESdown, Eplot_lowest, 3500. );
+  hJESdown->Scale( 1./hJESdown->Integral() );
+  hJESdown->Add( hReference, -1);	// Difference with binwidth.
+  hJESdown->Scale( -1. );		// Turn negative value into positive value.
+  hJESdown->Divide( hReference );	// dN/N
+
+  /******************************************
+  * Continue with the position uncertainty. *
+  ******************************************/
+
+  //-- Add error from model and position uncertainty.
+  for(int bin = 0; bin <= hReference->GetNbinsX(); bin++){
+
+    //== Systematics positive.
+    double model_dep_up = hModel_dep_high->GetBinContent( bin );
+    double position_dep_up = hPosition_dep_high->GetBinContent( bin );
+    double total = sqrt( 
+	model_dep_up*model_dep_up + 
+	position_dep_up*position_dep_up  +
+	lumi_dep*lumi_dep  );
+    hSystematics_up->SetBinContent( bin, total ); 
+
+    double JES_dep = hJESup->GetBinContent( bin );
+    if( JES_dep < 0. ){ JES_dep = hJESdown->GetBinContent( bin ); }
+    total = sqrt( total*total + JES_dep*JES_dep ); 
+    hSystematics_up_all->SetBinContent( bin, total ); 
+
+    //== Reset total.
+    total = 0.;
+
+    //== Systematics negative.
+    double model_dep_down = hModel_dep_low->GetBinContent( bin );
+    double position_dep_down = hPosition_dep_low->GetBinContent( bin );
+    total = sqrt( 
+	model_dep_down*model_dep_down + 
+	position_dep_down*position_dep_down  +
+	lumi_dep*lumi_dep  );
+    hSystematics_down->SetBinContent( bin, total );  
+
+    JES_dep = hJESup->GetBinContent( bin );
+    if( JES_dep > 0. ){ JES_dep = hJESdown->GetBinContent( bin ); }
+    total = sqrt( total*total + JES_dep*JES_dep );
+    hSystematics_down_all->SetBinContent( bin, total );  
+
+  }
+
+  cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics\tPassed position" << endl; 
+
+
+//  hReference->GetXaxis()->SetRangeUser(Ecut_, 2100.);
+  TH1D* hReference_ratio = (TH1D*)hReference->Clone("hReference_ratio");
+  hReference_ratio->Divide( hReference );
+
+
+  /*
+  The following is needed to calculate the proper position of the datapoints.
+  See Eq. (7) in  Physics Research A 355 (1995) 541-547.
+
+  We have a spectrum with two distinct slopes: the first slope is called low, the second is called high.
+  */
+ 
+
+  double alow = 185509.8;
+  double blow = 0.007383852;   
+
+  double ahigh = 24325.05;
+  double bhigh = 0.004686864;
+
+  double a = alow, b = blow;
+
+  /**/
+
+  const Int_t n = hReference_ratio->GetNbinsX();
+  // x-axis and the values.
+  Double_t x[2*n], y[2*n];
+
+  // Systematic uncertainty lumi.
+  Double_t ex_lumi[2*n], ey_lumi[2*n];
+
+  // Systematic uncertainty without JES.
+  Double_t exl[2*n], eyl[2*n], exh[2*n], eyh[2*n];
+
+  // Systematic uncertainty with JES.
+  Double_t exl_all[2*n], eyl_all[2*n], exh_all[2*n], eyh_all[2*n];
+
+ 
+  double x_data[n], y_data[n], y_ratio[n];
+  double exl_data[n],exh_data[n];
+  double eyl_data[n],eyh_data[n];
+  double eyl_ratio[n],eyh_ratio[n];
+
+   cout << "xl\tx\txlw\ty\ty-ratio\tDeltax" << endl;
+
+  // Remember: hist bins start at 1, graph bins at 0.
+  for(int bin = 0; bin < hReference->GetNbinsX(); bin++){
+    double bin_lowedge = hReference->GetXaxis()->GetBinLowEdge( bin+1 );
+    double bin_highedge = hReference->GetXaxis()->GetBinUpEdge( bin+1 );
+
+    if( bin_lowedge > 900. ){ a = ahigh; b = bhigh; }
+
+    double binwidth = hReference->GetXaxis()->GetBinWidth( bin+1);
+
+    double xlw = bin_lowedge 
+		+ 1./b* (log(b * binwidth) )
+		- 1./b* (log( 1. - exp( -1. * b * binwidth) ));
+
+    int bin_shift = 1;
+    if (bin == n-1){ bin_shift = 0; }	//== This ensures the last ratio is drawn neatly.
+
+    x_data[bin] = xlw;
+    y_data[bin] = hReference->GetBinContent( bin+bin_shift );
+    y_ratio[bin] = 1.;
+    exl_data[bin] = xlw - bin_lowedge;
+    exh_data[bin] = bin_highedge - xlw;
+    eyl_data[bin] = hReference->GetBinError( bin+bin_shift );
+    eyh_data[bin] = hReference->GetBinError( bin+bin_shift );
+    eyl_ratio[bin] = hReference->GetBinError( bin+bin_shift )/hReference->GetBinContent( bin+bin_shift  );
+    eyh_ratio[bin] = hReference->GetBinError( bin+bin_shift )/hReference->GetBinContent( bin+bin_shift  );
+
+  }
+
+   TGraphAsymmErrors *gr_data = new TGraphAsymmErrors(n,x_data,y_data,exl_data,exh_data,eyl_data,eyh_data);
+     gr_data->SetLineWidth( 1 );
+     gr_data->SetMarkerSize( 1.25 );
+     gr_data->SetMarkerStyle( 20 );
+     gr_data->SetTitle("Graph_data");
+     gr_data->SetName("Graph_data");
+
+
+   TGraphAsymmErrors *gr_ratio = new TGraphAsymmErrors(n,x_data,y_ratio,exl_data,exh_data,eyl_ratio,eyh_ratio);
+     gr_ratio->SetLineWidth( 1 );
+     gr_ratio->SetMarkerSize( 1.25 );
+     gr_ratio->SetMarkerStyle( 20 );
+     gr_ratio->SetTitle("Graph_ratio");
+     gr_ratio->SetName("Graph_ratio");
+
+  for(int bin = 0; bin < n; bin++){
+    int bin_shift = 1;
+    if (bin == n-1){ bin_shift = 0; }	//== This ensures the last ratio is drawn neatly.
+    if (bin == 2){ bin_shift = 2; }	//== This ensures the last ratio is drawn neatly.
+
+    x[2*bin] = hReference_ratio->GetXaxis()->GetBinLowEdge( bin+1 );
+    y[2*bin] = hReference_ratio->GetBinContent( bin+1 );
+    x[2*bin+1] = hReference_ratio->GetXaxis()->GetBinUpEdge( bin+1 );
+    y[2*bin+1] = hReference_ratio->GetBinContent( bin+1);
+
+    //-- Error band lumi.
+    ey_lumi[2*bin] = 0.036 ;
+    ex_lumi[2*bin] = hReference_ratio->GetBinContent( bin+bin_shift );
+
+    ey_lumi[2*bin+1] = 0.036 ;
+    ex_lumi[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+    //-- Error band without JES.
+    eyl[2*bin] = hSystematics_down->GetBinContent( bin+bin_shift ) ;
+    eyh[2*bin] = hSystematics_up->GetBinContent( bin+bin_shift ) ;
+    exl[2*bin] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+    exh[2*bin] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+    eyl[2*bin+1] = hSystematics_down->GetBinContent( bin+bin_shift ) ;
+    eyh[2*bin+1] = hSystematics_up->GetBinContent( bin+bin_shift ) ;
+    exl[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+    exh[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+    //-- Error band with JES.
+    eyl_all[2*bin] = hSystematics_down_all->GetBinContent( bin+bin_shift ) ;
+    eyh_all[2*bin] = hSystematics_up_all->GetBinContent( bin+bin_shift ) ;
+    exl_all[2*bin] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+    exh_all[2*bin] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+    eyl_all[2*bin+1] = hSystematics_down_all->GetBinContent( bin+bin_shift ) ;
+    eyh_all[2*bin+1] = hSystematics_up_all->GetBinContent( bin+bin_shift ) ;
+    exl_all[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+    exh_all[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+
+  }
+
+  //== Get the integral of the area plotted of the systematics.
+  TH1D* hSysUp_copy = (TH1D*)hSystematics_up->Clone("copy");
+//  GetSubHistogram( hSysUp_copy, hSysUp_copy, Eplot_lowest, 3500. );
+  hSysUp_copy->Draw("histsame");
+  xsec_txt << "Integral\tSys. Up\t" << hSysUp_copy->Integral() << "\t" << hSysUp_copy->Integral() << "\t" << endl;
+
+  TH1D* hSysDown_copy = (TH1D*)hSystematics_down->Clone("copy");
+//  GetSubHistogram( hSysDown_copy, hSysDown_copy, Eplot_lowest, 3500. );
+  hSysDown_copy->Draw("histsame");
+  xsec_txt << "Integral\tSys. Down\t" << hSysDown_copy->Integral() << "\t" << hSysDown_copy->Integral() << "\t" << endl;    
+
+  TH1D* hSysUpAll_copy = (TH1D*)hSystematics_up_all->Clone("copy");
+//  GetSubHistogram( hSysUpAll_copy, hSysUpAll_copy, Eplot_lowest, 3500. );
+  hSysUp_copy->Draw("histsame");
+  xsec_txt << "Integral\tSys. Up\t" << hSysUpAll_copy->Integral() << "\t" << hSysUpAll_copy->Integral() << "\t" << endl;
+
+  TH1D* hSysDownAll_copy = (TH1D*)hSystematics_down_all->Clone("copy");
+//  GetSubHistogram( hSysDownAll_copy, hSysDownAll_copy, Eplot_lowest, 3500. );
+  hSysDownAll_copy->Draw("histsame");
+  xsec_txt << "Integral\tSys. Down\t" << hSysDownAll_copy->Integral() << "\t" << hSysDownAll_copy->Integral() << "\t" << endl;    
+
+
+
+  //-- Draw.
+
+  pad_ratio_->cd();
+
+  //-- Ratio.
+   TGraphAsymmErrors *gr = new TGraphAsymmErrors(2*n,x,y,exl_all,exh_all,eyl_all,eyh_all);
+   gr->SetTitle("TGraphAsymmErrors All");
+   int ci_all = TColor::GetColor("#FFFF66");
+   gr->SetMarkerColor(ci_all);
+   gr->SetFillColor( ci_all );
+   gr->SetMarkerStyle(21);
+
+
+   gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   if( plot_as == "xf" ){    gr->GetHistogram()->GetXaxis()->SetTitle("x_{F}"); }
+   if( plot_as == "pT" ){    gr->GetHistogram()->GetXaxis()->SetTitle("p_{T} [GeV]"); }
+   gr->GetHistogram()->GetYaxis()->SetTitle("Ratio");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 3.35);
+
+   Prepare_1Dplot( gr );
+//   gr->GetHistogram()->GetXaxis()->SetTitleOffset( 2.* gr->GetHistogram()->GetXaxis()->GetTitleOffset() );
+
+   gr->Draw("AE3");
+
+   //-- Draw smaller errors on top of bigger errors.
+   gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,eyl,eyh);
+   gr->SetTitle("TGraphAsymmErrors No JES");
+   int ci = TColor::GetColor("#FFB266");
+   gr->SetMarkerColor(ci);
+   gr->SetFillColor( ci );
+   gr->SetMarkerStyle(21);
+
+   gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 2.);
+   gr->Draw("PE3same");
+
+   //-- Draw lumi errors on top of bigger errors.
+   gr = new TGraphAsymmErrors(2*n,x,y,ex_lumi,ex_lumi,ey_lumi,ey_lumi);
+   gr->SetTitle("TGraphAsymmErrors Lumi");
+   int ci_lumi = TColor::GetColor("#FF007F");
+   gr->SetMarkerColor(ci_lumi);
+   gr->SetFillColor( ci_lumi );
+   gr->SetMarkerStyle(21);
+
+   gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 2.);
+   gr->Draw("PE3same");
+
+   hReference_ratio->SetMarkerColor( kBlack );
+   gr_ratio->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+   gr_ratio->Draw("psame");
+
+
+
+  //-- Absolute value.
+  pad_abs_->cd();
+
+
+  for(int bin = 0; bin < n; bin++){
+//      cout << "Absolute value\t" << bin << endl;
+/*
+    x[bin] = hReference->GetBinCenter( bin );
+    y[bin] = hReference->GetBinContent( bin );
+    eyl[bin] = hSystematics_down->GetBinContent( bin ) * y[bin];
+    eyh[bin] = hSystematics_up->GetBinContent( bin )* y[bin];
+    exl[bin] = hReference->GetBinWidth( bin )/2;
+    exh[bin] = hReference->GetBinWidth( bin )/2;
+*/
+
+    int bin_shift = 1;
+    if (bin == n-1){ bin_shift = 0; }	//== This ensures the last ratio is drawn neatly.
+    if (bin == 2){ bin_shift = 2; }	//== This ensures the last ratio is drawn neatly.
+
+    x[2*bin] = hReference->GetXaxis()->GetBinLowEdge( bin+1 );
+    y[2*bin] = hReference->GetBinContent( bin+bin_shift );
+    x[2*bin+1] = hReference->GetXaxis()->GetBinUpEdge( bin+1 );
+    y[2*bin+1] = hReference->GetBinContent( bin+bin_shift );
+
+    //-- Error band lumi.
+    ey_lumi[2*bin] = 0.036 * y[2*bin] ;
+    ex_lumi[2*bin] = hReference_ratio->GetBinContent( bin+1 );
+
+    ey_lumi[2*bin+1] = 0.036 * y[2*bin] ;
+    ex_lumi[2*bin+1] = hReference_ratio->GetBinWidth( bin+1 )/2;
+
+
+    //-- Error band without JES.
+    eyl[2*bin] = hSystematics_down->GetBinContent( bin+bin_shift ) * y[2*bin] ;
+    eyh[2*bin] = hSystematics_up->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    exl[2*bin] = hReference->GetBinWidth( bin+bin_shift )/2;
+    exh[2*bin] = hReference->GetBinWidth( bin+bin_shift )/2;
+
+    eyl[2*bin+1] = hSystematics_down->GetBinContent(bin+bin_shift ) * y[2*bin]  ;
+    eyh[2*bin+1] = hSystematics_up->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    exl[2*bin+1] = hReference->GetBinWidth( bin+bin_shift )/2;
+    exh[2*bin+1] = hReference->GetBinWidth( bin+bin_shift )/2;
+
+    //-- Error band with JES.
+    eyl_all[2*bin] = hSystematics_down_all->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    eyh_all[2*bin] = hSystematics_up_all->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    exl_all[2*bin] = hReference->GetBinWidth( bin+bin_shift )/2;
+    exh_all[2*bin] = hReference->GetBinWidth( bin+bin_shift )/2;
+
+    eyl_all[2*bin+1] = hSystematics_down_all->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    eyh_all[2*bin+1] = hSystematics_up_all->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    exl_all[2*bin+1] = hReference->GetBinWidth( bin+bin_shift )/2;
+    exh_all[2*bin+1] = hReference->GetBinWidth( bin+bin_shift )/2;
+
+//    cout << y[bin] << endl;
+  }
+
+   
+   pad_abs_->SetLogy();
+
+   //-- Draw graph with smaller errors on top of graph with bigger errors.
+   gr = new TGraphAsymmErrors(2*n,x,y,exl_all,exh_all,eyl_all,eyh_all);
+   gr->SetFillColor(ci_all);
+   gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+
+   gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.1*GetMinimumValue( hReference ), hReference->GetMaximum() * 1.1 );
+   if( plot_as == "pT"){ gr->GetHistogram()->GetYaxis()->SetTitle("#frac{d#sigma}{dp_{T}} [mb/GeV]"); }
+   if( plot_as == "xf"){ gr->GetHistogram()->GetYaxis()->SetTitle("#frac{d#sigma}{dx_{F}} [mb]"); }
+   if( plot_as == "E"){ gr->GetHistogram()->GetYaxis()->SetTitle("#frac{1}{N_{jets}^{(tot)}} #frac{dN_{jets}}{dE}" ); }
+
+   //== Only Y-axis needed.
+   Prepare_1Dplot( gr );
+
+   gr->Draw("AE3");
+
+   legend->AddEntry( gr, "Syst. errors (All)", "f");
+
+   //-- Draw graph with smaller errors on top of graph with bigger errors.
+   gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,eyl,eyh);
+   gr->SetFillColor(ci);
+   gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.1*GetMinimumValue( hReference ), hReference->GetMaximum() * 1.1 );
+   gr->GetHistogram()->GetYaxis()->SetTitle("#frac{dN}{dE}");
+   gr->Draw("PE3same");
+
+   legend->AddEntry( gr, "Syst. errors (w/o energy scale)", "f");
+
+   //-- Draw graph with smaller errors on top of graph with bigger errors.
+   gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,ey_lumi,ey_lumi);
+   gr->SetFillColor(ci_lumi);
+   gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+   gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+   gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.1*GetMinimumValue( hReference ), hReference->GetMaximum() * 1.1 );
+   gr->GetHistogram()->GetYaxis()->SetTitle("#frac{dN}{dE}");
+   gr->Draw("PE3same");
+
+   legend->AddEntry( gr, "Syst. errors (lumi)", "f");
+
+   hReference->SetMarkerColor( kBlack );
+
+   gr_data->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+   gr_data->Draw("psame");
+
+
+  //-- Scale and draw generator level distribution.
+  int color_ = 0;
+  int line_ = 1;
+  drawoptions = "][histsame";
+  ofstream binwidths;
+  binwidths.open("binwidths.txt");
+  for(int MC_ = 0; MC_ < MC_files_.size(); MC_++){
+    cout << "\n\n\n\n== Unfolder ==\t" << MC_files_[MC_] << endl;
+
+    TH1D* hGen;
+    //-- Only continue if the MC is one of the following (excludes position samples).
+    if( ((set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && 
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual" &&  
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "shift_MPI_or_Tune" &&
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "model_") ){ continue; }
+
+//    if( !MC_files_[MC_].Contains( "ythia") ){ continue; }
+
+    cout << "== Unfolder =\txsec\t" << xsec_[ MC_files_[MC_] ] << endl;    
+
+    //-- Check for xsec = 0 or NaN.
+    if( xsec_[ MC_files_[MC_] ] !=  xsec_[ MC_files_[MC_] ] ){ continue; }
+    if( xsec_[ MC_files_[MC_] ] ==  0. ){ continue; }
+   
+    //-- Change colors.
+    color_++ ;
+    if( color_ == 1 || color_ == 3 || color_ == 7) color_++;
+
+    //-- If scaletodata_ is true, the gen. energy spectrum will be scaled with numbers taken from the file before being passed back.
+    scaletodata_ = true;
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){ // There is only one gen. distribution, since there are no cuts on detector level.
+      Get_GenEnergy( MC_, hGen ); }
+    else{ // There are several gen. distributions, take the one uninfluenced by the cuts on detector level.
+      Get_PureGenEnergy( MC_, hGen ); }
+    scaletodata_ = false;
+
+    hGen->SetTitle( TString::Format("hGenJet_energy_%i", MC_) );
+    hGen->SetName( TString::Format("hGenJet_energy_%i", MC_) );
+
+    //-- Skip to next file if histogram does not exist.
+    if( hGen->Integral() != hGen->Integral() ){ continue; }   
+
+    if( plot_as == "pT"){ Convert_E_to_pt( hGen ); }
+    else if( plot_as == "xf" ){ Convert_E_to_xF( hGen ); }
+
+    SetDnDx( hGen );
+    GetSubHistogram( hGen, hGen, Eplot_lowest, 3500. );
+    hGen->Scale( 1./hGen->Integral() );
+
+
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){
+      //hGen->SetMarkerStyle( 20 + MC_ );
+      drawoptions = "][histsame";
+    }
+
+    //-- Multiply the distribution to the total number of measured data.
+    //-- Set underflow bin to the same value to avoid dive to zero at low bin.
+    hGen->GetXaxis()->SetRangeUser( Eplot_lowest, Emax);
+
+    //-- Set line properties.
+    hGen->SetLineColor( getColor(color_) );
+    hGen->SetLineStyle( (line_ != 1)*((line_++)%7+2) );
+    hGen->SetLineWidth( 3 );
+
+    //== Get the integral of the area plotted.
+    TH1D* hGen_copy = (TH1D*)hGen->Clone("copy");
+//    GetSubHistogram( hGen_copy, hGen_copy, Eplot_lowest, 3500. );
+    //hGen_copy->Draw("histsame");
+    xsec_txt << "Integral\t" << legend_info_gen_[MC_files_[MC_]] << "\t" << hGen->Integral() << "\t" << hGen_copy->Integral() << "\t" << endl;   
+
+
+    //-- Set ratio of distribution.
+    hGen_ratio = (TH1D*)hGen->Clone( TString::Format("hGen_ratio_%i", MC_) );
+    hGen_ratio->Divide( hReference );
+
+    pad_abs_->cd();
+    hGen->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+    hGen->Draw( drawoptions);
+    
+    pad_ratio_->cd();
+    hGen_ratio->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+    hGen_ratio->Draw( drawoptions);
+
+    TString legend_file = legend_info_gen_[MC_files_[MC_]];
+
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){
+      legend->AddEntry( hGen, TString::Format( legend_file  ), "l");
+    }
+    else{
+      legend->AddEntry( hGen, legend_file , "l");
+    }
+  }
+
+   pad_abs_->cd();
+//   legend->SetFillColor(0);
+   legend->Draw();
+
+    can_->cd();
+
+    //== Text.
+    Finish_canvas( can_ );
+//    CMS_lumi( can_, 1, 22);
+
+
+   can_->SaveAs( TString::Format( folder_ + "Totaldependence_" + plot_as + "_scale1_%iit_deltaphi_0%i_etaband_0%i.C", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) );
+   can_->SaveAs( TString::Format( folder_ + "Totaldependence_" + plot_as + "_scale1_%iit_deltaphi_0%i_etaband_0%i.pdf", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) ); 
+
+
+   systematics_txt.close();
+   xsec_txt.close();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*=================================================================//
+	
+	1.	Plot the unfolded data
+	2.	Calculate and draw the systematic uncertainties
+		I.	Model + position
+		II.	Model + position + JES
+	3.	Draw Gen. level distribution from MC samples
+	4.	Draw Gen. level distribution from standalone sample
+
+//=================================================================*/
+
+
+
+void Unfolder::Plot_Unfolded_Ratio_allSystematics_pT(TCanvas* can_, TString variable, int iterations, TString plot_as, TString which_models){
+  cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics with pT\t" << iterations << endl;
+
+  ofstream systematics_txt;
+  systematics_txt.open("systematics.txt");
+
+  ofstream xsec_txt;
+
+  //== Prepare canvas and pads.
+  TPad* pad_abs_, *pad_ratio_;
+  PrepareCanvas(can_, "Systematics");
+  SplitCanvas(can_, pad_abs_, pad_ratio_);
+
+  //== Prepare histograms.
+  TH1D* hAverage, *hFirst;
+  TString drawoptions = "phist";
+  TH1D* hGen, *hGen_ratio, *hDet, *hReference, *hMC, *hMC_ratio;
+
+  //-- Reference histogram.
+  if( variable == "all") { 
+    Get_DetEnergy( -1 , hReference); 
+    Get_GenEnergy_response( 0, hGen);
+    Get_DetEnergy( 0, hMC ); }
+  if( variable == "lead"){ Get_DetEnergy_lead( -1 , hReference); }
+
+  //-- Normalize hReference (DATA) to xsec by dividing by its luminosity.
+  hReference->Scale( 1./ lumi_ );  
+  hReference->GetYaxis()->SetTitle( "#frac{d#sigma}{dE} [mb/GeV]" );
+
+  Get_DetUnfolded( 0 , hReference, iterations, variable);	// Unfold hReference with the Response from MC sample 0.
+  if( plot_as == "pT"){ Convert_E_to_pt( hReference ); }
+  else if( plot_as == "xf" ){ Convert_E_to_xF( hReference ); }
+  SetDnDx( hReference );
+
+  double Eplot_lowest = hReference->GetXaxis()->GetBinLowEdge( 3 );
+  double Emax = hReference->GetXaxis()->GetBinLowEdge( hReference->GetNbinsX() );
+
+  //-- This is going to be the upper limit: cut off a little more.
+  SetSubhistogram_max( Emax );
+  
+  //== Get the integral of the area plotted.
+  TH1D* hReference_copy = (TH1D*)hReference->Clone("copy");
+
+  //== Legend for models.
+  double legx, legy;
+  if( which_models = "Pythia"){ legx = 1. - pad_abs_->GetRightMargin()-0.47; legy = 1. - pad_abs_->GetTopMargin() - 0.45; }
+  else{ legx = 1. - pad_abs_->GetRightMargin()-0.35; legy = 1. - pad_abs_->GetTopMargin() - 0.5; }
+
+  TLegend* legend = new TLegend( 
+	legx, 	1. - pad_abs_->GetTopMargin() - 0.45, 
+	1. - pad_abs_->GetRightMargin(), 	1. - pad_abs_->GetTopMargin() );
+
+  //== Legend for systematics.
+  TLegend* legend_syst	 = new TLegend( 
+	pad_abs_->GetLeftMargin(), 	pad_abs_->GetBottomMargin(), 
+	pad_abs_->GetLeftMargin()+0.4, 	pad_abs_->GetBottomMargin() +0.5);
+  legend_syst->AddEntry( hReference, TString::Format("Data"), "lp");
+
+  //== Luminosity uncertainty: fixed 3.6%
+  double lumi_dep = 0.036;
+
+
+  /******************************************************************************************
+  * Begin by averaging the models and taking the difference between average and each model. *
+  ******************************************************************************************/
+
+  float models = 0.;
+  std::vector<TH1D*> vModels;
+  //-- Calculate average of model dependence.
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+    //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
+    models++;
+    
+    //-- Data unfolded.
+    TH1D* hData;
+
+    //-- Extract and properly scale data.
+    Get_DetEnergy( -1 , hData);
+    hData->Scale( 1./ lumi_ );
+
+    Get_DetUnfolded( MC_ , hData, iterations, variable);
+
+    if( plot_as == "pT"){ Convert_E_to_pt( hData ); }
+    else if( plot_as == "xf" ){ Convert_E_to_xF( hData ); }
+
+    SetDnDx( hData );
+
+    if( MC_ == 0 ){ 
+      hAverage = (TH1D*)hData->Clone("Average");
+      hDet = (TH1D*)hData->Clone("hModeldep");
+    }
+    else{
+      hAverage->Add( hData );
+    }
+    vModels.push_back( hData );
+  }
+
+  hAverage->Scale( 1./models );
+
+  //-- We have the model dependence average.
+  //-- Loop over all bins and check which model returns the biggest difference with the average (above and below). 
+  TH1D* hModel_dep_high = (TH1D*)hAverage->Clone("hModel_dependence_up");
+  TH1D* hModel_dep_low = (TH1D*)hAverage->Clone("hModel_dependence_down");;
+  
+  for(int bin = 0; bin <= hAverage->GetNbinsX(); bin++){
+    double current_bin = hAverage->GetBinContent( bin );
+    double bin_min = current_bin, bin_max = current_bin;
+
+    for( int model = 0; model < vModels.size(); model++){
+      cout << "Unfolder::Plot_Unfolded_Ratio_allSystematics\tAnalyzing model\t" << model <<  endl;
+      TH1D* hMod = vModels[model];
+      double model_bin = hMod->GetBinContent( bin );
+      if( model_bin > bin_max ){ bin_max = model_bin; }
+      if( model_bin < bin_min ){ bin_min = model_bin; }
+    }
+
+    
+
+    //-- Store the difference between the highest/lowest distributions and the average as the model uncertaintu-y.
+
+    if( current_bin != 0. ){
+      hModel_dep_high->SetBinContent( bin, (bin_max - current_bin)/current_bin );
+      hModel_dep_low->SetBinContent( bin, (current_bin - bin_min)/current_bin );
+    }
+    else{
+      hModel_dep_high->SetBinContent( bin, 0. );
+      hModel_dep_low->SetBinContent( bin, 0. );
+    }
+  }
+
+  /**********************************
+  * JES - unfold with Pythia6 (Z2*) *
+  **********************************/ 
+
+  TH1D *hJESup, *hJESdown;
+  Get_DetEnergy_JESup( -1 , hJESup);	// Extract data distribution.
+  hJESup->Scale( 1./ lumi_ );		// Scale to xsection.
+  Get_DetUnfolded( 0 , hJESup, iterations, variable);
+
+  if( plot_as == "pT"){ Convert_E_to_pt( hJESup ); }
+  else if( plot_as == "xf" ){ Convert_E_to_xF( hJESup ); }
+
+  SetDnDx( hJESup ); 			// Divide by binwidth.
+  hJESup->Add( hReference, -1);		// Difference with unfolded data.
+  hJESup->Divide( hReference );		// dN/N
+
+  Get_DetEnergy_JESdown( -1 , hJESdown);// Extract data distribution.
+  hJESdown->Scale( 1./ lumi_ );	// Scale to xsection.
+  Get_DetUnfolded( 0 , hJESdown, iterations, variable);
+
+  if( plot_as == "pT"){ Convert_E_to_pt( hJESdown ); }
+  else if( plot_as == "xf" ){ Convert_E_to_xF( hJESdown ); }
+
+  SetDnDx( hJESdown ); 			// Divide by binwidth.
+  hJESdown->Add( hReference, -1);	// Difference with binwidth.
+  hJESdown->Scale( -1. );		// Turn negative value into positive value.
+  hJESdown->Divide( hReference );	// dN/N
+
+  /******************************************
+  * Continue with the position uncertainty. *
+  ******************************************/
+
+    // Because JES is a major uncertainty, let's split the systematics into with and without JES.
+    TH1D* hSystematics_up = (TH1D*)hDet->Clone("hSystematics_up");
+      hSystematics_up->Reset();
+    TH1D* hSystematics_down = (TH1D*)hDet->Clone("hSystematics_down");
+      hSystematics_down->Reset();
+
+    // With JES.
+    TH1D* hSystematics_up_all = (TH1D*)hDet->Clone("hSystematics_up");
+      hSystematics_up->Reset();
+    TH1D* hSystematics_down_all = (TH1D*)hDet->Clone("hSystematics_down");
+      hSystematics_down->Reset();
+
+    // Lumi. only.
+    TH1D* hSystematics_lumi = (TH1D*)hDet->Clone("hSystematics_lumi");
+      hSystematics_lumi->Reset();
+
+  //-- Position dependence.
+  for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
+    //-- Generator level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] != "position" && (set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual"){ continue; }
+    //-- Generator level.
+
+    //-- Data unfolded.
+    TH1D* hData;
+
+    Get_DetEnergy( -1 , hData); 
+    hData->Scale( 1./lumi_ );
+
+    Get_DetUnfolded( MC_ , hData, iterations, variable);
+    hData->SetLineColor( getColor( MC_+2) );
+    hData->SetMarkerColor( getColor( MC_+2 ) );
+    hData->SetMarkerStyle( 24 + MC_ );
+
+    if( plot_as == "pT"){ Convert_E_to_pt( hData ); }
+    else if( plot_as == "xf" ){ Convert_E_to_xF( hData ); }
+
+    SetDnDx( hData );
+
+    if( (MC_files_[MC_]).Contains("up") ) { 
+      hData->Add( hReference, -1. );
+      hData->Divide( hReference );
+    }
+    else if( (MC_files_[MC_]).Contains("down") ){
+      hData->Add( hReference, -1. );
+      hData->Scale( -1. );
+      hData->Divide( hReference );
+    }
+
+    //-- Add error from model and position uncertainty.
+    if( (MC_files_[MC_]).Contains("up") ){    
+      for(int bin = 0; bin <= hData->GetNbinsX(); bin++){
+//        cout << MC_ << "\tPosition\t" << bin << "\t" << hData->GetBinContent( bin ) << endl;
+
+        double model_dep = hModel_dep_high->GetBinContent( bin );
+        double position_dep = hData->GetBinContent( bin );
+        double total = sqrt( 
+		model_dep*model_dep + 
+		position_dep*position_dep  +
+		lumi_dep*lumi_dep  );
+        hSystematics_up->SetBinContent( bin, total ); 
+
+	double JES_dep = hJESup->GetBinContent( bin );
+        total = sqrt( total*total + JES_dep*JES_dep ); 
+        hSystematics_up_all->SetBinContent( bin, total ); 
+
+	systematics_txt << "UP\t" << bin << "\t" << hData->GetBinLowEdge(bin ) << "\t" << hData->GetBinLowEdge(bin +1) << "\t" << model_dep*100 << "\t" << position_dep*100 << "\t" << JES_dep*100 << "\t" << total*100 << endl;
+      }
+    }
+    if( (MC_files_[MC_]).Contains("down") ){    
+      for(int bin = 0; bin <= hData->GetNbinsX(); bin++){
+//        cout << MC_ << "\tPosition\t" << bin << "\t" << hData->GetBinContent( bin ) << endl;
+
+        double model_dep = hModel_dep_low->GetBinContent( bin );
+        double position_dep = hData->GetBinContent( bin );
+        double total = sqrt( 
+		model_dep*model_dep + 
+		position_dep*position_dep  +
+		lumi_dep*lumi_dep  );
+        hSystematics_down->SetBinContent( bin, total );  
+
+	double JES_dep = hJESdown->GetBinContent( bin ); 
+        total = sqrt( total*total + JES_dep*JES_dep );
+        hSystematics_down_all->SetBinContent( bin, total );  
+
+	systematics_txt << "Down\t" << bin << "\t" << hData->GetBinLowEdge(bin ) << "\t" << hData->GetBinLowEdge(bin +1) << "\t" << model_dep*100 << "\t" << position_dep*100 << "\t" << JES_dep*100 << "\t" << total*100 << endl;
+
+      }
+    }
+    drawoptions = "datasame";
+    
+  }
+
+//  hReference->GetXaxis()->SetRangeUser(Ecut_, 2100.);
+  TH1D* hReference_ratio = (TH1D*)hReference->Clone("hReference_ratio");
+  hReference_ratio->Divide( hReference );
+
+
+  /*************************************************************************
+  The following is needed to calculate the proper position of the datapoints.
+  See Eq. (7) in  Physics Research A 355 (1995) 541-547.
+
+  We have a spectrum with two distinct slopes: the first slope is called low, the second is called high.
+  **************************************************************************/
+ 
+
+  double alow = 185509.8;
+  double blow = 0.007383852;   
+
+  double ahigh = 24325.05;
+  double bhigh = 0.004686864;
+
+  double a = alow, b = blow;
+
+  /**/
+
+  const Int_t n = hReference_ratio->GetNbinsX();
+  // x-axis and the values.
+  Double_t x[2*n], y[2*n];
+
+  // Systematic uncertainty lumi.
+  Double_t ex_lumi[2*n], ey_lumi[2*n];
+
+  // Systematic uncertainty without JES.
+  Double_t exl[2*n], eyl[2*n], exh[2*n], eyh[2*n];
+
+  // Systematic uncertainty with JES.
+  Double_t exl_all[2*n], eyl_all[2*n], exh_all[2*n], eyh_all[2*n];
+ 
+  double x_data[n], y_data[n], y_ratio[n];
+  double exl_data[n],exh_data[n];
+  double eyl_data[n],eyh_data[n];
+  double eyl_ratio[n],eyh_ratio[n];
+
+  // Remember: hist bins start at 1, graph bins at 0.
+  for(int bin = 0; bin < hReference->GetNbinsX(); bin++){
+    double bin_lowedge = hReference->GetXaxis()->GetBinLowEdge( bin+1 );
+    double bin_highedge = hReference->GetXaxis()->GetBinUpEdge( bin+1 );
+
+    if( bin_lowedge > 900. ){ a = ahigh; b = bhigh; }
+
+    double binwidth = hReference->GetXaxis()->GetBinWidth( bin+1);
+
+    double xlw = bin_lowedge 
+		+ 1./b* (log(b * binwidth) )
+		- 1./b* (log( 1. - exp( -1. * b * binwidth) ));
+
+    int bin_shift = 1;
+    if (bin == n-1){ bin_shift = 0; }	//== This ensures the last ratio is drawn neatly.
+
+    x_data[bin] = xlw;
+    y_data[bin] = hReference->GetBinContent( bin+bin_shift );
+    y_ratio[bin] = 1.;
+    exl_data[bin] = xlw - bin_lowedge;
+    exh_data[bin] = bin_highedge - xlw;
+    eyl_data[bin] = hReference->GetBinError( bin+bin_shift );
+    eyh_data[bin] = hReference->GetBinError( bin+bin_shift );
+    eyl_ratio[bin] = hReference->GetBinError( bin+bin_shift )/hReference->GetBinContent( bin+bin_shift  );
+    eyh_ratio[bin] = hReference->GetBinError( bin+bin_shift )/hReference->GetBinContent( bin+bin_shift  );
+
+  }
+
+   TGraphAsymmErrors *gr_data = new TGraphAsymmErrors(n,x_data,y_data,exl_data,exh_data,eyl_data,eyh_data);
+     gr_data->SetLineWidth( 1 );
+     gr_data->SetMarkerSize( 1.25 );
+     gr_data->SetMarkerStyle( 20 );
+     gr_data->SetTitle("Graph_data");
+     gr_data->SetName("Graph_data");
+
+
+   TGraphAsymmErrors *gr_ratio = new TGraphAsymmErrors(n,x_data,y_ratio,exl_data,exh_data,eyl_ratio,eyh_ratio);
+     gr_ratio->SetLineWidth( 1 );
+     gr_ratio->SetMarkerSize( 1.25 );
+     gr_ratio->SetMarkerStyle( 20 );
+     gr_ratio->SetTitle("Graph_ratio");
+     gr_ratio->SetName("Graph_ratio");
+
+  for(int bin = 0; bin < n; bin++){
+    int bin_shift = 1;
+    if (bin == n-1){ bin_shift = 0; }	//== This ensures the last ratio is drawn neatly.
+    if (bin == 2){ bin_shift = 2; }	//== This ensures the last ratio is drawn neatly.
+
+    x[2*bin] = hReference_ratio->GetXaxis()->GetBinLowEdge( bin+1 );
+    y[2*bin] = hReference_ratio->GetBinContent( bin+1 );
+    x[2*bin+1] = hReference_ratio->GetXaxis()->GetBinUpEdge( bin+1 );
+    y[2*bin+1] = hReference_ratio->GetBinContent( bin+1);
+
+    //-- Error band lumi.
+    ey_lumi[2*bin] = 0.036 ;
+    ex_lumi[2*bin] = hReference_ratio->GetBinContent( bin+bin_shift );
+
+    ey_lumi[2*bin+1] = 0.036 ;
+    ex_lumi[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+    //-- Error band without JES.
+    eyl[2*bin] = hSystematics_down->GetBinContent( bin+bin_shift ) ;
+    eyh[2*bin] = hSystematics_up->GetBinContent( bin+bin_shift ) ;
+    exl[2*bin] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+    exh[2*bin] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+    eyl[2*bin+1] = hSystematics_down->GetBinContent( bin+bin_shift ) ;
+    eyh[2*bin+1] = hSystematics_up->GetBinContent( bin+bin_shift ) ;
+    exl[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+    exh[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+    //-- Error band with JES.
+    eyl_all[2*bin] = hSystematics_down_all->GetBinContent( bin+bin_shift ) ;
+    eyh_all[2*bin] = hSystematics_up_all->GetBinContent( bin+bin_shift ) ;
+    exl_all[2*bin] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+    exh_all[2*bin] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+    eyl_all[2*bin+1] = hSystematics_down_all->GetBinContent( bin+bin_shift ) ;
+    eyh_all[2*bin+1] = hSystematics_up_all->GetBinContent( bin+bin_shift ) ;
+    exl_all[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+    exh_all[2*bin+1] = hReference_ratio->GetBinWidth( bin+bin_shift )/2;
+
+
+  }
+
+  //== Get the integral of the area plotted of the systematics.
+  TH1D* hSysUp_copy = (TH1D*)hSystematics_up->Clone("copy");
+//  GetSubHistogram( hSysUp_copy, hSysUp_copy, Eplot_lowest, 3500. );
+  hSysUp_copy->Draw("histsame");
+  xsec_txt << "Integral\tSys. Up\t" << hSysUp_copy->Integral() << "\t" << hSysUp_copy->Integral() << "\t" << endl;
+
+  TH1D* hSysDown_copy = (TH1D*)hSystematics_down->Clone("copy");
+//  GetSubHistogram( hSysDown_copy, hSysDown_copy, Eplot_lowest, 3500. );
+  hSysDown_copy->Draw("histsame");
+  xsec_txt << "Integral\tSys. Down\t" << hSysDown_copy->Integral() << "\t" << hSysDown_copy->Integral() << "\t" << endl;    
+
+  TH1D* hSysUpAll_copy = (TH1D*)hSystematics_up_all->Clone("copy");
+//  GetSubHistogram( hSysUpAll_copy, hSysUpAll_copy, Eplot_lowest, 3500. );
+  hSysUp_copy->Draw("histsame");
+  xsec_txt << "Integral\tSys. Up\t" << hSysUpAll_copy->Integral() << "\t" << hSysUpAll_copy->Integral() << "\t" << endl;
+
+  TH1D* hSysDownAll_copy = (TH1D*)hSystematics_down_all->Clone("copy");
+//  GetSubHistogram( hSysDownAll_copy, hSysDownAll_copy, Eplot_lowest, 3500. );
+  hSysDownAll_copy->Draw("histsame");
+  xsec_txt << "Integral\tSys. Down\t" << hSysDownAll_copy->Integral() << "\t" << hSysDownAll_copy->Integral() << "\t" << endl;    
+
+
+
+  //-- Draw.
+
+  pad_ratio_->cd();
+
+  //-- Ratio.
+  TGraphAsymmErrors *gr = new TGraphAsymmErrors(2*n,x,y,exl_all,exh_all,eyl_all,eyh_all);
+  gr->SetTitle("TGraphAsymmErrors All");
+//   int ci_all = TColor::GetColor("#FFCCCC"); 	//pink
+  int ci_all = TColor::GetColor("#FFFF00");
+  gr->SetMarkerSize(0);
+  gr->SetFillColor( ci_all );
+  gr->SetMarkerStyle(21);
+
+
+  gr->GetHistogram()->GetXaxis()->SetRangeUser(300., Emax_);
+  gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+  if( plot_as == "xf" ){    gr->GetHistogram()->GetXaxis()->SetTitle("x_{F}"); }
+  if( plot_as == "pT" ){    gr->GetHistogram()->GetXaxis()->SetTitle("p_{T} [GeV]"); }
+  gr->GetHistogram()->GetYaxis()->SetTitle("Ratio");
+  gr->GetHistogram()->GetYaxis()->SetNdivisions(205);
+  gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 3.35);
+
+  Prepare_1Dplot( gr );
+
+  gr->Draw("AE3");
+
+  //-- Draw smaller errors on top of bigger errors.
+  gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,eyl,eyh);
+  gr->SetTitle("TGraphAsymmErrors No JES");
+  int ci = TColor::GetColor("#C0C0C0");
+  gr->SetMarkerSize(0);
+  gr->SetFillColor( ci );
+  gr->SetMarkerStyle(21);
+
+  gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+  gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+  gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 2.);
+  gr->Draw("PE3same");
+
+  //-- Draw lumi errors on top of bigger errors.
+  gr = new TGraphAsymmErrors(2*n,x,y,ex_lumi,ex_lumi,ey_lumi,ey_lumi);
+  gr->SetTitle("TGraphAsymmErrors Lumi");
+  int ci_lumi =   TColor::GetColor("#FFCCCC");
+
+  gr->SetMarkerSize(0);
+  gr->SetFillColor( ci_lumi );
+  gr->SetMarkerStyle(21);
+
+  gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+  gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+  gr->GetHistogram()->GetYaxis()->SetRangeUser(0., 2.);
+  gr->Draw("PE3same");
+
+  hReference_ratio->SetMarkerColor( kBlack );
+  gr_ratio->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+  gr_ratio->Draw("psame");
+
+  //-- Absolute value.
+  pad_abs_->cd();
+
+  for(int bin = 0; bin < n; bin++){
+//      cout << "Absolute value\t" << bin << endl;
+/*
+    x[bin] = hReference->GetBinCenter( bin );
+    y[bin] = hReference->GetBinContent( bin );
+    eyl[bin] = hSystematics_down->GetBinContent( bin ) * y[bin];
+    eyh[bin] = hSystematics_up->GetBinContent( bin )* y[bin];
+    exl[bin] = hReference->GetBinWidth( bin )/2;
+    exh[bin] = hReference->GetBinWidth( bin )/2;
+*/
+
+    int bin_shift = 1;
+    if (bin == n-1){ bin_shift = 0; }	//== This ensures the last ratio is drawn neatly.
+    if (bin == 2){ bin_shift = 2; }	//== This ensures the last ratio is drawn neatly.
+
+    x[2*bin] = hReference->GetXaxis()->GetBinLowEdge( bin+1 );
+    y[2*bin] = hReference->GetBinContent( bin+bin_shift );
+    x[2*bin+1] = hReference->GetXaxis()->GetBinUpEdge( bin+1 );
+    y[2*bin+1] = hReference->GetBinContent( bin+bin_shift );
+
+    //-- Error band lumi.
+    ey_lumi[2*bin] = 0.036 * y[2*bin] ;
+    ex_lumi[2*bin] = hReference_ratio->GetBinContent( bin+1 );
+
+    ey_lumi[2*bin+1] = 0.036 * y[2*bin] ;
+    ex_lumi[2*bin+1] = hReference_ratio->GetBinWidth( bin+1 )/2;
+
+
+    //-- Error band without JES.
+    eyl[2*bin] = hSystematics_down->GetBinContent( bin+bin_shift ) * y[2*bin] ;
+    eyh[2*bin] = hSystematics_up->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    exl[2*bin] = hReference->GetBinWidth( bin+bin_shift )/2;
+    exh[2*bin] = hReference->GetBinWidth( bin+bin_shift )/2;
+
+    eyl[2*bin+1] = hSystematics_down->GetBinContent(bin+bin_shift ) * y[2*bin]  ;
+    eyh[2*bin+1] = hSystematics_up->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    exl[2*bin+1] = hReference->GetBinWidth( bin+bin_shift )/2;
+    exh[2*bin+1] = hReference->GetBinWidth( bin+bin_shift )/2;
+
+    //-- Error band with JES.
+    eyl_all[2*bin] = hSystematics_down_all->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    eyh_all[2*bin] = hSystematics_up_all->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    exl_all[2*bin] = hReference->GetBinWidth( bin+bin_shift )/2;
+    exh_all[2*bin] = hReference->GetBinWidth( bin+bin_shift )/2;
+
+    eyl_all[2*bin+1] = hSystematics_down_all->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    eyh_all[2*bin+1] = hSystematics_up_all->GetBinContent( bin+bin_shift ) * y[2*bin]  ;
+    exl_all[2*bin+1] = hReference->GetBinWidth( bin+bin_shift )/2;
+    exh_all[2*bin+1] = hReference->GetBinWidth( bin+bin_shift )/2;
+  }
+   
+  pad_abs_->SetLogy();
+
+  //-- Draw graph with smaller errors on top of graph with bigger errors.
+  gr = new TGraphAsymmErrors(2*n,x,y,exl_all,exh_all,eyl_all,eyh_all);
+  gr->SetFillColor(ci_all);
+  gr->GetHistogram()->GetXaxis()->SetRangeUser(300., Emax_);
+  gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+
+  gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.5*GetMinimumValue( hReference ), hReference->GetMaximum() * 1.1 );
+  if( plot_as == "pT"){ gr->GetHistogram()->GetYaxis()->SetTitle("#frac{d#sigma}{dp_{T}} [mb/GeV]"); }
+  if( plot_as == "xf"){ gr->GetHistogram()->GetYaxis()->SetTitle("#frac{d#sigma}{dx_{F}} [mb]"); }
+  if( plot_as == "E"){ gr->GetHistogram()->GetYaxis()->SetTitle("#frac{d#sigma}{dE} [mb/GeV]"); }
+
+  //== Only Y-axis needed.
+  Prepare_1Dplot( gr );
+
+  gr->Draw("AE3");
+
+  legend_syst->AddEntry( gr, "Syst. errors (All)", "f");
+
+  //-- Draw graph with smaller errors on top of graph with bigger errors.
+  gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,eyl,eyh);
+  gr->SetFillColor(ci);
+  gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+  gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+  gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.1*GetMinimumValue( hReference ), hReference->GetMaximum() * 1.1 );
+  gr->GetHistogram()->GetYaxis()->SetTitle("#frac{dN}{dE}");
+  gr->Draw("E3same");
+
+  legend_syst->AddEntry( gr, "Syst. errors (w/o energy scale)", "f");
+
+  //-- Draw graph with smaller errors on top of graph with bigger errors.
+  gr = new TGraphAsymmErrors(2*n,x,y,exl,exh,ey_lumi,ey_lumi);
+  gr->SetFillColor(ci_lumi);
+  gr->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+  gr->GetHistogram()->GetXaxis()->SetTitle("E [GeV]");
+  gr->GetHistogram()->GetYaxis()->SetRangeUser( 0.1*GetMinimumValue( hReference ), hReference->GetMaximum() * 1.1 );
+  gr->GetHistogram()->GetYaxis()->SetTitle("#frac{dN}{dE}");
+  gr->Draw("E3same");
+
+  legend_syst->AddEntry( gr, "Syst. errors (lumi)", "f");
+
+  hReference->SetMarkerColor( kBlack );
+
+  gr_data->GetHistogram()->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+  gr_data->Draw("psame");
+
+
+  //-- Scale and draw generator level distribution.
+  int color_ = 0;
+  int line_ = 1;
+  drawoptions = "][histsame";
+  ofstream binwidths;
+  binwidths.open("binwidths.txt");
+
+  TString split_MCs = "";
+
+  for(int MC_ = 0; MC_ < MC_files_.size(); MC_++){
+
+    //-- Skip colors if needed.
+    color_++ ;
+    bool goodcolor = false;
+    while( !goodcolor ){
+      if( color_ == 1 || color_ == 8 || color_ == 9 || color_ == 10 || color_ == 11) color_++;
+      else{ goodcolor = true; }
+    }
+
+    TH1D* hGen;
+    //-- Only continue if the MC is one of the following (excludes position samples).
+    if( ((set_of_tags_["mc_type"])[MC_files_[MC_]] != "model" && 
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "actual" &&  
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "shift_MPI_or_Tune" &&
+	(set_of_tags_["mc_type"])[MC_files_[MC_]] != "model_") ){ continue; }
+
+    //-- Split up the canvas.
+    //== "Pythia" will plot only models from Pythia.
+    //== "noPythia" will plot models without Pythia.
+    //== "All" plots all models.
+    //== Any other entry skips the addition of models.
+    if( which_models == "Pythia" ){
+      if( !MC_files_[MC_].Contains( "ythia") ){ continue; }
+    }
+    else if( which_models == "noPythia"){
+      if( MC_files_[MC_].Contains( "ythia") ){ continue; }
+    }
+    else if( which_models != "All"){ break; }
+
+    //-- Check for xsec = 0 or NaN.
+    if( xsec_[ MC_files_[MC_] ] !=  xsec_[ MC_files_[MC_] ] ){ continue; }
+    if( xsec_[ MC_files_[MC_] ] ==  0. ){ continue; }
+   
+    //-- If scaletodata_ is true, the gen. energy spectrum will be scaled with numbers taken from the file before being passed back.
+    scaletodata_ = true;
+     // There is only one gen. distribution, since there are no cuts on detector level.
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){ 
+      Get_GenEnergy( MC_, hGen ); }
+
+    // There are several gen. distributions, take the one uninfluenced by the cuts on detector level.
+    else{ 								
+      Get_PureGenEnergy( MC_, hGen ); }
+    scaletodata_ = false;
+
+    hGen->SetTitle( TString::Format("hGenJet_energy_%i", MC_) );
+    hGen->SetName( TString::Format("hGenJet_energy_%i", MC_) );
+
+    //-- Skip to next file if histogram does not exist.
+    if( hGen->Integral() != hGen->Integral() ){ continue; }   
+
+    if( plot_as == "pT"){ Convert_E_to_pt( hGen ); }
+    else if( plot_as == "xf" ){ Convert_E_to_xF( hGen ); }
+
+    SetDnDx( hGen );
+
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){
+      //hGen->SetMarkerStyle( 20 + MC_ );
+      drawoptions = "][histsame";
+    }
+
+    //-- Multiply the distribution to the total number of measured data.
+    //-- Set underflow bin to the same value to avoid dive to zero at low bin.
+    hGen->GetXaxis()->SetRangeUser( Eplot_lowest, Emax);
+
+    //-- Set line properties.
+    hGen->SetLineColor( getColor(color_) );
+    hGen->SetLineStyle( (line_ != 1)*((line_++)%7+2) );
+    hGen->SetLineWidth( 3 );
+
+    //== Get the integral of the area plotted.
+    TH1D* hGen_copy = (TH1D*)hGen->Clone("copy");
+//    GetSubHistogram( hGen_copy, hGen_copy, Eplot_lowest, 3500. );
+    //hGen_copy->Draw("histsame");
+    xsec_txt << "Integral\t" << legend_info_gen_[MC_files_[MC_]] << "\t" << hGen->Integral() << "\t" << hGen_copy->Integral() << "\t" << endl;   
+
+    //-- Set ratio of distribution.
+    hGen_ratio = (TH1D*)hGen->Clone( TString::Format("hGen_ratio_%i", MC_) );
+    hGen_ratio->Divide( hReference );
+
+    pad_abs_->cd();
+    hGen->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+    hGen->Draw( drawoptions);
+    
+    pad_ratio_->cd();
+    hGen_ratio->GetXaxis()->SetRangeUser(Eplot_lowest, Emax_);
+    hGen_ratio->Draw( drawoptions);
+
+    TString legend_file = legend_info_gen_[MC_files_[MC_]];
+
+    if( (set_of_tags_["mc_type"])[MC_files_[MC_]] == "shift_MPI_or_Tune" ){
+      legend->AddEntry( hGen, TString::Format( legend_file  ), "l");
+    }
+    else{
+      legend->AddEntry( hGen, legend_file , "l");
+    }
+  }
+
+   pad_abs_->cd();
+   legend->SetFillStyle(0);
+   legend->SetLineWidth(0);
+   legend->Draw();
+
+   pad_abs_->cd();
+   legend_syst->SetFillStyle(0);
+   legend_syst->SetLineWidth(0);
+   legend_syst->Draw();
+
+    can_->cd();
+
+    //== Text.
+    Finish_canvas( pad_abs_ , "leftish");
+
+   can_->SaveAs( TString::Format( folder_ + "Totaldependence_" + plot_as + "_" + which_models + "_%iit_deltaphi_0%i_etaband_0%i.C", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) );
+   can_->SaveAs( TString::Format( folder_ + "Totaldependence_" + plot_as + "_" + which_models + "_%iit_deltaphi_0%i_etaband_0%i.pdf", iterations, static_cast<int>(10. * deltaPhiMax_), static_cast<int>(10. * etawidth_)) ); 
+
+   systematics_txt.close();
+   xsec_txt.close();
+}
+
+
+
+
+
+
+
+void Unfolder::Determine_resolution( TString setup ){
+
+   //== Prepare canvas.
+   TCanvas *can_1D, *can_2D;
+   PrepareCanvas(can_1D, "fit");
+   PrepareCanvas_2D(can_2D, "can_2D");
+
+   // Take the necessary file.
+   TFile *_file0 = TFile::Open("/user/avanspil/public/CastorJets/ak5ak5_Pythia6Z2star_ShowerLibrary_NomGeo_" + setup + "_Emin_150.000000_deltaPhiMax_0.200000_etaband_0.000000_all_matchE.root");     
+   
+   // Extract the 2D histogram.
+   TH2D *hJER_per_energy = (TH2D*)_file0->Get("hJER_per_energy");
+   	int Ebins = hJER_per_energy->GetNbinsY();
+   	double Emin = 0., Emax = 3000.;
+     
+   // This fits a Gaussian to all slices with at least 20 non-zero bins.   
+   hJER_per_energy->FitSlicesY(0,0,-1);
+   TH1D* hJER_per_energy_2= (TH1D*)gDirectory->Get("hJER_per_energy_2");   
+   TH1D *BinWidths = (TH1D*)hJER_per_energy_2->Clone("BinWidths");
+   
+   for(int i = 0; i < hJER_per_energy_2->GetNbinsX(); i++){
+     double sigma = hJER_per_energy_2->GetBinContent(i);
+     double egen = hJER_per_energy_2->GetBinCenter(i);
+     
+     BinWidths->SetBinContent(i, sigma*egen);     
+   }
+   
+   can_1D->cd();
+   BinWidths->Draw("hist");  
+   Prepare_1Dplot( BinWidths );
+   BinWidths->GetXaxis()->SetTitle("E_{gen} [GeV]");
+   BinWidths->GetYaxis()->SetTitle("#sigma (E_{gen})");
+   
+   TF1 *f_linear = new TF1("f_linear", "[0] * x + [1]", 0.,1600.);
+
+   gStyle->SetStatStyle(1);
+   TFitResultPtr r = BinWidths->Fit("f_linear", "RS");   
+
+   //== round parameters to two decimals.
+   double r0 = r->Parameter(0);
+   int r0_100 = static_cast<int>(r0 * 100.);
+   int r0_dec = r0_100%100;
+   int r0_int = (r0_100 - r0_dec)/100;
+   TString par0 = TString::Format( "%i.%i", r0_int, r0_dec);
+
+   double r1 = r->Parameter(1);
+   int r1_100 = static_cast<int>(r1 * 100.);
+   int r1_dec = r1_100%100;
+   int r1_int = (r1_100 - r1_dec)/100;
+   TString par1 = TString::Format( "%i.%i", r1_int, r1_dec);
+
+
+   TLatex *   tex = new TLatex( can_1D->GetLeftMargin(),1. - can_1D->GetTopMargin(),"7 TeV (pp)");
+//   tex->SetNDC()
+   tex->SetTextAlign(11);
+   tex->SetTextFont(42);
+   tex->SetTextSize(0.048);
+   tex->SetLineWidth(2);
+   tex->DrawLatex( 
+	1200., 
+	300.,
+	TString::Format( "#sigma = " + par0 + "*E_{gen} + " + par1 ) );  
+
+   can_1D->SaveAs( folder_ + "Resolution_egen_"  + setup +  ".pdf");
+   can_1D->SaveAs( folder_ + "Resolution_egen_"  + setup +  ".C");
+
+   can_2D->cd();
+   Prepare_2Dplot( hJER_per_energy );
+   hJER_per_energy->GetYaxis()->SetRangeUser( -1., 2.5);
+   hJER_per_energy->GetYaxis()->SetTitle( "JES");
+   hJER_per_energy->Draw("colz");
+   can_2D->SetLogz();
+   can_2D->SaveAs( folder_ + "JES_vs_Egen_"  + setup +  ".pdf");
+   can_2D->SaveAs( folder_ + "JES_vs_Egen_"  + setup +  ".pdf");
+}
+
+
+
+
+
+
+void Unfolder::Determine_resolution_eDet( TString setup ){
+
+   //== Prepare canvas.
+   TCanvas *can_1D, *can_2D;
+   PrepareCanvas(can_1D, "fit");
+   PrepareCanvas_2D(can_2D, "can_2D");
+
+   // Take the necessary file.
+   TFile *_file0 = TFile::Open("/user/avanspil/public/CastorJets/ak5ak5_Pythia6Z2star_ShowerLibrary_NomGeo_" + setup + "_Emin_150.000000_deltaPhiMax_0.200000_etaband_0.000000_all_matchE.root");     
+   
+   // Extract the 2D histogram.
+   TH2D *hJER_per_energy = (TH2D*)_file0->Get("hJER_per_eDet");
+   	int Ebins = hJER_per_energy->GetNbinsY();
+   	double Emin = 0., Emax = 3000.;
+     
+   // This fits a Gaussian to all slices with at least 20 non-zero bins.   
+   hJER_per_energy->FitSlicesY(0,0,-1);
+   TH1D* hJER_per_energy_2= (TH1D*)gDirectory->Get("hJER_per_eDet_2");   
+   TH1D *BinWidths = (TH1D*)hJER_per_energy_2->Clone("BinWidths");
+   
+   for(int i = 0; i < hJER_per_energy_2->GetNbinsX(); i++){
+     double sigma = hJER_per_energy_2->GetBinContent(i);
+     double egen = hJER_per_energy_2->GetBinCenter(i);
+     
+     BinWidths->SetBinContent(i, sigma*egen);     
+   }
+   
+   can_1D->cd();
+   BinWidths->Draw("hist");  
+   Prepare_1Dplot( BinWidths );
+   BinWidths->GetXaxis()->SetTitle("E_{det} [GeV]");
+   BinWidths->GetYaxis()->SetTitle("#sigma (E_{det})");
+   
+   TF1 *f_linear = new TF1("f_linear", "[0] * x + [1]", 0.,1600.);
+
+   gStyle->SetStatStyle(1);
+   TFitResultPtr r = BinWidths->Fit("f_linear", "RS");   
+
+   //== round parameters to two decimals.
+   double r0 = r->Parameter(0);
+   int r0_100 = static_cast<int>(r0 * 100.);
+   int r0_dec = r0_100%100;
+   int r0_int = (r0_100 - r0_dec)/100;
+   TString par0 = TString::Format( "%i.%i", r0_int, r0_dec);
+
+   double r1 = r->Parameter(1);
+   int r1_100 = static_cast<int>(r1 * 100.);
+   int r1_dec = r1_100%100;
+   int r1_int = (r1_100 - r1_dec)/100;
+   TString par1 = TString::Format( "%i.%i", r1_int, r1_dec);
+
+
+   TLatex *   tex = new TLatex( can_1D->GetLeftMargin(),1. - can_1D->GetTopMargin(),"7 TeV (pp)");
+//   tex->SetNDC()
+   tex->SetTextAlign(11);
+   tex->SetTextFont(42);
+   tex->SetTextSize(0.048);
+   tex->SetLineWidth(2);
+   tex->DrawLatex( 
+	1200., 
+	150.,
+	TString::Format( "#sigma = " + par0 + "*E_{gen} + " + par1 ) );  
+
+   can_1D->SaveAs( folder_ + "Resolution_edet_"  + setup +  ".pdf");
+   can_1D->SaveAs( folder_ + "Resolution_edet_"  + setup +  ".C");
+
+   can_2D->cd();
+   Prepare_2Dplot( hJER_per_energy );
+   hJER_per_energy->GetYaxis()->SetRangeUser( -1., 2.5);
+   hJER_per_energy->GetYaxis()->SetTitle( "JES");
+   hJER_per_energy->Draw("colz");
+   can_2D->SetLogz();
+   can_2D->SaveAs( folder_ + "JES_vs_Edet_"  + setup +  ".pdf");
+   can_2D->SaveAs( folder_ + "JES_vs_Edet_"  + setup +  ".pdf");
 }

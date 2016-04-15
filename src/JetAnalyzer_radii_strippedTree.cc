@@ -20,7 +20,7 @@
 #include "CalibCorrection.h"
 #include "CastorSector.h"
 #include "PlaceThreshold.h"
-#include "../Function_JetType.h"
+#include "../Functions/Function_JetType.h"
 
 //STANDARD ROOT INCLUDES
 
@@ -313,6 +313,7 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	while( current_lowE < 2100. ){
           // Binwidth = 25% bin_low_edge;
 	  binwidth = .25 * current_lowE;	
+//	  binwidth = .7 * current_lowE;
 	  current_lowE += binwidth;
 	  binEdges.push_back( current_lowE );
 	}
@@ -363,6 +364,28 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 
 	EIbins = binEdges_EI.size() - 1;
 
+
+ 	//------------------//
+	//-- Bins for eta --//
+	//------------------//
+	double eta_min = -6.6;
+	double eta_max = -5.2; 
+	vector<double> binEdges_eta;
+	binEdges_eta.push_back( eta_min );
+	double binwidth_eta = (6.6-5.2)/20.;
+	double current_eta = eta_min;
+
+	while( current_eta < eta_max ){
+	  current_eta += binwidth_eta;
+	  binEdges_eta.push_back( current_eta );
+	}
+	double* etabins_var = &binEdges_eta[0];
+
+	for(int i = 0; i < binEdges_eta.size(); i++){
+	  etabins_var[i] = binEdges_eta[i];
+	}
+
+	int etabins = binEdges_eta.size() - 1;
 
 	//-------------------------------------------//
 	//-- We want bin width 20% of high bin edge for EI relative. //
@@ -676,8 +699,15 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	TH2D *hPhi_gen_det = new TH2D("hPhi_gen_det", "#varphi_{gen} vs. #varphi_{det};#varphi_{gen};#varphi_{det}", 50, -6.29, 6.29, 50, -6.29, 6.29);
 		
 		// Needed for correct calibration.
-	TH2D *hResponse 	= new TH2D("hResponse", 	"E_{det}/E_{gen};E_{det};#frac{E_{det}}{E_{gen}}", 		Ebins, Emin, Emax, 100, 0., 5.);			hResponse->Sumw2();
-	TH2D *hResponse_gen 	= new TH2D("hResponse_gen", 	"E_{det}/E_{gen};E_{gen};#frac{E_{det}}{E_{gen}}", 		Ebins, Emin, Emax, 100, 0., 5.);			hResponse_gen->Sumw2();
+	TH2D *hResponse 	= new TH2D("hResponse", 	"E_{det}/E_{gen};E_{det};#frac{E_{det}}{E_{gen}}", 	Ebins, Emin, Emax, 100, 0., 5.);			hResponse->Sumw2();
+	TH2D *hResponse_gen 	= new TH2D("hResponse_gen", 	"E_{det}/E_{gen};E_{gen};#frac{E_{det}}{E_{gen}}", 	Ebins, Emin, Emax, 100, 0., 5.);			hResponse_gen->Sumw2();
+	TH2D *hEgen_pt 		= new TH2D("hEgen_pt",		"E_{gen};p_{T};", 					Ebins, Ebins_var, 100, 0., 25.);			hResponse_gen->Sumw2();
+
+		// Needed for average eta per Egen.
+	TH3D *hEgen_Edet_eta 	= new TH3D("hEgen_Edet_eta", 	";E_{gen} [GeV];E_{det} [GeV];#eta", 			Ebins, Ebins_var, Ebins, Ebins_var, etabins, etabins_var);			hEgen_Edet_eta->Sumw2();
+	TH2D *hEgen_eta 	= new TH2D("hEgen_eta", 	";E_{gen} [GeV];#eta", 			Ebins, Ebins_var, etabins, etabins_var);			hEgen_eta->Sumw2();
+	TH2D *hEta_pt 		= new TH2D("hEta_pt", 		";#eta;p_{T}", 		etabins, etabins_var, 100, 0., 25.);			hEgen_eta->Sumw2();
+
 
 	int Bins_response[3]	= {Ebins, 100, 16};
 	double Min_response[3]	= {Emin, 0., -1.*PI};
@@ -884,6 +914,8 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
     	          hGenJet_energy->Fill( gen_energy );
 		  hGenJet_energy_vs_eta->Fill( gen_energy, gen_eta );
 		  ngen++;
+                  hEgen_pt->Fill( gen_energy, castor_gen.Pt() );
+		  hEta_pt->Fill( gen_eta, castor_gen.Pt());
 		}
 		
 	    	if( gen_energy > 150. ){
@@ -1026,17 +1058,6 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      int sector = CastorSector( det_phi ) ;
 	      if( det_energy > threshold_ ) {
 
-	        //== CastorJetID plots.
-	        h_ehad->Fill( castor_det.ehad );
-	        h_eem->Fill( castor_det.eem );
-	        h_nTowers	->Fill( castor_det.ntower );
-	        h_sigmaz	->Fill( castor_det.sigmaz );
-	        h_width	->Fill( castor_det.width );
-	        h_depth	->Fill( castor_det.depth );
-	        h_fhot	->Fill( castor_det.fhot );
-	        h_fem	->Fill( castor_det.fem );
-	        h_phi	->Fill( det_phi );
-
 		//== Energy
 		hCastorJet_energy_unCalib->Fill( det_energy ); 
 		jets_uncalibrated++;
@@ -1048,6 +1069,18 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
  	        det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
 	      }
 	      if( det_energy > threshold_ ) {
+
+	        //== CastorJetID plots.
+	        h_ehad->Fill( castor_det.ehad );
+	        h_eem->Fill( castor_det.eem );
+	        h_nTowers	->Fill( castor_det.ntower );
+	        h_sigmaz	->Fill( castor_det.sigmaz );
+	        h_width	->Fill( castor_det.width );
+	        h_depth	->Fill( castor_det.depth );
+	        h_fhot	->Fill( castor_det.fhot );
+	        h_fem	->Fill( castor_det.fem );
+	        h_phi	->Fill( det_phi );
+
 
 	       jets_calibrated++;
  	       hCastorJet_energy->Fill( det_energy ); // Inclusive jet energy spectrum.
@@ -1140,6 +1173,9 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		  double gen_energy = castor_gen.Energy();
 		  double gen_eta = castor_gen.Eta();
 
+		  hEgen_eta->Fill( gen_energy, gen_eta );
+
+
 		  // Remove and skip gen jet if 
 		  //-- OR gen. jet not hard enough 
 		  //-- OR gen. jet outside of etaband.
@@ -1184,6 +1220,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
     	        if( match_gen != -1 ){
     	          MyGenJet castor_gen = (*CastorGenJets)[match_gen];
     	          double gen_energy = castor_gen.Energy();	
+		  double gen_eta = castor_gen.Eta();
 
 		  //-- If this is a leading detector level jet, store the information in the leading jet histograms as well.
 		  if( det_jet == 0){
@@ -1207,6 +1244,8 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
                   hCastorJet_matchedGen_all->Fill( gen_energy );	
 		  (sector_response[sector])->Fill( det_energy, gen_energy );	// Sector dependent response.
  
+		  hEgen_Edet_eta->Fill( gen_energy, det_energy, gen_eta);
+
 		  nMatch++;
 
 	          if( comments_ ){ cout << "\t\t\t\t\tMatch" << endl << endl; }
@@ -1741,6 +1780,10 @@ cout << "pi_e II" << endl;
         hResponse_phi   ->Write();
         hResponse_gen_phi->Write();
 
+	// Egen vs. pt.
+	hEgen_pt->Write();
+	hEta_pt->Write();
+
 
 	// Test phi.
 	 hPhi_gen_det->Write();
@@ -1765,6 +1808,9 @@ cout << "pi_e II" << endl;
 
 	hsumEreco_sumEgen->Write();
 	hsumEreco_vs_sumEgen->Write();
+
+	hEgen_Edet_eta->Write();
+	hEgen_eta->Write();
 
 	// CastorJetID
 

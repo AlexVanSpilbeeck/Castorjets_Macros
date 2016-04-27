@@ -182,13 +182,14 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
 	
     std::cout << "all initialisations done, class constructed!" << std::endl;
 
-
+    cout << "LoopOutputFile_\t" << LoopOutputFile_ << endl;
     if( LoopOutputFile_.Contains( "data" ) ){ fileLabel_ = "data"; }
     else if( LoopOutputFile_.Contains( "displaced_down" )) { fileLabel_ = "displaced_down"; }
     else if( LoopOutputFile_.Contains( "displaced_up" )){ fileLabel_ = "displaced_up"; }
     else if( LoopOutputFile_.Contains( "displaced" )){ fileLabel_ = "displaced"; }
     else if( LoopOutputFile_.Contains( "FullSimulation" )){ fileLabel_ = "FullSimulation"; }
     else if( LoopOutputFile_.Contains( "Pythia84C" )){ fileLabel_ = "Pythia84C"; }
+    else if( LoopOutputFile_.Contains( "NewGeo" )){ fileLabel_ = "NewGeo"; }
     else{ fileLabel_ = "Pythia6Z2star"; }
 
     cout << "@@@ Filelabel is\t" << fileLabel_ << endl;
@@ -568,45 +569,47 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	TH1D *hJER = new TH1D("hJER", 	"Jet Energy Resolution", 200, -1, 5);
 	TH1D *hJER_had = new TH1D("hJER_had", 	"Jet Energy Resolution", 200, -1, 5);
 	TH1D *hJER_em = new TH1D("hJER_em", 	"Jet Energy Resolution", 200, -1, 5);
-	TH1D *hJER_other = new TH1D("hJER_other", 	"Jet Energy Resolution", 200, -1, 5);
+	TH1D *hJER_other = new TH1D("hJER_other", 	"Jet Energy Resolution", 200, -1, 5);	
+          
+	// Delta E/E_det vs. E_det
+	TH2D *hJER_per_eDet 		= new TH2D("hJER_per_eDet", 		"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eDet_had_det	= new TH2D("hJER_per_eDet_had_det", 	"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eDet_em_det	= new TH2D("hJER_per_eDet_em_det", 	"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
 
 	// Delta E/E_gen vs. E_gen
-	TH2D *hJER_per_energy = new TH2D("hJER_per_energy", "#DeltaE/E for fixed energies;E_{gen};JER", 			Ebins, Emin, Emax, 200, -5, 5);
-        TH2D *hJER_per_energy_had_det= new TH2D("hJER_per_energy_had_det", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_energy_em_det= new TH2D("hJER_per_energy_em_det", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
-		     
-	// 1 Castor sector.
-	TH2D *hJER_per_energy_had_det_1sector = new TH2D("hJER_per_energy_had_det_1sector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_energy_em_det_1sector = new TH2D("hJER_per_energy_em_det_1sector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
-
-	// 2+ Castor sector
-	TH2D *hJER_per_energy_had_det_nsector = new TH2D("hJER_per_energy_had_det_nsector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_energy_em_det_nsector = new TH2D("hJER_per_energy_em_det_nsector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);		          
-	// Delta E/E_det vs. E_det
-	TH2D *hJER_per_eDet = new TH2D("hJER_per_eDet", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",     Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_eDet_had_det= new TH2D("hJER_per_eDet_had_det", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",   Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_eDet_em_det= new TH2D("hJER_per_eDet_em_det", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",  Ebins, Emin, Emax, 200, -5, 5);
-
-	// 1 Castor sector
-	TH2D *hJER_per_eDet_had_det_1sector = new TH2D("hJER_per_eDet_had_det_1sector", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_eDet_em_det_1sector = new TH2D("hJER_per_eDet_em_det_1sector", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
-
-	// 2+ Castor sector
-	TH2D *hJER_per_eDet_had_det_nsector = new TH2D("hJER_per_eDet_had_det_nsector", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_eDet_em_det_nsector = new TH2D("hJER_per_eDet_em_det_nsector", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
+	TH2D *hJER_per_energy 		= new TH2D("hJER_per_energy", 		"#DeltaE/E for fixed energies;E_{gen};JER", 		Ebins, Emin, Emax, 200, -5, 5);
+        TH2D *hJER_per_energy_had_det	= new TH2D("hJER_per_energy_had_det", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_energy_em_det	= new TH2D("hJER_per_energy_em_det", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
 
 	// Delta E/E_det vs. E_gen
-	TH2D *hJER_per_eGen = new TH2D("hJER_per_eGen", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",     Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_eGen_had_det= new TH2D("hJER_per_eGen_had_det", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_eGen_em_det= new TH2D("hJER_per_eGen_em_det", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",  Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eGen 		= new TH2D("hJER_per_eGen", 		"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eGen_had_det	= new TH2D("hJER_per_eGen_had_det", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eGen_em_det	= new TH2D("hJER_per_eGen_em_det", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+		     
 
 	// 1 Castor sector
-	TH2D *hJER_per_eGen_had_det_1sector = new TH2D("hJER_per_eGen_had_det_1sector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",  Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_eGen_em_det_1sector = new TH2D("hJER_per_eGen_em_det_1sector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
+	TH2D *hJER_per_eDet_had_det_1sector 	= new TH2D("hJER_per_eDet_had_det_1sector", 	"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eDet_em_det_1sector 	= new TH2D("hJER_per_eDet_em_det_1sector",	"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);	
+
+	// 1 Castor sector
+	TH2D *hJER_per_energy_had_det_1sector 	= new TH2D("hJER_per_energy_had_det_1sector", 	"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_energy_em_det_1sector 	= new TH2D("hJER_per_energy_em_det_1sector",	"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);	
 
 	// 2+ Castor sector
-	TH2D *hJER_per_eGen_had_det_nsector = new TH2D("hJER_per_eGen_had_det_nsector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E", 	Ebins, Emin, Emax, 200, -5, 5);
-	TH2D *hJER_per_eGen_em_det_nsector = new TH2D("hJER_per_eGen_em_det_nsector", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
+	TH2D *hJER_per_eDet_had_det_nsector 	= new TH2D("hJER_per_eDet_had_det_nsector", 	"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eDet_em_det_nsector 	= new TH2D("hJER_per_eDet_em_det_nsector", 	"#DeltaE/E for fixed energies;E_{det};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+
+	// 1 Castor sector
+	TH2D *hJER_per_eGen_had_det_1sector 	= new TH2D("hJER_per_eGen_had_det_1sector", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eGen_em_det_1sector 	= new TH2D("hJER_per_eGen_em_det_1sector", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
+
+	// 2+ Castor sector
+	TH2D *hJER_per_eGen_had_det_nsector 	= new TH2D("hJER_per_eGen_had_det_nsector", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E", 	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_eGen_em_det_nsector 	= new TH2D("hJER_per_eGen_em_det_nsector", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
+
+	// 2+ Castor sector
+	TH2D *hJER_per_energy_had_det_nsector 	= new TH2D("hJER_per_energy_had_det_nsector", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
+	TH2D *hJER_per_energy_em_det_nsector 	= new TH2D("hJER_per_energy_em_det_nsector", 	"#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);	
 
 	TH2D *hJER_per_distance = new TH2D("hJER_per_distance", "#DeltaE/E for distance;#DeltaR;#DeltaE/E", 	200, 0., 6.5, 200, -5, 5);
 	TH2D *hJER_per_eta = new TH2D("hJER_per_eta", "#DeltaE/E for distance;#DeltaR;#DeltaE/E",               14,-6.6,-5.2, 200, -5, 5);
@@ -621,34 +624,35 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		// Towers vs. phi
 	TH2D *hTower_phi = new TH2D("hTower_phi", "N_{towers} vs. #Delta#varphi;N_{towers};#Delta#varphi", 6,-0.5,5.5, 50,-3.15,3.15);
 
-	TH2D *hIsolationEnergy = new TH2D("hIsolationEnergy", "Energy in vicinity;Towers;E_{gen};", 6, -0.5, 5.5, 100, -1000., 1800.);
-	TH1D *hIsolationEnergy_1D = new TH1D("hIsolationEnergy_1D", "Isolation energy;E_{s}", 10000, 0., 1800.);
-	TH1D *hIsolatedEnergy 	= new TH1D("hIsolatedEnergy", "Isolated energy;E_{s}", 10000, 0., 1800.);
-	TH1D *hIsolationEnergy_Egen = new TH1D("hIsolationEnergy_Egen", "Isolation energy;E_{s}/E_{gen}", 10000, 0., 100.);
-	TH1D *hIsolationEnergy_Edet = new TH1D("hIsolationEnergy_Edet", "Isolation energy;E_{s}/E_{det}", 10000, 0., 100.);
+	TH2D *hIsolationEnergy 		= new TH2D("hIsolationEnergy", 		"Energy in vicinity;Towers;E_{gen};",	6, -0.5, 5.5, 100, -1000., 1800.);
+	TH1D *hIsolationEnergy_1D 	= new TH1D("hIsolationEnergy_1D", 	"Isolation energy;E_{s}", 		10000, 0., 1800.);
+	TH1D *hIsolatedEnergy 		= new TH1D("hIsolatedEnergy", 		"Isolated energy;E_{s}", 		10000, 0., 1800.);
+	TH1D *hIsolationEnergy_Egen 	= new TH1D("hIsolationEnergy_Egen", 	"Isolation energy;E_{s}/E_{gen}", 	10000, 0., 100.);
+	TH1D *hIsolationEnergy_Edet 	= new TH1D("hIsolationEnergy_Edet", 	"Isolation energy;E_{s}/E_{det}", 	10000, 0., 100.);
 
-	TH1D *hIsolationEnergy_1D_log = new TH1D("hIsolationEnergy_1D_log", "Isolation energy;E_{s}", EIbins, EIbins_var);
+	TH1D *hIsolationEnergy_1D_log 	= new TH1D("hIsolationEnergy_1D_log", "Isolation energy;E_{s}", EIbins, EIbins_var);
 	TH1D *hIsolatedEnergy_log 	= new TH1D("hIsolatedEnergy_log", "Isolated energy;E_{s}", EIbins, EIbins_var);
 	TH1D *hIsolationEnergy_Egen_log = new TH1D("hIsolationEnergy_Egen_log", "Isolation energy;E_{s}/E_{gen}",EIbins_rel, EIbins_var_rel);
 	TH1D *hIsolationEnergy_Edet_log = new TH1D("hIsolationEnergy_Edet_log", "Isolation energy;E_{s}/E_{det}", EIbins_rel, EIbins_var_rel);
 
 
 	// CastorJetID distributions.
-	TH1D* h_ehad = new TH1D( "ehad",	"Hadronic energy; E_{had.};",  	Ebins, Ebins_var);
-	TH1D* h_eem  = new TH1D( "eem", 	"E.M. energy; E_{had.};",   	Ebins, Ebins_var);
-	TH1D* h_nTowers	  = new TH1D("nTowers", 	";N_{tower};", 		4, 0.5, 4.5); 
-	TH1D* h_sigmaz	  = new TH1D("sigmaz", 	"#sigma_{z};#sigma_{z};", 	100, 0., 700.  );
-	TH1D* h_width	  = new TH1D( "width", 	"width;width;", 		100, 0., 0.35 );
-	TH1D* h_depth	  = new TH1D( "depth", 	"depth;<z>;", 			100, -16000., -14000. );
-	TH1D* h_fhot	  = new TH1D( "fhot", 	"fhot;E_{hot}/E_{tot};",	100, 0., 1. );
-	TH1D* h_fem	  = new TH1D( "fem", 	"fem;E_{em}/E_{tot};",  	100, 0., 1. );
-	TH1D* h_phi	  = new TH1D( "phi",	"#phi;#phi;", 			16, -3.2, 3.2);
+	TH1D* h_ehad 	= new TH1D( "ehad",	"Hadronic energy; E_{had.};",  	Ebins, Ebins_var);
+	TH1D* h_eem  	= new TH1D( "eem", 	"E.M. energy; E_{had.};",   	Ebins, Ebins_var);
+	TH1D* h_nTowers	= new TH1D("nTowers", 	";N_{tower};", 		4, 0.5, 4.5); 
+	TH1D* h_sigmaz	= new TH1D("sigmaz", 	"#sigma_{z};#sigma_{z};", 	100, 0., 700.  );
+	TH1D* h_width	= new TH1D( "width", 	"width;width;", 		100, 0., 0.35 );
+	TH1D* h_depth	= new TH1D( "depth", 	"depth;<z>;", 			100, -16000., -14000. );
+	TH1D* h_fhot	= new TH1D( "fhot", 	"fhot;E_{hot}/E_{tot};",	100, 0., 1. );
+	TH1D* h_fem	= new TH1D( "fem", 	"fem;E_{em}/E_{tot};",  	100, 0., 1. );
+	TH1D* h_phi	= new TH1D( "phi",	"#phi;#phi;", 			16, -3.2, 3.2);
 
 
 		// RooUnfold.
 		cout << "RooUnfold" << endl;
 
 	RooUnfoldResponse response 		(hCastorJet_energy, hCastorJet_energy, "response");
+	RooUnfoldResponse response_noMiss	(hCastorJet_energy, hCastorJet_energy, "response_noMiss");
 	RooUnfoldResponse response_lead		(hCastorJet_energy, hCastorJet_energy, "response_lead");
 
 	RooUnfoldResponse response_fine 	(hCastorJet_energy_fine, hCastorJet_energy_fine, "response_fine");
@@ -674,7 +678,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	RooUnfoldResponse response_sector13 	(hCastorJet_energy, hCastorJet_energy, "response_sector13");	sector_response[13] = &response_sector13;	
 	RooUnfoldResponse response_sector14 	(hCastorJet_energy, hCastorJet_energy, "response_sector14");	sector_response[14] = &response_sector14;	
 	RooUnfoldResponse response_sector15 	(hCastorJet_energy, hCastorJet_energy, "response_sector15");	sector_response[15] = &response_sector15;	
-	RooUnfoldResponse response_sector0 	(hCastorJet_energy, hCastorJet_energy, "response_sector0");	sector_response[0] = &response_sector0;	
+	RooUnfoldResponse response_sector0 	(hCastorJet_energy, hCastorJet_energy, "response_sector0");	sector_response[16] = &response_sector0;	
 
 		// Jet distance distribution.
 	TH1D *hDistance 	= new TH1D("hJetDistance",	"Distance between matched jets;#DeltaR;dN/d#DeltaR", 200, 0., 2.);
@@ -855,6 +859,10 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
 	int absurdFake = 0;
         int emptyCastor = 0;
+
+	//ofstream test_merijn;
+	//test_merijn.open("//test_merijn.txt");
+
 	for( counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {
 	       
 	  if( comments_ ){ cout << "******************************************" << endl; }
@@ -894,10 +902,24 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      double det_energy = castor_jet.energy;           
 	      double det_phi = castor_jet.phi;
 	      int sector = CastorSector( det_phi ) ; 
- 	      det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
 
-	      if( det_energy> threshold_ ){ ndet++; }
+	      hCastorJet_phi->Fill( det_phi);
+
+// 	      det_energy = CalibratedDet( det_energy, sector, filename_, threshold_ );
+
+	      if( det_energy> threshold_ ){ 
+		ndet++; 
+/*
+//test_merijn << counter_events << "\tDET\t" 
+		<< det_jet << "\t" 
+		<< det_energy << "\t"
+		<< castor_jet.eta << "\t"
+		<< det_phi << "\t"
+		<< sector << endl;*/
+	      }
 	    } // Loop over det. jets.
+
+////test_merijn << endl;
 
 	    //-- Loop over CASTOR (gen) jets.
 	    for( int gen_jet =  CastorGenJets->size()-1; gen_jet >=0; gen_jet--){
@@ -909,7 +931,13 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      if( gen_energy > threshold_ ){
 		double gen_eta = castor_gen.Eta();
 		hGenJet_eta->Fill( gen_eta );
-
+/*
+//test_merijn << counter_events << "\tGEN\t" 
+		<< gen_jet << "\t" 
+		<< gen_energy << "\t"
+		<< gen_eta << "\t"
+		<< castor_gen.Phi() << endl;
+*/
 		if( gen_eta > genetamin_ && gen_eta < genetamax_ ){ 
     	          hGenJet_energy->Fill( gen_energy );
 		  hGenJet_energy_vs_eta->Fill( gen_energy, gen_eta );
@@ -943,12 +971,16 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
 	  }
 	  
+//test_merijn << endl;
+
 	  //------------------------------------------------------//  		
 	  //------------------------------------------------------//
   	  // Get some general information on detector level jets. //
 	  //------------------------------------------------------//
 	  //------------------------------------------------------//
 
+
+	  //== Count events with CASTOR jets above a threshold.
 	  if( comments_) cout << "\n\n\n\t" << counter_events << endl;
 	  if( CastorJets->size() > 0 ){ castor_0GeV = true; }
 
@@ -959,7 +991,8 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	    if( do_calibration_function){
 	      double det_phi = castor_jet.phi;
 	      int sector = CastorSector( det_phi ) ; 
- 	      det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
+ 	      det_energy = CalibratedDet( det_energy, sector, filename_, threshold_ );
+	      if( det_energy != det_energy){ continue; }
 	    }
 
 	    if( det_energy > 150. ){
@@ -1050,8 +1083,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      double det_energy = castor_det.energy;	
 	      double det_phi = castor_det.phi;
 
-
-
+	      hCastorJet_phi->Fill( det_phi);
  
 	      //== Energy
 
@@ -1066,9 +1098,9 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      if( do_calibration_function && detjettype == "had"){
 	        double det_phi = castor_det.phi;
 	        int sector = CastorSector( det_phi ) ; 
- 	        det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ );
+ 	        det_energy = CalibratedDet( det_energy, sector, filename_ , threshold_ );
 	      }
-	      if( det_energy > threshold_ ) {
+	      if( det_energy > threshold_ && det_energy == det_energy ) {
 
 	        //== CastorJetID plots.
 	        h_ehad->Fill( castor_det.ehad );
@@ -1090,11 +1122,11 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
 	      //-- The following fills the detector level jet energy distributions with a shift according to JES.
 	      //-- energy - JES
-	      if( det_energy * (1. - JES_unc) > threshold_ ){
+	      if( det_energy * (1. - JES_unc) > threshold_ && det_energy == det_energy ){
  	       hCastorJet_energy_JES_down->Fill( det_energy*(1. - JES_unc)  );
 	      }
 	      //-- energy + JES
-	      if( det_energy * (1. - JES_unc)  > threshold_ ){
+	      if( det_energy * (1. + JES_unc)  > threshold_ && det_energy == det_energy ){
  	       hCastorJet_energy_JES_up->Fill( det_energy*(1. + JES_unc)  );
 	      }
 	    } // End detector level jet energy distribution.
@@ -1145,13 +1177,16 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		double det_phi = castor_det.phi; 
 	        int sector = CastorSector( det_phi ) ;
 		TString jettype = GetJetType( castor_det );
-	
-		//Calibration is only needed for non-em jets.
-		if( jettype != "em" ){ det_energy = CalibratedDet( det_energy, sector, fileLabel_, threshold_ ); }
 
+		//test_merijn << "\t\t\t\tDet jet (uncalib)\t" << det_energy << "\t" << sector << endl; 
+		//Calibration is only needed for non-em jets.
+		if( jettype == "had" ){ det_energy = CalibratedDet( det_energy, sector, filename_, threshold_ ); }
+		//test_merijn << "\t\t\t\tDet jet (calib)\t" << det_energy << "\t" << sector << endl; 
 		if( comments_ ){ cout << counter_events << "\tDet\t" << det_jet << " of\t" << CastorJets->size() << "\t" << det_energy << "\t" << det_phi << "\t" << GetJetType(castor_det) << endl; }
 
 		// CUT: cut jet if energy is below threshold.
+		if( det_energy != det_energy ){ //test_merijn << "Bad jet\t" << det_energy << endl; 
+			continue; }
 		if( det_energy < threshold_ ){ 
                   if( comments_ ){ cout << "\t\t\t\t\t\t\t\tLow Det E\t" << det_jet << "\t" << det_energy << endl; }
 		  continue; 
@@ -1193,27 +1228,24 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		  // Jet lies closest: save Delta Phi and index of the jet.
 		  if( match_ == "matchPhi" ){		
     	            if( delta_phi < min_delta_phi ){
-		      if( comments_  ){ cout << "\t\t\t\t\t\t\t\t\t\t\t\t\tNew delta phi minimum" << endl; }
+		      //test_merijn << "\t\tNew delta phi minimum" << endl; 
     	              min_delta_phi = delta_phi;
     	              match_gen = gen_jet;
     	            } // New minimum.
-		    if( comments_ ){ cout << "\t\t\t\t\t\t\t\t\t\t\t" << delta_phi << "\t" << min_delta_phi << endl; }
+		     //test_merijn << "\t\t" << delta_phi << "\t" << min_delta_phi << endl; 
     	          } //Match Ephi
 
 
 		  // Hardest jet close to det. jet: save Delta Phi, energy and index of the jet.
 		  if( match_ == "matchE" ){		
     	            if( gen_energy > max_energy && delta_phi < deltaphimax_ ){
-		      if( comments_  ){ cout << "\t\t\t\t\t\t\t\t\t\t\t\t\tNew E maximum" << endl; }
+		      //test_merijn <<  "\t\tNew E maximum\t" <<  match_gen << "\t" << max_energy << endl; ; 
     	              max_energy = gen_energy;
     	              match_gen = gen_jet;
     	            } // New maximum.
-		    if( comments_ ){ cout << "\t\t\t\t\t\t\t\t\t\t\t" << delta_phi << "\t" << min_delta_phi << endl; }
     	          } //Match E.
 
 		}// Loop over possible match candidates (gen).
-
-
 
 
     	        // We have a matching gen. jet
@@ -1238,6 +1270,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		  // Feed information to response matrix and histograms.	  
 
     	          response.Fill( det_energy, gen_energy );	// RooUnfoldResponse
+    	          response_noMiss.Fill( det_energy, gen_energy );	// RooUnfoldResponse
     	          response_match.Fill( det_energy, gen_energy );// RooUnfoldResponse (only matches)
 		  response_fine.Fill( det_energy, gen_energy ); // RooUnfoldResponse with fine binning for calibration.
 		  hCastorJet_energy_response->Fill( det_energy, gen_energy );	// 2D histogram
@@ -1247,6 +1280,8 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		  hEgen_Edet_eta->Fill( gen_energy, det_energy, gen_eta);
 
 		  nMatch++;
+
+//test_merijn << "\tMATCH\tE\t" 	<< det_energy 		<< "\t" << gen_energy << "\t" << det_phi 		<< "\t" << castor_gen.Phi() << endl;
 
 	          if( comments_ ){ cout << "\t\t\t\t\tMatch" << endl << endl; }
 
@@ -1262,6 +1297,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
     	        else{
     	            response.Fake( det_energy );
+    	            response_noMiss.Fake( det_energy );
 		    hCastorJet_fake_all->Fill( det_energy );
 		    response_fine.Fake( det_energy ); 
 		    (sector_response[sector])->Fake( det_energy );
@@ -1277,8 +1313,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		    if( det_energy > 1400. ){ cout << "Absurd fake at\t" << counter_events << endl; }
     	        } // FAKES.
     	      }// Loop over detector level jets.
- 
-
+//test_merijn << endl << endl;
 	      //----------------------------------------------------------------------------------//
               // MISSES: We had all det. jets, time for the remaining gen. jets which are misses. //
 	      //----------------------------------------------------------------------------------//
@@ -1329,6 +1364,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	    //------------------------------------------------//
 
 	    if( !prepare_unfolding_ && !isData_ ){
+//cout << "Ev.\t" << counter_events;
 	      if( comments_ ){ cout << "Time to look at jets" << endl; }
 
 	      // -- Leading detector level jet.
@@ -1357,6 +1393,8 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      } // Loop over gen. jets.
 	    } // -- No unfolding.
 
+//cout << "\tlead_gen\t" << leading_gen_ << endl;
+
 	    ////////////////////////////////////////////////////////////
 	    //-- Continue if there has been a match with leading jet. //
 	    ////////////////////////////////////////////////////////////
@@ -1379,7 +1417,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 					  
             double eta_gen = leading_gen.Eta(); 		
 	    if ( eta_gen < (-5.9 - etaband_/2.) || eta_gen > (-5.9 + etaband_/2.) ){ 
-	      if( comments_) {cout << "Non-contained" << endl;}
+	      if( comments_) {cout << "Non-contained" << endl;}		
 	      break; }
             double phi_gen = leading_gen.Phi();
             double phidiff = fabs(phi_det_lead-phi_gen);     		if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
@@ -1395,10 +1433,9 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
             double E_gen_cut = 0.;	    
             if( cut_EI && !prepare_unfolding_){
 
-//	      cout << "\t\t\t" << counter_events << "\t" << GetJetType( castor_jet ) << "\t" << GetJetType( leading_gen ) << endl;
               int genjet = 0;
 	      IsolationCut isolation_energy( phi_det_lead, sectors_lead );
-if( sectors_lead == 5) { cout << "Sectors for leading det.\t" << sectors_lead << endl; }
+	      if( sectors_lead == 5) { cout << "Sectors for leading det.\t" << sectors_lead << endl; }
 	      
               while (E_gen_cut == 0. && genjet < CastorGenJets->size()){
                 if( genjet == leading_gen_ ){ genjet++; continue; }
@@ -1433,7 +1470,9 @@ if( sectors_lead == 5) { cout << "Sectors for leading det.\t" << sectors_lead <<
 		}
               } // Cut on EI.
 
-	      if( E_gen_cut > 0 && cut_EI ){ break; }
+	      if( E_gen_cut > 0 && cut_EI ){ 
+		//cout << "Not isolated" << endl; 
+		break; }
 
 	      //////////////////////
 	      // Fill histograms. //
@@ -1452,9 +1491,16 @@ if( sectors_lead == 5) { cout << "Sectors for leading det.\t" << sectors_lead <<
 	      // If needed, calibrate.					  
 	      if( comments_){ cout << "Events\t" << counter_events << "\tActual match\t" << endl; }
 
-	      if( 	do_calibration_discrete ){ 			det_energy_lead = CalibratedDet(lowedge, muval, det_energy_lead, sector);       	}
-	      else if( 	do_calibration_function && !sector_dependence){	det_energy_lead = CalibratedDet( det_energy_lead ); 				}
-              else if( 	do_calibration_function && sector_dependence){ 	det_energy_lead = CalibratedDet( det_energy_lead, sector, fileLabel_, threshold_ ); 			}					  
+	      if( 	do_calibration_discrete ){ 			
+		det_energy_lead = CalibratedDet(lowedge, muval, det_energy_lead, sector);	}
+	      else if( 	do_calibration_function && !sector_dependence){	
+		det_energy_lead = CalibratedDet( det_energy_lead ); 				}
+              else if( 	do_calibration_function && sector_dependence){
+//		cout << phi_det_lead << "\t" << sector << "\t" << det_energy_lead;	
+		det_energy_lead = CalibratedDet( det_energy_lead, sector, filename_, threshold_ );
+		if( det_energy_lead != det_energy_lead ) {
+			cout << "\t\tBAD" << endl; 
+			continue;}			}					  
 				  
 	     if( comments_ ){  	cout << "\tFilling response matrix\t" << det_energy_lead << "\t" << gen_energy << "\tsector\t" << sector << endl; }
 
@@ -1462,8 +1508,6 @@ if( sectors_lead == 5) { cout << "Sectors for leading det.\t" << sectors_lead <<
 		hCastorJet_energy_response_fine->Fill( det_energy_lead, gen_energy);	
 
 		if( comments_){ cout << "\tIntegrals\t" << hCastorJet_energy_response->Integral() << "\t" << hCastorJet_energy_response_fine->Integral() << endl; }
-
-  		//hGenJet_energy->Fill( gen_energy );
 	      
 	      	if( comments_ ){ cout << "// -- FILL\t" << counter_events << "\t" << matched_pairs << endl; }
 
@@ -1516,14 +1560,14 @@ if( sectors_lead == 5) { cout << "Sectors for leading det.\t" << sectors_lead <<
 	            hJER_per_eDet_had_det  	->Fill( det_energy_lead, JER_eDet);
 	            hJER_had			->Fill( JER );    
 	            if( sectors_lead == 1 ){					      
-	              hCastorJet_Matrix_had_det_1sector->Fill(det_energy_lead, gen_energy);
-	              hJER_per_energy_had_det_1sector  ->Fill( gen_energy, JER);
-	              hJER_per_eDet_had_det_1sector  	 ->Fill( det_energy_lead, JER_eDet); 
+	              hCastorJet_Matrix_had_det_1sector	->Fill(det_energy_lead, gen_energy);
+	              hJER_per_energy_had_det_1sector  	->Fill( gen_energy, JER);
+	              hJER_per_eDet_had_det_1sector  	->Fill( det_energy_lead, JER_eDet); 
 	            }
 	            else{
-	              hCastorJet_Matrix_had_det_nsector->Fill(det_energy_lead, gen_energy);
-	              hJER_per_energy_had_det_nsector  ->Fill( gen_energy, JER);
-	              hJER_per_eDet_had_det_nsector  	 ->Fill( det_energy_lead, JER_eDet); 					      
+	              hCastorJet_Matrix_had_det_nsector	->Fill(det_energy_lead, gen_energy);
+	              hJER_per_energy_had_det_nsector  	->Fill( gen_energy, JER);
+	              hJER_per_eDet_had_det_nsector  	->Fill( det_energy_lead, JER_eDet); 					      
 	            }
 	          }
 	          else if( detjettype == "em" ){
@@ -1827,12 +1871,13 @@ cout << "pi_e II" << endl;
 
 	// Save response objects to file.
 	response.Write();
+	response_noMiss.Write();
 	response_lead.Write();
         response_fine.Write();
 	response_match.Write();
 	response_lead_fine.Write();
 
-	for(int sector = 0; sector < 16; sector++){
+	for(int sector = 1; sector <= 16; sector++){
 	  (sector_response[sector])->Write();
 	}
 //	sector_response->Write();

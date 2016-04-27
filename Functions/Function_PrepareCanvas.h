@@ -8,34 +8,27 @@
 void PrepareCanvas( TCanvas* &can_, TString label){
 
   int W = 800;
-  int H = 600;
+  int H = 756;
   int H_ref = 600; 
-  int W_ref = 800; 
+  int W_ref = 756; 
+
   // references for T, B, L, R
-  float T = 0.08*H_ref;
-  float B = 0.12*H_ref; 
-  float L = 0.12*W_ref;
-  float R = 0.04*W_ref;
+  float T = 0.06315;
+  float B = 0.3103 * 0.305; 
+  float L = 0.12;
+  float R = 0.04;
 
-
-/*
-  can_ = new TCanvas( label, label, 1200, 1000 );
-  can_->SetLeftMargin(0.12);
-  can_->SetRightMargin(0.04);
-  can_->SetTopMargin(0.12);
-  can_->SetBottomMargin(0.12);  
-*/
   can_ = new TCanvas( label, label, 50,50,W,H);
   can_->SetFillColor(0);
   can_->SetBorderMode(0);
   can_->SetFrameFillStyle(0);
   can_->SetFrameBorderMode(0);
-  can_->SetLeftMargin( L/W );
-  can_->SetRightMargin( R/W );
-  can_->SetTopMargin( T/H );
-  can_->SetBottomMargin( B/H );
-  can_->SetTickx(0);
-  can_->SetTicky(0);
+  can_->SetLeftMargin( L );
+  can_->SetRightMargin( R );
+  can_->SetTopMargin( T );
+  can_->SetBottomMargin( B );
+  can_->SetTickx(1);
+  can_->SetTicky(1);
 }
 
 void PrepareCanvas_2D( TCanvas* &can_, TString label){
@@ -65,7 +58,6 @@ void PrepareCanvas_2D( TCanvas* &can_, TString label){
   float R = (1. - L/W) - (1.-T/H-B/H)*double(H)/double(W);
   R = R*W_ref;
 
-  cout << "\n\tPrepare canvas\t(L= " << L/W << ", R = " << R/W << ", T = " << T/H << ", B = " << B/H << ")\t" << endl;
 
   can_ = new TCanvas( label, label, 50,50,W,H);
   can_->SetLeftMargin(	L/W);
@@ -73,7 +65,6 @@ void PrepareCanvas_2D( TCanvas* &can_, TString label){
   can_->SetTopMargin(	T/H);
   can_->SetBottomMargin(B/H);  
 
-  cout << "\n\tPrepared canvas\t" << endl;
 
 }
 
@@ -88,7 +79,7 @@ void SplitCanvas(TCanvas* &can_, TPad* &pad_abs_, TPad* &pad_ratio_, double left
 
     
 
-  pad_abs_ = new TPad("Absolute_Values", "Absolute_Values", 0., 0.4,1.,1. - can_->GetTopMargin());
+  pad_abs_ = new TPad("Absolute_Values", "Absolute_Values", 0., 0.305,1.,1. - can_->GetTopMargin());
   pad_abs_->SetLeftMargin(0.16);
   pad_abs_->SetRightMargin(0.02);
   pad_abs_->SetBottomMargin(0.);
@@ -96,7 +87,7 @@ void SplitCanvas(TCanvas* &can_, TPad* &pad_abs_, TPad* &pad_ratio_, double left
   pad_abs_->Draw();
 
   can_->cd();
-  pad_ratio_ = new TPad("Ratios", "Ratios", 0., 0., 1., 0.4);
+  pad_ratio_ = new TPad("Ratios", "Ratios", 0., 0., 1., 0.305);
   pad_ratio_->SetLeftMargin(0.16);
   pad_ratio_->SetRightMargin(0.02);
   pad_ratio_->SetTopMargin(0);

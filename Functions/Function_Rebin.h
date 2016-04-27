@@ -1,3 +1,6 @@
+using namespace std;
+
+
 void Rebin_to(TH1D* &original, int maxBins){
 
   int nbins_default = original->GetNbinsX();

@@ -110,6 +110,7 @@ int main(int argc, char* argv[]){
    TString setup = "";  
    TString Ethresh = "";
    TString type = "";
+   TString cuts = "";
    double Eplotmin = 0.;
    double deltaPhiMax = 0.;
    double etawidth = 0.;
@@ -150,8 +151,21 @@ int main(int argc, char* argv[]){
    etawidth = atof(argv[5]);
    
    type = argv[7];
+ 
+   //== Which event selection?
+   cuts = argv[8];
+   TString cutsetup;
+   if( cuts == "" ){	
+     cutsetup = ""; }
+   else if( cuts == "V" ){ 	
+     cutsetup = "_noVertexcut"; }
+   else if( cuts == "H" ){	
+     cutsetup = "_noHFcut"; }
+   else if( cuts == "HV" || cuts == "VH" ){	
+     cutsetup = "_noHFcut_noVertexcut"; }
 
 
+   
 
 
 
@@ -278,7 +292,7 @@ int main(int argc, char* argv[]){
      if( jettype != "" ){ jettype = "_" + jettype; }
 
 
-     MCfile= TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_NewGeo_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root", deltaPhiMax, etawidth );
+     MCfile= TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_NewGeo" + cutsetup + "_unfold_Emin_150.000000_deltaPhiMax_%f_etaband_%f_all_matchE.root", deltaPhiMax, etawidth );
      filenames.push_back( MCfile ); 
      legendEntries.push_back("(ak5, ak5) - Displaced");
      colours.push_back(getColor(color_index++));
@@ -292,8 +306,7 @@ int main(int argc, char* argv[]){
      mc_type[MCfile] = "actual";
      xsec[MCfile] = 71.26;
 
-
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia84C_NewGeo_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia84C_NewGeo" + cutsetup + "_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
 //     MCfile = TString::Format("20160404_Pythia84C_NewGeo_unfold.root_JetAnalyzer_etaband_1.400000_670215_0_sectors_all.root");
      filenames.push_back( MCfile );
      legendEntries.push_back("(ak5, ak5) - Displaced, Pythia8");
@@ -308,25 +321,8 @@ int main(int argc, char* argv[]){
      mc_type[MCfile] = "model";  
      xsec[MCfile] = 71.4;
 
-/*
-//     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_Pythia84C_nonDisplaced_" + setup + "_Emin_" + Ethresh + ".000000_deltaPhiMax_0.500000_etaband_0.000000_" + type + "_matchE.root");
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/20160201_ak5ak5_Pythia84C_NomGeo_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
-     filenames.push_back( MCfile );
-     legendEntries.push_back("(ak5, ak5) - non Displaced, Pythia8");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("Nominal");    
-     printLabel[MCfile] = "_Pythia84C";
-     legends[MCfile] = "Nominal (Pythia8)";
-     legends_gen[MCfile] = "Pythia8 (4C, nom.)";
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "total_events_nocuts";
-     mc_type[MCfile] = "model_";    
-     xsec[MCfile] = 71.4;
-*/
 
-
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_EPOS_NewGeo_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_EPOS_NewGeo" + cutsetup + "_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
 //     MCfile = TString::Format("20160404_EPOS_NewGeo_unfold.root_JetAnalyzer_etaband_1.400000_600559_0_sectors_all.root");
      filenames.push_back( MCfile );
      legendEntries.push_back("(ak5, ak5) - Displaced, EPOS");
@@ -341,7 +337,7 @@ int main(int argc, char* argv[]){
      mc_type[MCfile] = "model";      
      xsec[MCfile] = 71.32;
 
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_down_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_down" + cutsetup + "_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
 //     MCfile = TString::Format("20160404_Pythia6Z2star_down_unfold.root_JetAnalyzer_etaband_1.400000_608839_0_sectors_all.root");
      filenames.push_back( MCfile );
      legendEntries.push_back("(ak5, ak5) - Displaced down");
@@ -357,7 +353,7 @@ int main(int argc, char* argv[]){
      xsec[MCfile] = 71.4;
 
 
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_up_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
+     MCfile = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_up" + cutsetup + "_unfold_Emin_150.000000_deltaPhiMax_0.500000_etaband_0.000000_all_matchE.root");
 //     MCfile = TString::Format("20160404_Pythia6Z2star_up_unfold.root_JetAnalyzer_etaband_1.400000_608086_0_sectors_all.root");
      filenames.push_back( MCfile );
      legendEntries.push_back("(ak5, ak5) - Displaced up");
@@ -433,168 +429,6 @@ int main(int argc, char* argv[]){
      scalefactors[MCfile] = "succesful_events";
      mc_type[MCfile] = "shift_MPI_or_Tune";    
      xsec[MCfile] = 71.4;
-/*
-     //=== Pythia8 (CUET CTEQ6L), with MPI ===
-  MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160330_TuneCUETP8S1-CTEQ6L1_MPI_on_softQCD_1000000events_presetTune.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("Pythia8 CUETP8S1-CTEQ6L1 (MPI)");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("Pythia8CUETP8S1-CTEQ6L1_MPI");    
-     printLabel[MCfile] = "Pythia8CUETP8S1-CTEQ6L1_MPI";
-     legends[MCfile] = "Pythia8.145 CUETP8S1-CTEQ6L1 (MPI)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 71.4;
-
-
-  MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160330_TuneCUETP8S1-CTEQ6L1_MPI_off_softQCD_1000000events_presetTune.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("Pythia8 CUETP8S1-CTEQ6L1 (no MPI)");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("Pythia8CUETP8S1-CTEQ6L1_noMPI");    
-     printLabel[MCfile] = "Pythia8CUETP8S1-CTEQ6L1_noMPI";
-     legends[MCfile] = "Pythia8.145 CUETP8S1-CTEQ6L1 (no MPI)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 71.4;
-
-     //=== Pythia8 (CUET HERAPDF), with MPI ===
-  MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160330_TuneCUETP8S1-HERAPDF_MPI_on_softQCD_1000000events_presetTune.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("Pythia8 CUETP8S1-HERAPDF6L1 (MPI)");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("Pythia8CUETP8S1-HERAPDF_MPI");    
-     printLabel[MCfile] = "Pythia8CUETP8S1-HERAPDF_MPI";
-     legends[MCfile] = "Pythia8.145 CUETP8S1-HERAPDF (MPI)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 71.4;
-
-     MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160330_TuneCUETP8S1-HERAPDF_MPI_off_softQCD_1000000events_presetTune.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("Pythia8 CUETP8S1-HERAPDF6L1 (no MPI)");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("Pythia8CUETP8S1-HERAPDF_noMPI");    
-     printLabel[MCfile] = "Pythia8CUETP8S1-HERAPDF_noMPI";
-     legends[MCfile] = "Pythia8.145 CUETP8S1-HERAPDF (no MPI)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 71.4;
-*/
-     //==== Template to add more models/MC generators/... ====
-     /*
-     MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160121_pythia8145_Tune4C_MPI_off_softQCD_100000events_presetTune.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("Pythia8.145 4C (no MPI)");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("Pythia81454C_noMPI");    
-     printLabel[MCfile] = "Pythia81454C_noMPI";
-     legends[MCfile] = "Pythia8.145 4C (no MPI)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";   
-
-
-     MCfile = TString::Format("/user/avanspil/Pythia_Fastjet_files/20160121_pythia8145_Tune4C_MPI_on_softQCD_100000events_presetTune.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("Pythia8 4C (MPI)");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("Pythia84C_MPI");    
-     printLabel[MCfile] = "Pythia84C_MPI";
-     legends[MCfile] = "Pythia8.145 4C (MPI)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune"; 
-     */
-
-     //=== HEJ ===
-/*
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5_HEJ_scalesetting_0.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("HEJ");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("HEJ");    
-     printLabel[MCfile] = "HEJ";
-     legends[MCfile] = "HEJ (scalesetting 0)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 1.;
-
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5_HEJ_scalesetting_1.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("HEJ");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("HEJ");    
-     printLabel[MCfile] = "HEJ";
-     legends[MCfile] = "HEJ (scalesetting 1)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 1.;
-
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5_HEJ_scalesetting_2.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("HEJ");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("HEJ");    
-     printLabel[MCfile] = "HEJ";
-     legends[MCfile] = "HEJ (scalesetting 2)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 1.;
-
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5_HEJ_scalesetting_3.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("HEJ");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("HEJ");    
-     printLabel[MCfile] = "HEJ";
-     legends[MCfile] = "HEJ (scalesetting 3)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 1.;
-
-     MCfile = TString::Format("/user/avanspil/Castor_Analysis/ak5_HEJ_scalesetting_3_noMatching.root" );
-     filenames.push_back( MCfile );
-     legendEntries.push_back("HEJ");
-     colours.push_back(getColor(color_index++));
-     linestyle.push_back( style_of_line++);
-     fileLabel.push_back("HEJ");    
-     printLabel[MCfile] = "HEJ";
-     legends[MCfile] = "HEJ (scalesetting 3)";
-     legends_gen[MCfile] = legends[MCfile];
-     calibration_tag[MCfile] = "MC";	
-     scalefactors[MCfile] = "succesful_events";
-     mc_type[MCfile] = "shift_MPI_or_Tune";    
-     xsec[MCfile] = 1.;
-*/
 
      //=== QGSJet ===
      MCfile = TString::Format("/user/avanspil//Castor_Analysis/Stripped_trees_histo_files/ak5_QGSJet.root" );
@@ -627,7 +461,7 @@ int main(int argc, char* argv[]){
      xsec[MCfile] = 76.91;
 
 
-     datafile = "/user/avanspil//Castor_Analysis/Stripped_trees_histo_files/ak5_data_unfold_Emin_150.000000_all.root";
+     datafile = "/user/avanspil//Castor_Analysis/Stripped_trees_histo_files/ak5_data" + cutsetup + "_unfold_Emin_150.000000_all.root";
 
    }
 
@@ -1397,7 +1231,7 @@ int main(int argc, char* argv[]){
    }
 
    if( setup == "unfold" ){
-     labeltje += "_" + match;
+     labeltje += "_" + match + cutsetup;
    }
    labeltje += "_" + model_;
 
@@ -1476,7 +1310,7 @@ int main(int argc, char* argv[]){
      }
      
 
-     //my_first_unfolder.Plot_JER();
+//     my_first_unfolder.Plot_JER();
      //my_first_unfolder.Plot_Isolation();
 
 //     my_first_unfolder.CalibrationFactors_oneCanvas(true);	// Draw with fits
@@ -1617,12 +1451,13 @@ int main(int argc, char* argv[]){
    if( setup == "unfold"){
      my_first_unfolder.SetSubhistogram_cut( Eplotmin );
      my_first_unfolder.Initialize_xsec( xsec );
+     my_first_unfolder.SetCutSetup( cutsetup );
 
      //my_first_unfolder.Plot_Egen_pt();
      
      // my_first_unfolder.Cut_efficiency();
 
-     //my_first_unfolder.Hist_DetLevel();
+     my_first_unfolder.Hist_DetLevel();
 
       
      //== 1. Extract the covariance matrix as calculated by RooUnfold from the unfolding procedure.
@@ -1638,11 +1473,11 @@ int main(int argc, char* argv[]){
      my_first_unfolder.PlotStartingDistributions_ratio("miss");
      my_first_unfolder.PlotStartingDistributions_ratio("fake");
 */
-     //my_first_unfolder.PlotResponseMatrix( 0, setup );
+//     my_first_unfolder.PlotResponseMatrix( 0, setup );
 
 //     my_first_unfolder.Plot_CastorJetID();
 
-     my_first_unfolder.Plot_Unfolded();
+//     my_first_unfolder.Plot_Unfolded();
 
 
 /*
@@ -1674,16 +1509,25 @@ int main(int argc, char* argv[]){
      my_first_unfolder.DoublePaddedComparison_positionDependence("all", 30);
      my_first_unfolder.DoublePaddedComparison_JESDependence("all", 30);
      my_first_unfolder.DoublePaddedComparison_JESmeasured("all", 30);
-
+/*
+     my_first_unfolder.DoublePaddedComparison_modelDependence("all", 20);
+     my_first_unfolder.DoublePaddedComparison_positionDependence("all", 20);
+     my_first_unfolder.DoublePaddedComparison_JESDependence("all", 20);
+     my_first_unfolder.DoublePaddedComparison_JESmeasured("all", 20);
+*/
 	//-- Plot all systematics in absolute and ratio.
 
      TCanvas* can_30it;
      my_first_unfolder.Plot_Unfolded_Ratio_allSystematics_pT( can_30it, "all", 30, "E", "Pythia");
      my_first_unfolder.Plot_Unfolded_Ratio_allSystematics_pT( can_30it, "all", 30, "E", "noPythia");
+
+//     TCanvas* can_20it;
+//     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics_pT( can_20it, "all", 20, "E", "Pythia");
+//     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics_pT( can_20it, "all", 20, "E", "noPythia");
 //     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics_pT( can_30it, "all", 30, "E", "All");
 
-//     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics_normData( can_30it, "all", 30);
 
+//     my_first_unfolder.Plot_Unfolded_Ratio_allSystematics_normData( can_30it, "all", 30);
 //     my_first_unfolder.Hist_DetLevel();
 
 //     TCanvas* can_50it;
@@ -1694,9 +1538,12 @@ int main(int argc, char* argv[]){
 
 //     my_first_unfolder.Plot_Unfolded();
 
-     my_first_unfolder.Plot_Unfolded_JES();
-     my_first_unfolder.Plot_Measured_JES();
+/*
+     my_first_unfolder.Plot_Unfolded_JES(20);
 
+     my_first_unfolder.Plot_Unfolded_JES(30);
+     my_first_unfolder.Plot_Measured_JES();
+*/
 /*
      my_first_unfolder.DoublePaddedComparison_statistics("all", 12);
      my_first_unfolder.DoublePaddedComparison_statistics("all", 50);
@@ -1705,11 +1552,13 @@ int main(int argc, char* argv[]){
 /*
      my_first_unfolder.PlotStartingDistributions_MCfiles("eta");
 */
+
      my_first_unfolder.PlotStartingDistributions_ratio("fake"); 
      my_first_unfolder.PlotStartingDistributions_ratio("miss");
+/*
      my_first_unfolder.PlotStartingDistributions_ratio("detector");
      my_first_unfolder.PlotStartingDistributions_ratio("generator");
-
+*/
 
 
      TCanvas *can_modeldependence_30it = new TCanvas("Model_dependence_30its", "Model_dependence_30its", 1.);
@@ -1723,9 +1572,6 @@ int main(int argc, char* argv[]){
      my_first_unfolder.Plot_Unfolded_Ratio_positionDependence( pad , "all", 30);
      can_modeldependence_30it->SaveAs("Positiondependence_30it.C");
      can_modeldependence_30it->SaveAs("Positiondependence_30it.pdf");
-
-
-
 
 //     TF1* analytical;
 //     my_first_unfolder.Fit_unfolded_distribution(analytical);

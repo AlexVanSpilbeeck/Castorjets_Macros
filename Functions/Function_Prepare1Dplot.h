@@ -20,7 +20,7 @@ void Prepare_1Dplot(TH1D* &hist_, TPad* &pad_){
 
   hist_->GetXaxis()->SetTitleFont(43);
   hist_->GetXaxis()->SetTitleSize(32);
-  hist_->GetXaxis()->SetTitleOffset(1.);
+  hist_->GetXaxis()->SetTitleOffset(1. * (756./pad_height) );
   hist_->GetXaxis()->SetLabelFont(43);
   hist_->GetXaxis()->SetLabelSize(32);
 
@@ -44,19 +44,21 @@ void Prepare_1Dplot(TH1D* &hist_){
   hist_->GetXaxis()->SetTitleSize(32);
   hist_->GetXaxis()->SetTitleOffset(1.);
   hist_->GetXaxis()->SetLabelFont(43);
-  hist_->GetXaxis()->SetLabelSize(32);
+  hist_->GetXaxis()->SetLabelSize(29);
 
   hist_->GetYaxis()->SetTitleFont(43);
   hist_->GetYaxis()->SetTitleSize(32);
-  hist_->GetYaxis()->SetTitleOffset(1.35);
+  hist_->GetYaxis()->SetTitleOffset(1.3);
   hist_->GetYaxis()->SetLabelFont(43);
-  hist_->GetYaxis()->SetLabelSize(32);
+  hist_->GetYaxis()->SetLabelSize(29);
 
   double min = GetMinimumValue( hist_ );
   double max = hist_->GetMaximum();
 
   hist_->GetYaxis()->SetRangeUser( min*0.9, max*1.1);
 }
+
+
 
 //== TGraph.
 

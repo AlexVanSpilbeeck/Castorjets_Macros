@@ -156,7 +156,10 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
 
     if( date == "0" && !isData_){       
       LoopOutputFile_ += filename;
-      LoopOutputFile_.ReplaceAll( "Stripped_trees/", "");
+      LoopOutputFile_.ReplaceAll( "noHFcut_noVertexcut/", "");
+      LoopOutputFile_.ReplaceAll( "noHFcut/", "");
+      LoopOutputFile_.ReplaceAll( "noVertexcut/", "");
+      LoopOutputFile_.ReplaceAll( "Stripped_trees/", "Stripped_trees_histo_files/");
       LoopOutputFile_.ReplaceAll( "STRIPPED_TREE.root", "");
       LoopOutputFile_ += setup;    
       LoopOutputFile_ += TString::Format("_Emin_%f", threshold_);
@@ -169,7 +172,10 @@ JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir,
 
     if( date == "0" && isData_ ){
       LoopOutputFile_ += filename;
-      LoopOutputFile_.ReplaceAll( "Stripped_trees/", "");
+      LoopOutputFile_.ReplaceAll( "noHFcut_noVertexcut/", "");
+      LoopOutputFile_.ReplaceAll( "noHFcut/", "");
+      LoopOutputFile_.ReplaceAll( "noVertexcut/", "");
+      LoopOutputFile_.ReplaceAll( "Stripped_trees/", "Stripped_trees_histo_files/");
       LoopOutputFile_.ReplaceAll( "STRIPPED_TREE.root", "");
       LoopOutputFile_ += setup;    
       LoopOutputFile_ += TString::Format("_Emin_%f", threshold_);
@@ -240,67 +246,16 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	double Emax_fix = 3000.;
 	
         // AVS - number of bins.
-	/* We get binwidth from peak JER. */
-//	double Emin = jetEThreshold_det + 0., Emax = 3000.;
-//	int Ebins = static_cast<int> ( (Emax - Emin)/EbinWidth );
-//	double Emin = 0., Emax = 3000.;
-//	int Ebins = 50;
         double Emin, Emax = 2100.;
         int Ebins = 0;
 
         if( threshold_ == 0. ){ Emin = threshold_; Ebins = 28; }
 	if( threshold_ == 150.){ Emin = threshold_; Ebins = 26;}
 	if( threshold_ == 300.){ Emin = threshold_; Ebins = 24;}
-
-         
-
+        
         if( comments_ ){ cout << Ebins << " bins from " << Emin << " GeV to " << Emax << " GeV" << endl; }
 
-	/* If we want variable Ebins. */
 
-	//-------------------------------------------------------------------//
-	//-- We want bin width 75 GeV, and bin width 300 GeV above 1200 GeV. //
-	//-------------------------------------------------------------------//
-        /*
-	double current_lowE = 150.;
-	vector<double> binEdges;
-	binEdges.push_back( 150. );
-	double binwidth = 75.;
-	Ebins = 1;
-        double switchwidth1 = 1050.; // when to increase binwidth.
-	double switchwidth2 = 1500.;
-
-	while( current_lowE < 2100. ){
-	  if( current_lowE >= switchwidth1 && current_lowE < switchwidth2 &&switchwidth1 < 2100. ){
-	    binwidth = 150.;
-	  }	
-	  if( current_lowE >= switchwidth2 && switchwidth2 < 2100. ){
-	    binwidth = 300.;
-	  }	
-	  current_lowE += binwidth;
-	  binEdges.push_back( current_lowE );
-
-          if( current_lowE < 2100.){ Ebins++; }
-	  cout << Ebins << "\t" << current_lowE << endl;
-	}
-//        double *Ebins_var = new double[Ebins];
-	double* Ebins_var = &binEdges[0];
-
-	for(int i = 0; i < binEdges.size(); i++){
-	  Ebins_var[i] = binEdges[i];
-	  cout << "bin\t" << i << "\t" << binEdges[i] << "\t" << Ebins << "\tOr\t" << binEdges.size() << endl;
-	}
-
-	for(int i = 0; i < binEdges.size(); i++){
-	  cout << "Ebins_var\t" << i << "\t" << Ebins_var[i] << endl;
-
-	}
-	cout << "Done!" << endl;
-
-	Ebins = binEdges.size() - 1;
-
-	cout << "Number of bins is\t" << Ebins << endl;
-	*/
 
 	//-------------------------------------------//
 	//-- We want bin width 20% of high bin edge. //
@@ -415,38 +370,10 @@ void JetAnalyzer_radii_strippedTree::Loop() {
 	EIbins_rel = binEdges_EI_rel.size() - 1;
 
 
-/*
-	// We need an extended bin range for our matrix + hits & misses
-	// Let us take bins 0 - 50, 50 - 100
-	float *Ebins_ext = new float[Ebins+2];
-	Ebins_ext[0] = 0.;
-	Ebins_ext[1] = 50.;
-	for(int i = 0; i < binEdges.size(); i++){
-	  Ebins_ext[i+2] = binEdges[i];
-	}
-        cout << "Variable bins done" << endl;
-*/
-        /* End variable ebins. */
+	int nptbin = 11;
+	double ptbinarr [] = {1., 1.5, 2., 2.5, 3., 4., 5., 6., 8., 10., 13., 20.};
 
-	// detector level histograms
-
-	//-- Throw out all that has to do with eflow.
-	/*
-        cout << "Prepare eflow channels" << endl;
-
-	TH1D *hCASTOReflow_channel[224];
-	cout << "It's this bitch";
-	for (int i=0;i<224;i++) {
-		TString name = TString::Format("hCASTOReflow_channel_%i",i+1 );
-		TString title = TString::Format( "CASTOR Energy distribution for channel %i",i+1 );
-
-		cout << "Title\tname\t" << title << "\t" << name << "\t";
-
-		hCASTOReflow_channel[i] = new TH1D(name,title,100,-10,1800);
-		hCASTOReflow_channel[i]->Sumw2();
-	}
-	cout << endl;
-	*/
+cout << "Defined array" << endl;
 
 	cout << "hCastorTowerMulti" << endl;
 	TH1D *hCASTORTowerMulti = new TH1D("hCASTORTowerMulti","CASTOR Tower Multiplicity (N above threshold) distribution",17,0.,17.);
@@ -485,6 +412,8 @@ cout << "sectors" << endl;
 
         TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",	Ebins, Ebins_var);
 		hCastorJet_energy->Sumw2();
+        TH1D *hCastorJet_pT = new TH1D("hCastorJet_pT","CastorJet p_{T} distribution",	nptbin, ptbinarr);
+		hCastorJet_pT->Sumw2();
         TH1D *hCastorJet_energy_unCalib = new TH1D("hCastorJet_energy_unCalib","CastorJet energy distribution",	Ebins, Ebins_var);
 		hCastorJet_energy_unCalib->Sumw2();
 
@@ -495,6 +424,9 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
         TH1D *hCastorJet_energy_JES_up = new TH1D("hCastorJet_energy_JES_up","CastorJet energy distribution plus JES",	Ebins, Ebins_var);
         TH1D *hCastorJet_energy_JES_down = new TH1D("hCastorJet_energy_JES_down","CastorJet energy distribution minus JES",	Ebins, Ebins_var);
+
+        TH1D *hCastorJet_pT_JES_up = new TH1D("hCastorJet_pT_JES_up","CastorJet energy distribution plus JES",	nptbin, ptbinarr);
+        TH1D *hCastorJet_pT_JES_down = new TH1D("hCastorJet_pT_JES_down","CastorJet energy distribution minus JES",	nptbin, ptbinarr);
 
         TH1D *hCastorJet_energy_lead = new TH1D("hCastorJet_energy_lead","CastorJet energy distribution", Ebins, Ebins_var);
 		hCastorJet_energy_lead->Sumw2();
@@ -654,6 +586,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	RooUnfoldResponse response 		(hCastorJet_energy, hCastorJet_energy, "response");
 	RooUnfoldResponse response_noMiss	(hCastorJet_energy, hCastorJet_energy, "response_noMiss");
 	RooUnfoldResponse response_lead		(hCastorJet_energy, hCastorJet_energy, "response_lead");
+	RooUnfoldResponse response_pT 		(hCastorJet_pT,     hCastorJet_pT,     "response_pT");
 
 	RooUnfoldResponse response_fine 	(hCastorJet_energy_fine, hCastorJet_energy_fine, "response_fine");
 	RooUnfoldResponse response_lead_fine	(hCastorJet_energy_fine, hCastorJet_energy_fine, "response_lead_fine");
@@ -744,8 +677,10 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	bool castor_0GeV_MC = false, castor_150GeV_MC = false, castor_300GeV_MC = false;
         int jets_uncalibrated = 0, jets_calibrated = 0;
 
-	hCastorJet_energy->Sumw2();
+cout << "Defined shit" << endl;
 
+	hCastorJet_energy->Sumw2();
+	hCastorJet_pT->Sumw2();
 	hCastorJet_pt->Sumw2();
 	hCastorJet_em->Sumw2();
 	hCastorJet_had->Sumw2();
@@ -863,11 +798,14 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	//ofstream test_merijn;
 	//test_merijn.open("//test_merijn.txt");
 
+        ofstream count_det;
+	count_det.open("count_det.txt");
+
 	for( counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {
 	       
 	  if( comments_ ){ cout << "******************************************" << endl; }
 	  if( counter_events%1000== 0){ cout << "\t" << counter_events << "\tpassed" << endl; }
-	
+
 	  ////////////////////////////////
 	  // Extract this event's jets. //
 	  ////////////////////////////////
@@ -878,10 +816,6 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	  /////////////////////////////////////////
 	  // Start Nvertex == 1 part of the code //
 	  /////////////////////////////////////////
-
-
-
-
 
 
 	  //------------------------------------------//  		
@@ -897,6 +831,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
 	    //-- Loop over detector level jets.
    	    for(int det_jet = CastorJets->size()-1; det_jet >= 0; det_jet-- ){
+
 	      MyCastorJet castor_jet = (*CastorJets)[ det_jet ];
 
 	      double det_energy = castor_jet.energy;           
@@ -909,19 +844,11 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
 	      if( det_energy> threshold_ ){ 
 		ndet++; 
-/*
-//test_merijn << counter_events << "\tDET\t" 
-		<< det_jet << "\t" 
-		<< det_energy << "\t"
-		<< castor_jet.eta << "\t"
-		<< det_phi << "\t"
-		<< sector << endl;*/
 	      }
 	    } // Loop over det. jets.
 
-////test_merijn << endl;
-
 	    //-- Loop over CASTOR (gen) jets.
+
 	    for( int gen_jet =  CastorGenJets->size()-1; gen_jet >=0; gen_jet--){
 	      MyGenJet castor_gen = (*CastorGenJets)[gen_jet];
 	      double gen_energy = castor_gen.Energy();
@@ -931,13 +858,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      if( gen_energy > threshold_ ){
 		double gen_eta = castor_gen.Eta();
 		hGenJet_eta->Fill( gen_eta );
-/*
-//test_merijn << counter_events << "\tGEN\t" 
-		<< gen_jet << "\t" 
-		<< gen_energy << "\t"
-		<< gen_eta << "\t"
-		<< castor_gen.Phi() << endl;
-*/
+
 		if( gen_eta > genetamin_ && gen_eta < genetamax_ ){ 
     	          hGenJet_energy->Fill( gen_energy );
 		  hGenJet_energy_vs_eta->Fill( gen_energy, gen_eta );
@@ -1050,6 +971,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	    //-- (TO DO) The cut on the number of sectors is a relic and needs to be removed.
 	    if( !prepare_unfolding_ ){
 	      if( comments_ ){ cout << "time to not prepare unfolding" << endl; }
+
 	      MyCastorJet castorjet = (*CastorJets)[ 0 ];
 	      double castor_sectors = castorjet.ntower;
 
@@ -1067,9 +989,6 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      }
 	      if( comments_ ){ cout << "Survived sectors cut" << endl; } 
 	    } // Get type and Nsectors of leading jet.
-
-
-
 
 
 	    ////////////////////////////////////////////////////////
@@ -1113,9 +1032,9 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	        h_fem	->Fill( castor_det.fem );
 	        h_phi	->Fill( det_phi );
 
-
 	       jets_calibrated++;
  	       hCastorJet_energy->Fill( det_energy ); // Inclusive jet energy spectrum.
+ 	       hCastorJet_pT->Fill( det_energy/cosh(-5.9) ); // Inclusive jet energy spectrum.
  	       hCastorJet_energy_sectors->Fill( det_energy, sector ); // Inclusive jet energy spectrum.
 	       if( det_jet == 0)  hCastorJet_energy_lead->Fill( det_energy ); // Leading jet energy spectrum.
 	      }
@@ -1124,16 +1043,14 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      //-- energy - JES
 	      if( det_energy * (1. - JES_unc) > threshold_ && det_energy == det_energy ){
  	       hCastorJet_energy_JES_down->Fill( det_energy*(1. - JES_unc)  );
+ 	       hCastorJet_pT_JES_down->Fill( det_energy*(1. - JES_unc)/cosh(-5.9)  );	       
 	      }
 	      //-- energy + JES
 	      if( det_energy * (1. + JES_unc)  > threshold_ && det_energy == det_energy ){
  	       hCastorJet_energy_JES_up->Fill( det_energy*(1. + JES_unc)  );
+ 	       hCastorJet_pT_JES_up->Fill( det_energy*(1. + JES_unc)/cosh(-5.9)  );
 	      }
 	    } // End detector level jet energy distribution.
-
-
-
-
 
 	
     	    /////////////////////////////////////////////////
@@ -1253,6 +1170,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
     	          MyGenJet castor_gen = (*CastorGenJets)[match_gen];
     	          double gen_energy = castor_gen.Energy();	
 		  double gen_eta = castor_gen.Eta();
+		  double gen_pT = castor_gen.Pt();
 
 		  //-- If this is a leading detector level jet, store the information in the leading jet histograms as well.
 		  if( det_jet == 0){
@@ -1268,8 +1186,9 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		  }
 
 		  // Feed information to response matrix and histograms.	  
-
+count_det << counter_events << endl;
     	          response.Fill( det_energy, gen_energy );	// RooUnfoldResponse
+    	          response_pT.Fill( det_energy/cosh(-5.9), gen_pT );	// RooUnfoldResponse
     	          response_noMiss.Fill( det_energy, gen_energy );	// RooUnfoldResponse
     	          response_match.Fill( det_energy, gen_energy );// RooUnfoldResponse (only matches)
 		  response_fine.Fill( det_energy, gen_energy ); // RooUnfoldResponse with fine binning for calibration.
@@ -1297,10 +1216,12 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
     	        else{
     	            response.Fake( det_energy );
+    	            response_pT.Fake( det_energy/cosh(-5.9) );
     	            response_noMiss.Fake( det_energy );
 		    hCastorJet_fake_all->Fill( det_energy );
 		    response_fine.Fake( det_energy ); 
 		    (sector_response[sector])->Fake( det_energy );
+count_det << counter_events << endl;
 
 		    if( det_jet == 0 ){ 
 		      hCastorJet_fake_lead->Fill( det_energy ); 
@@ -1325,6 +1246,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
     	          MyGenJet castor_gen = (*CastorGenJets)[gen_jet];
     	          double gen_energy = castor_gen.Energy();
 		  double gen_eta = castor_gen.Eta();
+		  double gen_pT = castor_gen.Pt();
 
 	          double gen_phi = castor_gen.Phi();
 	          int sector = CastorSector( gen_phi ) ; 
@@ -1334,6 +1256,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		    continue; 
 		  }
 		  response.Miss(gen_energy ); 
+		  response_pT.Miss(gen_pT ); 
 	 	  response_fine.Miss( gen_energy ); 
 	 	  //hGenJet_energy->Fill( gen_energy );	
 		  hCastorJet_miss_all->Fill( gen_energy );
@@ -1364,7 +1287,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	    //------------------------------------------------//
 
 	    if( !prepare_unfolding_ && !isData_ ){
-//cout << "Ev.\t" << counter_events;
+
 	      if( comments_ ){ cout << "Time to look at jets" << endl; }
 
 	      // -- Leading detector level jet.
@@ -1392,8 +1315,6 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		} // Minimum in phi.
 	      } // Loop over gen. jets.
 	    } // -- No unfolding.
-
-//cout << "\tlead_gen\t" << leading_gen_ << endl;
 
 	    ////////////////////////////////////////////////////////////
 	    //-- Continue if there has been a match with leading jet. //
@@ -1480,9 +1401,12 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 
 	      // Jet types of the matched jets.
 	      int det_id = 1, gen_id = 1;
+	      //== Det. jet type.
    	      TString detjettype = GetJetType( castor_jet );
-	      if( GetJetType( castor_jet ) == "had" ){ det_id = 0; }
-	      if( GetJetType( castor_jet ) == "em" ){ det_id = 2; }
+	      if( detjettype == "had" ){ det_id = 0; }
+	      if( detjettype == "em" ){ det_id = 2; }
+
+	      //== Gen. jet type.
 	      if( GetJetType( leading_gen ) == "had" ){ gen_id = 0; }
 	      if( GetJetType( leading_gen ) == "em" ){ gen_id = 2; }
 
@@ -1491,18 +1415,22 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	      // If needed, calibrate.					  
 	      if( comments_){ cout << "Events\t" << counter_events << "\tActual match\t" << endl; }
 
-	      if( 	do_calibration_discrete ){ 			
+	      if( 	do_calibration_discrete && detjettype == "had"){ 			
 		det_energy_lead = CalibratedDet(lowedge, muval, det_energy_lead, sector);	}
-	      else if( 	do_calibration_function && !sector_dependence){	
+	      else if( 	do_calibration_function && !sector_dependence&& detjettype == "had"){	
 		det_energy_lead = CalibratedDet( det_energy_lead ); 				}
-              else if( 	do_calibration_function && sector_dependence){
+              else if( 	do_calibration_function && sector_dependence&& detjettype == "had"){
 //		cout << phi_det_lead << "\t" << sector << "\t" << det_energy_lead;	
 		det_energy_lead = CalibratedDet( det_energy_lead, sector, filename_, threshold_ );
 		if( det_energy_lead != det_energy_lead ) {
-			cout << "\t\tBAD" << endl; 
-			continue;}			}					  
+		  cout << "\t\tBAD" << endl; 
+		  if( !prepare_unfolding_ ){ break;}	
+		  if( prepare_unfolding_) {continue; }
+		}
+	      }					  
 				  
 	     if( comments_ ){  	cout << "\tFilling response matrix\t" << det_energy_lead << "\t" << gen_energy << "\tsector\t" << sector << endl; }
+
 
 		hCastorJet_energy_response_lead->Fill( det_energy_lead, gen_energy);
 		hCastorJet_energy_response_fine->Fill( det_energy_lead, gen_energy);	
@@ -1592,7 +1520,9 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 		  }
 		} // No matched pairs yet.
 	     // } // Cut on EI, if applied already.
+
 	      break; // End loop over det jets.
+
     	    } // For loop over det jets.
 				
             // end of event, print status
@@ -1605,6 +1535,7 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
     
           currentTFile_->Close();
 	
+
 	
     // check all histo's for overflow
 	
@@ -1702,24 +1633,21 @@ cout << "hist created " << 		hCastorJet_energy_sectors->GetNbinsY() <<  endl;
 	hGenJet_energy->Write();
         hGenJet_energy_lead->Write();
 	hGenJet_eta->Write();
-
 	hGenJet_energy_vs_eta->Write();
-
-
         hCastorJet_energy_gen->Write();
-	hCastorJet_pt_gen->Write();
-
         hCastorJet_energy_response->Write();
         hCastorJet_energy_response_fine->Write();
 	hCastorJet_energy_response_lead->Write();
         hCastorJet_energy_fakes->Write();
         hCastorJet_energy_misses->Write();
-
 	hCastorJet_miss_all->Write();
 	hCastorJet_fake_all->Write();
 	hCastorJet_fake_lead->Write();
-
         hCastorJet_matchedGen_all->Write();
+
+	hCastorJet_pT->Write();
+	hCastorJet_pT_JES_up->Write();
+	hCastorJet_pT_JES_down->Write();
 
         hCastorJet_energy_complete_response->Write();
 	hResponse_leading->Write();
@@ -1871,6 +1799,7 @@ cout << "pi_e II" << endl;
 
 	// Save response objects to file.
 	response.Write();
+	response_pT.Write();
 	response_noMiss.Write();
 	response_lead.Write();
         response_fine.Write();

@@ -33,12 +33,14 @@ TString GetJetType(MyCastorJet castorjet){
     } // Not a pion.
   } // Not a pion.
 	
+  if( detjettype == "had" ) return detjettype; 
+
   // Count electrons.
   if( ! (fhot_jet < 0.45) ){
     if( ! (fem_jet < 0.9) ){
       if( ! ( sigmaz_jet > 30. && det_energy < 75.) ){
         if( ! ( sigmaz_jet > 40. && det_energy > 75. ) ){
-          if( ! ( width_jet > 11.5) ){
+          if( ! ( width_jet > 11.5 *2.*TMath::Pi()/360. ) ){
 	    if( ! ( depth_jet < -14450. && det_energy < 125.) ){
  	      if( ! ( depth_jet < -14460. && det_energy > 125.) ){						    
 //		hElectron_energy->Fill( det_energy );

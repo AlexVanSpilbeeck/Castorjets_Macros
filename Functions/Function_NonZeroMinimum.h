@@ -4,6 +4,7 @@
 #define NONZEROMINIMUM_H
 
 #include <TH1.h>
+#include <THStack.h>
 
 #include <iostream>
 
@@ -35,5 +36,22 @@ double GetMinimumValue(TH2D * h){
 
   return minimum;
 }
+
+//== THStack
+
+double GetMinimumValue(THStack * h){
+
+  double minimum = h->GetHistogram()->GetMaximum();
+
+  if( minimum > 0.){
+    for(int bin = 1; bin <= h->GetHistogram()->GetNbinsX(); bin++){
+      double value = h->GetHistogram()->GetBinContent(bin);
+      if( value < minimum && value > 0.) minimum = value;
+    }
+  }
+  return minimum;
+} 
+
+
 
 #endif

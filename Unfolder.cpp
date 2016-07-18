@@ -179,12 +179,12 @@ class Unfolder{
    void Plot_measured_Ratio_JESDependence(TPad* & pad_, TString variable, int iterations);
    
    //== Calculate systematic uncertainties.
-   void Calculate_jetID_systematic( double *x, double *y );
-   void Calculate_JES_systematic( double *x_up, double *y_up, double *x_down, double *y_down );
-   void Calculate_model_systematic( double *x, double *y );
-   void Calculate_position_systematic( double *x_up, double *y_up, double *x_down, double *y_down );
-   void Calculate_lumi_systematic( double *x, double *y);
-   void PlotSystematics();
+   void Calculate_jetID_systematic(	int iterations, double *x, 	double *y  );
+   void Calculate_JES_systematic( 	int iterations, double *x_up, 	double *y_up, double *x_down, double *y_down );
+   void Calculate_model_systematic( 	int iterations, double *x, 	double *y );
+   void Calculate_position_systematic( 	int iterations, double *x_up, 	double *y_up, double *x_down, double *y_down );
+   void Calculate_lumi_systematic( 	int iterations, double *x, 	double *y);
+   void PlotSystematics(int iterations);
    
    //== Plot simple functions.
    void Plot_EtaDiff();
@@ -2759,6 +2759,8 @@ void Unfolder::Systematics_CompareGenLevel(){
 
 void Unfolder::CompareGenLevel(){
 
+  int iterations;
+
   TH1D* hist_;
   TString drawoptions = "hist", legendoptions = "l";
   TCanvas *can; 
@@ -2792,7 +2794,7 @@ void Unfolder::CompareGenLevel(){
 
     int file_ = file;
     Get_DetEnergy( -1 , hist_ );
-    Get_DetUnfolded( file, hist_, 30);
+    Get_DetUnfolded( file, hist_, iterations);
 //    Get_GenEnergy(file_, hist_);    
 
     hist_->Scale( 1./hist_->Integral() );
@@ -7822,7 +7824,7 @@ void Unfolder::Plot_Unfolded_JES(int iterations_){
     hData->	Draw("ephist");
     hData->GetXaxis()->SetNdivisions(504);
     First_Plot( hData, hData, 0, min_val, max_val);
-    leg->	AddEntry( hData, "Unfolded Data, 30 it.", "p");
+    leg->	AddEntry( hData, TString::Format("Unfolded Data, %i it.", iterations), "p");
 
     //-- Ratio of data.
     pad_ratio_->cd();
@@ -7846,7 +7848,7 @@ void Unfolder::Plot_Unfolded_JES(int iterations_){
     pad_abs_->cd();
     hJESup->DrawClone("histsame");
     First_Plot( hData, hJESup, 1, min_val, max_val);
-    leg->AddEntry( hJESup, "Unfolded JES +, 30 it.", "lp" );
+    leg->AddEntry( hJESup, TString::Format("Unfolded JES+, %i it.", iterations), "lp" );
 
     pad_ratio_->cd();
     hJESup->Divide( hData );
@@ -7865,7 +7867,7 @@ void Unfolder::Plot_Unfolded_JES(int iterations_){
     pad_abs_->cd();
     hJESdown->DrawClone("histsame");
     First_Plot( hData, hJESdown, 1, min_val, max_val);
-    leg->AddEntry( hJESdown, "Unfolded JES -, 30 it.", "lp" );
+    leg->AddEntry( hJESdown, TString::Format("Unfolded JES-, %i it.", iterations), "lp" );
 
     pad_ratio_->cd();
     hJESdown->Divide( hData );
@@ -9066,6 +9068,8 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics_pT(TCanvas* can_, TString vari
   Emax_ = 1500.;
 
   //== Prepare plots to use for correlation between systematics.
+  TFile *_fSystematics = TFile::Open("_fSystematics_7TeV.root", "Update");
+  
   TH1D *hReference_benoit,
 	*hReference_benoit_dndx,
 	*hLumi_up_benoit_dndx,
@@ -9102,6 +9106,8 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics_pT(TCanvas* can_, TString vari
   else if( plot_as == "xf") { 	E_to_xf_ = 3500.; 	Set_to_xf(true);}
   else{ return; }  
   
+  cout << "After we start: " << set_xf_ << endl;  
+  
   Get_DetEnergy( -1 , hReference); 
   
   cout << "\%\%\%\\ Got det energy" << endl;
@@ -9121,12 +9127,26 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics_pT(TCanvas* can_, TString vari
 
   //== Benoit.
   {
+    _fSystematics->cd();
+        
     hReference_benoit_dndx = (TH1D*)hReference->Clone("Data_dsigmadE");
     hLumi_up_benoit_dndx = (TH1D*)hReference_benoit_dndx->Clone("hLumi_up");
     hLumi_up_benoit_dndx->Scale( 1.036);
+    //hLumi_up_benoit_dndx->Divide(hReference_benoit_dndx);
+    hLumi_up_benoit_dndx->Write();
+    
     hLumi_down_benoit_dndx = (TH1D*)hReference_benoit_dndx->Clone("hLumi_down");
     hLumi_down_benoit_dndx->Scale( 0.964);
+    //hLumi_down_benoit_dndx->Divide(hReference_benoit_dndx);
+    hLumi_down_benoit_dndx->Write();
+    
+    hReference_benoit_dndx->Write();
+    
+    _fSystematics->Close();
+    
   }
+  
+  
 
   //== Determine the first bin above 300 GeV.
   int bin_300 = 0;
@@ -9193,25 +9213,25 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics_pT(TCanvas* can_, TString vari
 
   // Systematic uncertainty lumi.
   Double_t ex_lumi[2*n], ey_lumi[2*n];
-  Calculate_lumi_systematic( ex_lumi, ey_lumi);
+  Calculate_lumi_systematic( iterations,  ex_lumi, ey_lumi);
   
   // Systematic uncertainty model.
   Double_t ex_model[2*n], ey_model[2*n];  
-  Calculate_model_systematic( ex_model, ey_model);
+  Calculate_model_systematic(  iterations, ex_model, ey_model);
   
   // Systematic uncertainty position.
   Double_t ex_position_up[2*n], ey_position_up[2*n]; 
   Double_t ex_position_down[2*n], ey_position_down[2*n];  
-  Calculate_position_systematic( ex_position_up, ey_position_up, ex_position_down, ey_position_down );   
+  Calculate_position_systematic(iterations,  ex_position_up, ey_position_up, ex_position_down, ey_position_down );   
   
   // Systematic uncertainty jetID.
   Double_t ex_id[2*n], ey_id[2*n]; 
-  Calculate_jetID_systematic( ex_id, ey_id);
+  Calculate_jetID_systematic( iterations, ex_id, ey_id);
   
   // Systematic uncertainty JES.
   Double_t ex_jes_up[2*n], ey_jes_up[2*n]; 
   Double_t ex_jes_down[2*n], ey_jes_down[2*n];   
-  Calculate_JES_systematic( ex_jes_up, ey_jes_up, ex_jes_down, ey_jes_down );  
+  Calculate_JES_systematic(  iterations, ex_jes_up, ey_jes_up, ex_jes_down, ey_jes_down );  
   
   // SUM: Systematic uncertainty lumi or model.
   Double_t exl_LM[2*n], eyl_LM[2*n], exh_LM[2*n], eyh_LM[2*n];
@@ -9318,12 +9338,12 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics_pT(TCanvas* can_, TString vari
   pad_ratio_->cd();
   TH1D* hReference__ = (TH1D*)hReference->Clone("hNeededToProperlySetAxes");
   hReference__->Divide( hReference__ );
-  if( plot_as == "E" ){ hReference__->GetXaxis()->SetRangeUser(Eplot_lowest, 1500.); }
-  if( plot_as == "xf" ){ hReference__->GetXaxis()->SetRangeUser(0.1, 0.38); }
+  if( plot_as == "E" ){ hReference__->GetXaxis()->SetRangeUser(Eplot_lowest, 1500.); hReference__->GetXaxis()->SetTitle("E [GeV]"); }
+  if( plot_as == "xf" ){ hReference__->GetXaxis()->SetRangeUser(0.1, 0.38); hReference__->GetXaxis()->SetTitle("x_{F}"); }
   Prepare_1Dplot_ratio( hReference__ );
   hReference__->GetYaxis()->SetRangeUser(0.,2.75);
   hReference__->GetYaxis()->SetNdivisions( 504 );  
-  hReference__->GetYaxis()->SetTitle("Ratio_reference");
+  hReference__->GetYaxis()->SetTitle("Ratio");
   hReference__->Draw("hist");
 
   TGraphAsymmErrors *gr_all_ratio, *gr_id_ratio, *gr_mod_ratio, *gr_pos_ratio, *gr_lumi_ratio;
@@ -9481,6 +9501,11 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics_pT(TCanvas* can_, TString vari
     hReference->GetXaxis()->SetRangeUser(0.1, 0.38);
     hReference->GetXaxis()->SetTitle("x_{f}"); 
   }
+  
+  TFile* _file = TFile::Open("Alex_7TeV.root", "Update");
+  TH1D* hReference_written = (TH1D*)hReference->Clone( TString::Format("UnfoldedData_" + plot_as) );
+  hReference_written->Write();
+  _file->Close();
 
   TGraphAsymmErrors *gr_all, *gr_id, *gr_mod, *gr_pos, *gr_lumi;
 
@@ -9851,25 +9876,25 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics_separate(TCanvas* can_, TStrin
 
   // Systematic uncertainty lumi.
   Double_t ex_lumi[2*n], ey_lumi[2*n];
-  Calculate_lumi_systematic( ex_lumi, ey_lumi);
+  Calculate_lumi_systematic( iterations, ex_lumi, ey_lumi);
   
   // Systematic uncertainty model.
   Double_t ex_model[2*n], ey_model[2*n];  
-  Calculate_model_systematic( ex_model, ey_model);
+  Calculate_model_systematic( iterations, ex_model, ey_model);
   
   // Systematic uncertainty position.
   Double_t ex_position_up[2*n], ey_position_up[2*n]; 
   Double_t ex_position_down[2*n], ey_position_down[2*n];  
-  Calculate_position_systematic( ex_position_up, ey_position_up, ex_position_down, ey_position_down );   
+  Calculate_position_systematic( iterations, ex_position_up, ey_position_up, ex_position_down, ey_position_down );   
   
   // Systematic uncertainty jetID.
   Double_t ex_id[2*n], ey_id[2*n]; 
-  Calculate_jetID_systematic( ex_id, ey_id);
+  Calculate_jetID_systematic( iterations, ex_id, ey_id);
   
   // Systematic uncertainty JES.
   Double_t ex_jes_up[2*n], ey_jes_up[2*n]; 
   Double_t ex_jes_down[2*n], ey_jes_down[2*n];   
-  Calculate_JES_systematic( ex_jes_up, ey_jes_up, ex_jes_down, ey_jes_down );  
+  Calculate_JES_systematic( iterations, ex_jes_up, ey_jes_up, ex_jes_down, ey_jes_down );  
   
   // SUM: Systematic uncertainty lumi or model.
   Double_t exl_M[2*n], eyl_M[2*n], exh_M[2*n], eyh_M[2*n];
@@ -10362,7 +10387,7 @@ void Unfolder::Plot_Unfolded_Ratio_allSystematics_separate(TCanvas* can_, TStrin
    systematics_txt.close();
    xsec_txt.close();
    
-   PlotSystematics();
+   PlotSystematics(iterations);
 }
 
 
@@ -10856,401 +10881,9 @@ void Unfolder::DetermineScaling(){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void Unfolder::PlotStartingDistributions(){
-
-  TCanvas *can_startingDistributions;
-  PrepareCanvas(can_startingDistributions, "can_startingDistributions");
-
-  TLegend *legend = new TLegend( 0.7, 0.7, 0.95, 0.95);
-
-  for(int file = 1; file < 3; file++){
-    TFile* _file0;
-    TString energy;
-    int color = 1;
-    if( file == 1 ){ _file0 	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_0.000000_deltaPhiMax_%f.root", deltaPhiMax_ ), "read"); energy = "0 GeV";}
-    if( file == 2 ){ _file0	= new TFile( TString::Format("/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_150.000000_deltaPhiMax_%f.root", deltaPhiMax_ ), "read"); energy = "150 GeV"; }
-
-    //-- Handle first file.
-    TH1D* hDet = (TH1D*)_file0->Get("hCastorJet_energy");
-    hDet->SetLineStyle( file );
-    hDet->SetLineWidth( 2 );
-    hDet->SetLineColor( getColor(color++) );
-    if( file == 1 ){ hDet->Draw("hist"); }
-    else{ hDet->Draw("histsame"); }
-
-    legend->AddEntry( hDet, "Detector level, " + energy, "l");
-
-    TH1D* hFake = (TH1D*)_file0->Get("hCastorJet_fake_all");
-    hFake->SetLineStyle( file );
-    hFake->SetLineWidth( 2 );
-    hFake->SetLineColor( getColor(color++) );
-    hFake->Draw("histsame");
-
-    legend->AddEntry( hFake, "Fakes, " + energy, "l");
-
-    RooUnfoldResponse* response = (RooUnfoldResponse*)_file0->Get("response");
-
-    TH1D* hMeasured = (TH1D*)response->Hmeasured();	
-    hMeasured->SetLineStyle( file +2  );
-    hMeasured->SetLineWidth( 2 );
-    hMeasured->SetLineColor( getColor(color++) );
-    hMeasured->Draw("histsame");
-
-    legend->AddEntry( hMeasured, "Measured, " + energy, "l");
-
-    TH1D* hTruth = (TH1D*)response->Htruth();	
-    hTruth->SetLineStyle( file ); 
-    hTruth->SetLineWidth( 2 );
-    hTruth->SetLineColor(getColor(color++) );
-    hTruth->Draw("histsame");
- 
-    legend->AddEntry( hTruth, "Truth, " + energy, "l");
-
-    TH1D* hGen = (TH1D*)_file0->Get("hGenJet_energy");
-    hGen->SetLineStyle( file +2 );
-    hGen->SetLineColor( getColor(color++));
-    hGen->SetLineWidth(2);
-    hGen->Draw("histsame");
-
-    legend->AddEntry( hGen, "Generator level, " + energy, "l");
-
-    TH1D* hFres = (TH1D*)response->Hfakes();	
-    hFres->SetLineStyle( file + 2 ); 
-    hFres->SetLineWidth( 2 );
-    hFres->SetLineColor(getColor(color++) );
-    hFres->Draw("histsame");
- 
-    legend->AddEntry( hFres, "Fakes (res.), " + energy, "l");
-  }
-
-  legend->Draw();
-  can_startingDistributions->SetLogy();
-  
-  can_startingDistributions->SaveAs( TString::Format("Plots/can_startingDistributions_deltaPhiMax_0%i.C", static_cast<int>( 10. * deltaPhiMax_) ) );
-  can_startingDistributions->SaveAs( TString::Format("Plots/can_startingDistributions_deltaPhiMax_0%i.pdf", static_cast<int>( 10. * deltaPhiMax_) ) );
-
-}
-
-
-
-
-void Unfolder::PlotStartingDistributions_comparingEmin(TString distribution){
-  cout << "Unfolder::PlotStartingDistributions_comparingEmin\t" << distribution << endl;
-
-  TCanvas *can_startingDistributions;
-  PrepareCanvas(can_startingDistributions, "can_startingDistributions");
-  TLegend *legend = new TLegend( 0.55, 0.65, 1.-can_startingDistributions->GetTopMargin(), 1.-can_startingDistributions->GetRightMargin());
-
-  TString distributionname;
-  if (distribution == "fake"){ 		distributionname = "hCastorJet_fake_all"; }
-  if (distribution == "detector"){ 	distributionname = "hCastorJet_energy"; }
-  if (distribution == "generator"){ 	distributionname = "hGenJet_energy"; }
-  if (distribution == "miss"){ 		distributionname = "hCastorJet_miss_all"; }
-  if (distribution == "match_meas"){	distributionname = "match_meas";}
-  if (distribution == "match_true"){	distributionname = "match_true";}
-
-  TString drawoptions = "phist";
-
-  int file = 0;
-
-  vector<double> etaband;
-      etaband.push_back(0.0);
-      etaband.push_back(0.2);
-      etaband.push_back(0.5);
-
-
-  vector<double> deltaPhiMax;
-      deltaPhiMax.push_back(0.2);
-//      deltaPhiMax.push_back(0.4);
-      deltaPhiMax.push_back(0.5);
-
-  vector<TString> matching;
-      matching.push_back("_matchE");
-//      matching.push_back("_matchPhi");
-
-  vector<TString> match_symbol;
-      match_symbol.push_back("E");
-      match_symbol.push_back("#varphi");
-
-  vector<TString> model;
-      model.push_back("");
-//      model.push_back("Pythia84C_");
-
-  vector<TString> model_legend;
-      model_legend.push_back("p6");
-      model_legend.push_back("p8");
-
-  vector<int> model_events;
-      model_events.push_back( 547922 );
-      model_events.push_back( 670215 );
-
-  vector<double> Emin;
-//      Emin.push_back(0.);
-      Emin.push_back(150.);
-
-  vector<int> markers;
-      markers.push_back( 20 );
-      markers.push_back( 22 );
-      markers.push_back( 29 );
-      markers.push_back( 21 );
-
-  for(int _model = 0; _model < model.size(); _model++){
-    for(int _eta = 0; _eta < etaband.size(); _eta++){
-      for(int _phi = 0; _phi < deltaPhiMax.size(); _phi++){
-	for(int _Emin = 0; _Emin < Emin.size(); _Emin++){
-   	    for(int _match = 0; _match < matching.size(); _match++, file++){
-
-//              TString filename_ = TString::Format( "/user/avanspil/Castor_Analysis/ak5ak5_" + model[_model] + "displaced_unfold_Emin_%f_deltaPhiMax_%f_etaband_%f" + matching[_match] + ".root", Emin[_Emin], deltaPhiMax[_phi], etaband[_eta] ) ;
-		TString filename_ = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_NewGeo_unfold_Emin_150.000000_deltaPhiMax_%f_etaband_%f_all_matchE.root", deltaPhiMax[_phi], etaband[_eta] );
-	      cout << "\n=*=\t" << filename_ << endl;
-	      TFile* _file= TFile::Open( filename_, "read" );
-
-	      TString setup_label = TString::Format( model[_model] + "displaced_unfold_Emin_%i_deltaPhiMax_0%i_etaband_0%i" + matching[_match] , 
-		static_cast<int>(Emin[_Emin]), 
-		static_cast<int>(10. * deltaPhiMax[_phi]), 
-		static_cast<int>(10. * etaband[_eta]));
-	      PlotResponseMatrix( filename_, setup_label );
-
-	      TString histname = TString::Format( distributionname + "_Emin_%i_deltaPhiMax_0%i_etaband_0%i" + matching[_match] + "_" + model[_model], 
-		static_cast<int>(Emin[_Emin]), 
-		static_cast<int>(10. * deltaPhiMax[_phi]), 
-		static_cast<int>(10. * etaband[_eta]));
-
-    	      //== Extracting the distribution.
-  	      TH1D* hDistribution = (TH1D*)_file->Get( distributionname );
-
-	      if( !distributionname.Contains("match") ){
-		hDistribution = (TH1D*)_file->Get( distributionname );
-	      }
-	      else{
-	        RooUnfoldResponse* response = (RooUnfoldResponse*)_file->Get("response");
-	        TH2D* hResponse = (TH2D*)response->Hresponse();
-	        if( distributionname = "match_meas" ){
-	          hDistribution = (TH1D*)hResponse->ProjectionX();
-	        }
-	        else if( distributionname = "match_true" ){
-	          hDistribution = (TH1D*)hResponse->ProjectionY();
-	        }
-	      }
-
-	      //== Scaling.
-              int total_events_nocuts;
-	      TTree *tree_numbers = (TTree*)_file->Get("useful_numbers");
-	      TString branch_str = (set_of_tags_[ "scalefactors" ])[ MC_files_[0] ];
-
-//	      tree_numbers->SetBranchAddress(branch_str, &total_events_nocuts);
-//	tree_numbers->GetEntry( 0 );
-
- 	      double xsec = 1.;
-	      xsec = xsec_[MC_files_[0]];
-//	      hDistribution->Scale( xsec/ 995000.);	
-
-	      hDistribution->SetTitle( histname );
-	      hDistribution->SetName( histname );
-	      hDistribution->SetLineWidth( 3 );
-
-	      // Linecolor = model -- linestyle = match -- markerstyle = etaband -- markercolor = deltaphi
-	      hDistribution->SetLineColor( getColor( _model+1 ) ); 
-
-	      hDistribution->SetLineStyle( file + 1 ); 
-	      hDistribution->SetLineColor( getColor(file + 1) ); 
- 
-              hDistribution->SetMarkerStyle( file + 20 );
-
-              hDistribution->SetMarkerColor( getColor( file+1 ) );
-
-	      hDistribution->SetMarkerSize( 1.8 );
-	      hDistribution->GetXaxis()->SetNdivisions( 504 );
-	      hDistribution->GetXaxis()->SetTitle("E_{" + distribution + "}[GeV]");
-	      hDistribution->GetYaxis()->SetTitle("d#sigma/dE [GeV]");
-//              if( file == 0 ){  hDistribution->GetYaxis()->SetRangeUser(0.9 * xsec/995000., 1.1); }
-
-	      can_startingDistributions->cd();
-	      Prepare_1Dplot( hDistribution );
-	      hDistribution->DrawClone( drawoptions );
-	      drawoptions = "phsame";
-	      //legend->AddEntry( hDistribution, TString::Format( distribution + "#Delta #varphi_{max} = 0.%i, E_{min} = %i GeV, #eta = 0.%i" + matching[_match],
-	      legend->AddEntry( hDistribution, TString::Format( " #Delta#varphi_{max}=0.%i, #eta_{acc}=0.%i", 
-		static_cast<int>(10. * deltaPhiMax[_phi] ), 
-		static_cast<int>(10. * etaband[_eta] ) ), "lp" );
-	      legend->SetFillColor( 0 );
-
-
-	    } // Match.
-	  } // Emin.
-        } // Deltaphi.
-      } // Eta.
-    } // Model.
-   
-  legend->Draw();
-
-  can_startingDistributions->SetLogy();
-  can_startingDistributions->SaveAs( TString::Format( "can_startingDistribution_" + distribution + "_Emin_%i.C", static_cast<int>( Ethresh_ ) ) );
-  can_startingDistributions->SaveAs( TString::Format( "can_startingDistribution_" + distribution + "_Emin_%i.pdf", static_cast<int>( Ethresh_) ) );
-
-    for(int _eta = 0; _eta < etaband.size(); _eta++){
-      for(int _phi = 0; _phi < deltaPhiMax.size(); _phi++){
-	for(int _Emin = 0; _Emin < Emin.size(); _Emin++, file++){
-
-//          TString filename_ = TString::Format( "/user/avanspil/Castor_Analysis/ak5ak5_displaced_unfold_Emin_%f_deltaPhiMax_%f_etaband_%f.root", Emin[_Emin], deltaPhiMax[_phi], etaband[_eta] ) ;
-		TString filename_ = TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_NewGeo_unfold_Emin_150.000000_deltaPhiMax_%f_etaband_%f_all_matchE.root", deltaPhiMax[_phi], etaband[_eta] );
-	  TFile* _file= TFile::Open( filename_, "read" );
-
-	  RooUnfoldResponse *resp = (RooUnfoldResponse*)_file->Get("response");
-	  TH2D* hResponse = (TH2D*)resp->Hresponse();
-	  TH1D* hTruth = (TH1D*)resp->Htruth();
-	  TH1D* hMeasured = (TH1D*)resp->Hmeasured();
-
-	  double rFake = 1. - hResponse->Integral()/hMeasured->Integral() ;
-	  double rMiss = 1. - hResponse->Integral()/hTruth->Integral() ;
-
-	  cout << "\t" << deltaPhiMax[ _phi ] << "\t" << etaband[ _eta ] 
-		<< "\tFraction fakes\t" << rFake
-		<< "\tFraction misses\t" << rMiss << "\t\t" << ( 1. - rFake)*(1. + rMiss) << endl << endl << endl;
-
-	}
-      }
-    } 
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void Unfolder::PlotStartingDistributions_MCfiles(TString distribution){
-  cout << "Unfolder::PlotStartingDistributions_MCfiles\t" << distribution << endl;
-
-  TCanvas *can_startingDistributions;
-  PrepareCanvas(can_startingDistributions, "can_startingDistributions");
-  TLegend *legend = new TLegend( 0.40, 0.75, 0.95, 0.95);
-
-  TString distributionname;
-  if (distribution == "fake"){ 		distributionname = "hCastorJet_fake_all"; }
-  if (distribution == "detector"){ 	distributionname = "hCastorJet_energy"; }
-  if (distribution == "generator"){ 	distributionname = "hGenJet_energy"; }
-  if (distribution == "miss")	{ 	distributionname = "hCastorJet_miss_all"; }
-  if (distribution == "eta"){		distributionname = "hGenJet_eta"; }
-  if (distribution == "match_meas"){	distributionname = "match_meas";}
-  if (distribution == "match_true"){	distributionname = "match_true";}
-
-  TString drawoptions = "hist";
-
-  for(int file_ = 0; file_ < MC_files_.size(); file_++){
-  
-    TFile* _file = new TFile( MC_files_[file_], "Read");
-    TString histname = TString::Format( distributionname + "_%i", file_ );
-
-    //== Extracting the distribution.
-    TH1D* hDistribution;
-    if( !distributionname.Contains("match") ){
-      hDistribution = (TH1D*)_file->Get( distributionname );
-    }
-    else{
-      RooUnfoldResponse* response = (RooUnfoldResponse*)_file->Get("response");
-      TH2D* hResponse = (TH2D*)response->Hresponse();
-      if( distributionname = "match_meas" ){
-        hDistribution = (TH1D*)hResponse->ProjectionX();
-      }
-      else if( distributionname = "match_true" ){
-        hDistribution = (TH1D*)hResponse->ProjectionY();
-      }
-    }
-
-//    hDistribution->Scale(1. / model_events[_model] );
-    TString scalefactor_string = (set_of_tags_["scalefactors"])[ MC_files_[ file_ ] ];
-
-    hDistribution->SetTitle( histname );
-    hDistribution->SetName( histname );
-    hDistribution->SetLineWidth( 3 );
-
-    // Linecolor = model -- linestyle = match -- markerstyle = etaband -- markercolor = deltaphi
-    hDistribution->SetLineColor( getColor( file_+1 ) ); 
-    hDistribution->SetLineStyle( file_ + 1 ); 
-
-    hDistribution->GetXaxis()->SetNdivisions( 504 );
-    if( distribution == "eta" ){ hDistribution->GetXaxis()->SetTitle("#eta"); }
-    else{ hDistribution->GetXaxis()->SetTitle("E [GeV]"); }
-
-
-    hDistribution->DrawClone( drawoptions );
-    drawoptions = "histsame";
-    legend->AddEntry( hDistribution, TString::Format( distribution + " " + legend_info_[MC_files_[file_]]), "l" ) ;
-      legend->SetFillColor( 0 );
-  }
-   
-  legend->Draw();
-
-  can_startingDistributions->SetLogy();
-  can_startingDistributions->SaveAs( TString::Format( "can_startingDistribution_" + distribution + "_Emin_%i_deltaPhiMax_0%i_etaband_0%i.C", static_cast<int>( Ethresh_ ) , static_cast<int>( 10. * deltaPhiMax_ ), static_cast<int>( 10. * etawidth_ ) ) );
-  can_startingDistributions->SaveAs( TString::Format(  "can_startingDistribution_" + distribution + "_Emin_%i_deltaPhiMax_0%i_etaband_0%i.pdf", static_cast<int>( Ethresh_) , static_cast<int>( 10. * deltaPhiMax_ ), static_cast<int>( 10. * etawidth_ ) ) );
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-void Unfolder::Calculate_jetID_systematic( double *x, double *y ){
+void Unfolder::Calculate_jetID_systematic( int iterations, double *x, double *y ){
   cout << "=== Jet ID ===" << endl;
+  
   
   ofstream uncertainties;
   uncertainties.open("Uncertainties.txt", ios::app);
@@ -11278,7 +10911,7 @@ void Unfolder::Calculate_jetID_systematic( double *x, double *y ){
   RooUnfoldResponse *response = (RooUnfoldResponse*)_MC_overcal->Get("response");
   
   //== Unfolding.
-  RooUnfoldBayes unfold_bayes(response, hData_overcal, 30);
+  RooUnfoldBayes unfold_bayes(response, hData_overcal, iterations);
   hData_overcal = (TH1D*) unfold_bayes.Hreco( RooUnfold::kCovariance ); 
   SetDnDx( hData_overcal );    
   hData_overcal->SetTitle("JetID");
@@ -11332,7 +10965,7 @@ void Unfolder::Calculate_jetID_systematic( double *x, double *y ){
 
 
 
-void Unfolder::Calculate_JES_systematic( double *x_up, double *y_up, double *x_down, double *y_down ){
+void Unfolder::Calculate_JES_systematic( int iterations,  double *x_up, double *y_up, double *x_down, double *y_down){
   cout << "=== JES ===" << endl;
   
   ofstream uncertainties;
@@ -11340,13 +10973,11 @@ void Unfolder::Calculate_JES_systematic( double *x_up, double *y_up, double *x_d
   uncertainties << "\n\nJES" <<  endl; 
 
   //== Unfold data as usual for reference.
-  
-  int iterations = 30;
     
   TH1D* hData; 
   Get_DetEnergy( -1 , hData);
   hData->Scale( 1./ lumi_ );
-  Get_DetUnfolded( 0 , hData );      
+  Get_DetUnfolded( 0 , hData, iterations );      
   TH1D* hReference = (TH1D*)hData->Clone("hReference");
   SetDnDx( hReference ); 	// Divide by binwidth.  
   
@@ -11367,7 +10998,7 @@ void Unfolder::Calculate_JES_systematic( double *x_up, double *y_up, double *x_d
   hJESup->Scale( 1./ lumi_ );		// Scale to xsection.
   Get_DetUnfolded( 0 , hJESup, iterations, "all");
   SetDnDx( hJESup ); 			// Divide by binwidth.
-    up_clone = (TH1D*)hJESup->Clone();
+    up_clone = (TH1D*)hJESup->Clone("hJESup");
   hJESup->Add( hReference, -1);		// Difference with unfolded data.
   hJESup->Divide( hReference );		// dN/N
 
@@ -11376,10 +11007,19 @@ void Unfolder::Calculate_JES_systematic( double *x_up, double *y_up, double *x_d
   hJESdown->Scale( 1./ lumi_ );	// Scale to xsection.
   Get_DetUnfolded( 0 , hJESdown, iterations, "all");
   SetDnDx( hJESdown ); 			// Divide by binwidth.
-    down_clone = (TH1D*)hJESdown->Clone();
+    down_clone = (TH1D*)hJESdown->Clone("hJESdown");
   hJESdown->Add( hReference, -1);		// Difference with unfolded data.
   hJESdown->Scale( -1 );			// Difference with unfolded data.  
   hJESdown->Divide( hReference );		// dN/N
+  
+  TFile *_fSystematics = TFile::Open("_fSystematics_7TeV.root", "Update");
+  
+  up_clone->SetName("hJESup");
+  up_clone->Write();
+  down_clone->SetName("hJESdown");
+  down_clone->Write();
+
+  _fSystematics->Close();  
 
   int n = hData->GetNbinsX();
   for(int bin = 0; bin < n; bin++){
@@ -11439,21 +11079,17 @@ void Unfolder::Calculate_JES_systematic( double *x_up, double *y_up, double *x_d
 }
 
 
-void Unfolder::Calculate_model_systematic( double *x, double *y ){
+void Unfolder::Calculate_model_systematic( int iterations, double *x, double *y){
   cout << "=== MODEL ===" << endl;
   
   ofstream uncertainties;
   uncertainties.open("Uncertainties.txt", ios::app);
   uncertainties << "\n\nModel" <<  endl; 
-  
-  //== Unfold data as usual for reference.
-  
-  int iterations = 30;
     
   TH1D* hData; 
   Get_DetEnergy( -1 , hData);
   hData->Scale( 1./ lumi_ );
-  Get_DetUnfolded( 0 , hData );      
+  Get_DetUnfolded( 0 , hData, iterations );      
   TH1D* hReference = (TH1D*)hData->Clone("hReference");
   SetDnDx( hReference ); 	// Divide by binwidth.  
   
@@ -11463,6 +11099,9 @@ void Unfolder::Calculate_model_systematic( double *x, double *y ){
   float models = 0.;
   std::vector<TH1D*> vModels;
   TH1D* hAverage;
+      
+  TFile* _file = TFile::Open("Unfolded_7TeV.root","Recreate");  
+  
   //-- Calculate average of model dependence.
   for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
     //-- Generator level.
@@ -11476,37 +11115,46 @@ void Unfolder::Calculate_model_systematic( double *x, double *y ){
 
     //-- Extract and properly scale data.
     Get_DetEnergy( -1 , hModel);
-    hModel->Scale( 1./ lumi_ );	cout << "Before unfolding\t" << hModel->Integral() << endl;
-    Get_DetUnfolded( MC_ , hModel, iterations, "all");
-    cout << "After unfolding" << endl;
-    SetDnDx( hModel );		
-    cout << "After dndx" << endl;
+    hModel->Scale( 1./ lumi_ );	
+    Get_DetUnfolded( MC_ , hModel, iterations, "all");    
+    
+    //== Data unfolded.
+    TH1D* hist = (TH1D*)hModel->Clone( printLabel_[ MC_files_[MC_] ] );
+    SetDnDx( hModel );
+    _file->cd();
+    hist->Write();
+        		
+    //== MC.
+    TH1D* hist_MC;
+    Get_PureGenEnergy( MC_, hist_MC );        		
+    SetDnDx( hist_MC );
+    hist_MC = (TH1D*)hist_MC->Clone( TString::Format(printLabel_[ MC_files_[MC_] ] + "_gen" ) );
+    _file->cd();
+    hist_MC->Write();
 
     //== Add the models to the summing histogram.
     if( models == 1 ){ 
       hAverage = (TH1D*)hModel->Clone("Average");
     }
     else{
-      cout << "=== ADD ===" << endl;
       hAverage->Add( hModel );
-      cout << "=== ADDED ===" << endl;
     }
     
     if( (MC_files_[MC_]).Contains("ythia6") ) {hModel->SetTitle("Pythia6"); }
     if( (MC_files_[MC_]).Contains("ythia8") ) {hModel->SetTitle("Pythia8"); }
     if( (MC_files_[MC_]).Contains("EPOS") ) {hModel->SetTitle("EPOS"); }
-    vModels.push_back( hModel );
-    
-    cout << "=== MODEL " << models << " STORED ===" << endl;
+    vModels.push_back( hModel );    
   }
-
-  cout << "=== 3 MODELS PASSED ===" << endl;
+  _file->Write();
 
   hAverage->Scale( 1./models );
-
+  
   //== over all bins and check which model returns the biggest difference with the average (above and below). 
   TH1D* hModel_dep_high = (TH1D*)hAverage->Clone("hModel_dependence_up");
   TH1D* hModel_dep_low = (TH1D*)hAverage->Clone("hModel_dependence_down");
+  
+  TH1D* hSyst_up = (TH1D*)hAverage->Clone("hModel_dependence_up");
+  TH1D* hSyst_down = (TH1D*)hAverage->Clone("hModel_dependence_down");  
 
   //== We loop over each bin.
   for(int bin = 0; bin <= hAverage->GetNbinsX(); bin++){
@@ -11525,14 +11173,24 @@ void Unfolder::Calculate_model_systematic( double *x, double *y ){
     //== Calculate the difference between the furthest model and the average, and store the difference relative to the average.
 
     if( current_bin != 0.){
-      hModel_dep_high->SetBinContent( bin, (bin_max - current_bin)/current_bin );
-      hModel_dep_low->SetBinContent( bin, (current_bin - bin_min)/current_bin );
+      hModel_dep_high->SetBinContent( bin, 	(bin_max - current_bin)/current_bin );
+      hModel_dep_low->SetBinContent( bin, 	(current_bin - bin_min)/current_bin );
+      
+      hSyst_up->SetBinContent( bin, 	( 1. + (bin_max - current_bin)/current_bin ) * hReference->GetBinContent(bin) );
+      hSyst_down->SetBinContent( bin, 	( 1. - (current_bin - bin_min)/current_bin ) * hReference->GetBinContent(bin) );
     }
     else{	//== If bin content is zero, uncertainty is zero.
-      hModel_dep_high->SetBinContent( bin,0. );
-      hModel_dep_low->SetBinContent( bin, 0. );
+      hModel_dep_high->SetBinContent( bin, bin_max );
+      hModel_dep_low->SetBinContent( bin, bin_min );
     }
   }
+
+  TFile *_fSystematics = TFile::Open("_fSystematics_7TeV.root", "Update");
+  
+  hSyst_up->Write();
+  hSyst_down->Write();
+
+  _fSystematics->Close();
 
   int n = hData->GetNbinsX();
   for(int bin = 0; bin < n; bin++){
@@ -11563,7 +11221,7 @@ void Unfolder::Calculate_model_systematic( double *x, double *y ){
 
 
 
-void Unfolder::Calculate_position_systematic( double *x_up, double *y_up, double *x_down, double *y_down ){
+void Unfolder::Calculate_position_systematic( int iterations, double *x_up, double *y_up, double *x_down, double *y_down ){
   cout << "=== POSITION ===" << endl;
   //== Unfold data as usual for reference.
   
@@ -11571,17 +11229,17 @@ void Unfolder::Calculate_position_systematic( double *x_up, double *y_up, double
   uncertainties.open("Uncertainties.txt", ios::app);
   uncertainties << "\n\nPosition" <<  endl; 
   
-  int iterations = 30;
   vector<TH1D*> hSyst;
     
   TH1D* hData; 
   Get_DetEnergy( -1 , hData);
   hData->Scale( 1./ lumi_ );
-  Get_DetUnfolded( 0 , hData );      
+  Get_DetUnfolded( 0 , hData, iterations );      
   TH1D* hReference = (TH1D*)hData->Clone("hReference");
   SetDnDx( hReference ); 	// Divide by binwidth.  
   
   TH1D* hPosUp, *hPosDown;  
+  TH1D* hSyst_up, *hSyst_down;    
   
   //-- Position dependence.
   for(int MC_ = 0; MC_ < MC_files_.size() ; MC_++){
@@ -11602,6 +11260,7 @@ void Unfolder::Calculate_position_systematic( double *x_up, double *y_up, double
     if( (MC_files_[MC_]).Contains("up") ) { 
       hPos_copy->SetTitle("PositionUp");
       hSyst.push_back( hPos_copy );
+      hSyst_up = (TH1D*)hPos_copy->Clone("hPos_up");
           
       hPos->Add( hReference, -1. );
       hPos->Divide( hReference );
@@ -11611,6 +11270,7 @@ void Unfolder::Calculate_position_systematic( double *x_up, double *y_up, double
     else if( (MC_files_[MC_]).Contains("down") ){
       hPos_copy->SetTitle("PositionDown");
       hSyst.push_back( hPos_copy );
+      hSyst_down = (TH1D*)hPos_copy->Clone("hPos_down");
     
       hPos->Add( hReference, -1. );
       hPos->Scale( -1. );
@@ -11619,6 +11279,13 @@ void Unfolder::Calculate_position_systematic( double *x_up, double *y_up, double
 
     }
   } //== Loop over MC.
+  
+  TFile *_fSystematics = TFile::Open("_fSystematics_7TeV.root", "Update");
+  
+  hSyst_up->Write();
+  hSyst_down->Write();
+
+  _fSystematics->Close();
 
   int n = hData->GetNbinsX();
   for(int bin = 0; bin < n; bin++){
@@ -11659,18 +11326,16 @@ void Unfolder::Calculate_position_systematic( double *x_up, double *y_up, double
 
 
 
-void Unfolder::Calculate_lumi_systematic( double *x, double *y){
+void Unfolder::Calculate_lumi_systematic( int iterations, double *x, double *y){
   cout << "=== LUMI ===" << endl;
   //== Unfold data as usual for reference.
-  
-  int iterations = 30;
     
   TH1D* hData; 
   Get_DetEnergy( -1 , hData);		cout << "=== GOT DET ===" << endl;
  
 
   hData->Scale( 1./ lumi_ );		cout << "=== SCALED ===" << endl;
-  Get_DetUnfolded( 0 , hData );      	cout << "=== UNFOLDED ===" << endl;
+  Get_DetUnfolded( 0 , hData, iterations );      	cout << "=== UNFOLDED ===" << endl;
   TH1D* hReference = (TH1D*)hData->Clone("hReference");	cout << "=== REFERENCE ===" << endl;
   SetDnDx( hReference ); 	cout << "=== DNDX ===" << endl; // Divide by binwidth.  
   
@@ -11709,16 +11374,13 @@ void Unfolder::Calculate_lumi_systematic( double *x, double *y){
 
 
 
-void Unfolder::PlotSystematics(){
-
-
-  int iterations = 30;
+void Unfolder::PlotSystematics( int iterations ){
   
   //== Data.  
   TH1D* hData; 
   Get_DetEnergy( -1 , hData);
   hData->Scale( 1./ lumi_ );
-  Get_DetUnfolded( 0 , hData );      
+  Get_DetUnfolded( 0 , hData, iterations );      
   TH1D* hReference = (TH1D*)hData->Clone("hReference");
   SetDnDx( hReference ); 	// Divide by binwidth.  
   TH1D* hFirst = (TH1D*)hReference->Clone("First");
@@ -11799,7 +11461,7 @@ void Unfolder::PlotSystematics(){
   TFile* _MC_overcal = TFile::Open( TString::Format("/user/avanspil/Castor_Analysis/Stripped_trees_histo_files/ak5ak5_Pythia6Z2star_NewGeo" + cutsetup_ + "_unfold_Emin_150.000000_deltaPhiMax_%f_etaband_%f_all_matchE_allJetsCalibrated.root", phimax_global_, etaacc_global_ ), "READ"  );
   				     				   
   RooUnfoldResponse *response = (RooUnfoldResponse*)_MC_overcal->Get("response");
-  RooUnfoldBayes unfold_bayes(response, hData_overcal, 30);
+  RooUnfoldBayes unfold_bayes(response, hData_overcal, iterations);
   hData_overcal = (TH1D*) unfold_bayes.Hreco( RooUnfold::kCovariance ); 
   SetDnDx( hData_overcal );    
   
@@ -11984,3 +11646,4 @@ void Unfolder::Convert_to_xf( TH1D* &hist ){
   
   hist = hnew;
 }
+
